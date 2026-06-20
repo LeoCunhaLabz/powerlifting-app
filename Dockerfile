@@ -9,15 +9,14 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine
-WORKDIR /app
-
-# Instalar servidor HTTP simples
-RUN npm install -g serve
+FROM nginx:1.27-alpine
 
 # Copiar build da stage anterior
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 3000
+# Copiar configuração customizada do Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
