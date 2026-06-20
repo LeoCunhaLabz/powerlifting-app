@@ -28,6 +28,8 @@ Coeficiente Wilks clássico. `coeff = 500 / denominador`, onde o denominador é 
 
 `coeff = 100 / (a - b * e^(-c * bodyweight))`; constantes `a, b, c` variam por gênero **e** por modalidade (raw vs. equipado). `pontuação = total * coeff`, arredondada para **0,01**.
 
+> ⚠️ **Limitação:** as constantes para **feminino equipado** são valores *placeholder* (não oficialmente verificados). Os resultados para esse caso específico devem ser tratados como aproximações até que os parâmetros corretos sejam confirmados e atualizados em `src/utils/powerlifting.ts`.
+
 > `total` = soma de Agachamento + Supino + Terra (1RMs). `bodyweight` e `total` na mesma unidade.
 
 ## Anilhas — `calculatePlates(targetWeight, barWeight, availablePlates)`
