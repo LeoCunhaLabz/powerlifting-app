@@ -21,4 +21,4 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 
 ## Validação
 
-Antes de concluir: `npm run lint` e `npm run build` devem passar. Não há framework de testes.
+Antes de concluir: `npm run build` deve passar. Rode `npm run lint` e não introduza novos erros (se houver erros pré-existentes, trate em PR separado). Não há framework de testes.
