@@ -74,7 +74,7 @@ Funções de cálculo ficam em [src/utils/powerlifting.ts](src/utils/powerliftin
 
 ## Antes de finalizar
 
-- [ ] `npm run lint` sem erros.
+- [ ] `npm run lint` sem **novos** erros (se houver erros pré-existentes, trate em PR separado).
 - [ ] `npm run build` passa (type-check incluso).
 - [ ] Sem imports/variáveis não utilizados.
 - [ ] Textos de UI em pt-BR.
