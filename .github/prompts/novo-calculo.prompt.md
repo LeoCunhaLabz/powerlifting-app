@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Adicionar uma nova função de cálculo pura em src/utils/powerlifting.ts."
 ---
 
