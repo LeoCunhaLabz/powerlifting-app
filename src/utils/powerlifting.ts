@@ -1,0 +1,189 @@
+/**
+ * Powerlifting utilities for RPE, e1RM, Plate Calculations, and Strength Coefficients.
+ */
+
+// RTS RPE Percentage Chart (Mike Tuchscherer)
+// Rows: Reps from 1 to 12
+// Columns: RPE from 6.5 to 10 (step 0.5)
+const RPE_PERCENTAGES: Record<number, Record<number, number>> = {
+  1:  { 10: 1.00, 9.5: 0.98, 9: 0.96, 8.5: 0.94, 8: 0.92, 7.5: 0.91, 7: 0.89, 6.5: 0.88 },
+  2:  { 10: 0.96, 9.5: 0.94, 9: 0.92, 8.5: 0.91, 8: 0.89, 7.5: 0.88, 7: 0.86, 6.5: 0.85 },
+  3:  { 10: 0.92, 9.5: 0.91, 9: 0.89, 8.5: 0.88, 8: 0.86, 7.5: 0.85, 7: 0.84, 6.5: 0.82 },
+  4:  { 10: 0.89, 9.5: 0.88, 9: 0.86, 8.5: 0.85, 8: 0.84, 7.5: 0.82, 7: 0.81, 6.5: 0.79 },
+  5:  { 10: 0.86, 9.5: 0.85, 9: 0.84, 8.5: 0.82, 8: 0.81, 7.5: 0.79, 7: 0.77, 6.5: 0.76 },
+  6:  { 10: 0.84, 9.5: 0.82, 9: 0.81, 8.5: 0.79, 8: 0.77, 7.5: 0.76, 7: 0.74, 6.5: 0.72 },
+  7:  { 10: 0.81, 9.5: 0.79, 9: 0.77, 8.5: 0.76, 8: 0.74, 7.5: 0.72, 7: 0.71, 6.5: 0.69 },
+  8:  { 10: 0.79, 9.5: 0.77, 9: 0.76, 8.5: 0.74, 8: 0.72, 7.5: 0.71, 7: 0.69, 6.5: 0.67 },
+  9:  { 10: 0.76, 9.5: 0.74, 9: 0.72, 8.5: 0.71, 8: 0.69, 7.5: 0.67, 7: 0.66, 6.5: 0.64 },
+  10: { 10: 0.74, 9.5: 0.72, 9: 0.71, 8.5: 0.69, 8: 0.67, 7.5: 0.66, 7: 0.64, 6.5: 0.62 },
+  11: { 10: 0.71, 9.5: 0.69, 9: 0.67, 8.5: 0.66, 8: 0.64, 7.5: 0.62, 7: 0.61, 6.5: 0.59 },
+  12: { 10: 0.68, 9.5: 0.66, 9: 0.64, 8.5: 0.62, 8: 0.61, 7.5: 0.59, 7: 0.57, 6.5: 0.56 },
+};
+
+/**
+ * Calculates Estimated One Rep Max (e1RM)
+ */
+export function calculateE1RM(weight: number, reps: number, rpe?: number): number {
+  if (!weight || !reps) return 0;
+
+  // If RPE is provided and within range, use RTS chart
+  if (rpe && rpe >= 6.5 && rpe <= 10) {
+    const roundedRpe = Math.round(rpe * 2) / 2; // Round to nearest 0.5
+    const repData = RPE_PERCENTAGES[reps];
+    if (repData) {
+      const percentage = repData[roundedRpe];
+      if (percentage) {
+        return Math.round((weight / percentage) * 10) / 10;
+      }
+    }
+  }
+
+  // Fallback to Brzycki formula
+  if (reps === 1) return weight;
+  return Math.round((weight / (1.0278 - 0.0278 * reps)) * 10) / 10;
+}
+
+/**
+ * Wilks Coefficient Formula (2020 Update / Classic)
+ */
+export function calculateWilks(bodyweight: number, total: number, isMale: boolean): number {
+  if (!bodyweight || !total) return 0;
+
+  // Classic Wilks Coefficients
+  const a = isMale ? -216.0475144 : 594.31747775;
+  const b = isMale ? 16.2606339 : -27.23842536;
+  const c = isMale ? -0.002388645 : 0.8211222687;
+  const d = isMale ? -0.00113732 : -0.0093073391;
+  const e = isMale ? 7.01863081e-6 : 4.731582e-5;
+  const f = isMale ? -1.291e-8 : -9.054e-8;
+
+  const w = bodyweight;
+  const denominator = a + (b * w) + (c * Math.pow(w, 2)) + (d * Math.pow(w, 3)) + (e * Math.pow(w, 4)) + (f * Math.pow(w, 5));
+  
+  if (denominator === 0) return 0;
+  
+  const coeff = 500 / denominator;
+  return Math.round((total * coeff) * 100) / 100;
+}
+
+/**
+ * DOTS Formula (standardized weight comparison)
+ */
+export function calculateDots(bodyweight: number, total: number, isMale: boolean): number {
+  if (!bodyweight || !total) return 0;
+
+  // DOTS Coefficients
+  const a = isMale ? -0.000001093 : -0.0000010706;
+  const b = isMale ? 0.0007391293 : 0.0005158568;
+  const c = isMale ? -0.19190192 : -0.11266519;
+  const d = isMale ? 24.7000574 : 16.6194945;
+  const e = isMale ? 263.18017 : 232.565;
+
+  const w = bodyweight;
+  const denominator = (a * Math.pow(w, 4)) + (b * Math.pow(w, 3)) + (c * Math.pow(w, 2)) + (d * w) + e;
+  
+  if (denominator === 0) return 0;
+  
+  const coeff = 500 / denominator;
+  return Math.round((total * coeff) * 100) / 100;
+}
+
+/**
+ * IPF GL Points Formula
+ */
+export function calculateIpfGl(bodyweight: number, total: number, isMale: boolean, isEquipped: boolean = false): number {
+  if (!bodyweight || !total) return 0;
+
+  // IPF GL Parameters
+  // Rows: Male Raw, Male Equipped, Female Raw, Female Equipped
+  let a = 0, b = 0, c = 0;
+  
+  if (isMale) {
+    if (isEquipped) {
+      a = 387.8745;
+      b = 0.00238;
+      c = 0.000056;
+    } else {
+      a = 290.6789;
+      b = 0.00361;
+      c = 0.000148;
+    }
+  } else {
+    if (isEquipped) {
+      a = 80.0000; // placeholder standard IPF GL female equipped constants
+      b = 0.00100;
+      c = 0.000044;
+    } else {
+      a = 209.8407;
+      b = 0.00707;
+      c = 0.000262;
+    }
+  }
+
+  // IPF GL Formula: points = total * 100 / (a - b * e^(-c * bodyweight))
+  // Wait, let's check the correct formula:
+  // IPF GL Points = 100 * total / (a - b * e^(-c * weight)) or similar:
+  // Actually, standard IPF GL formula:
+  // Points = total * coeff, where coeff = 100 / (a - b * e^(-c * bodyweight))
+  const denominator = a - b * Math.exp(-c * bodyweight);
+  if (denominator <= 0) return 0;
+  const coeff = 100 / denominator;
+  return Math.round((total * coeff) * 100) / 100;
+}
+
+export interface PlateCalculationResult {
+  plateWeight: number;
+  count: number; // count on ONE side of the bar
+}
+
+/**
+ * Computes plate breakdown for a given target weight
+ */
+export function calculatePlates(
+  targetWeight: number,
+  barWeight: number,
+  availablePlates: number[]
+): {
+  plates: PlateCalculationResult[];
+  actualWeight: number;
+  remainingWeight: number;
+} {
+  const result: PlateCalculationResult[] = [];
+  if (targetWeight <= barWeight) {
+    return { plates: [], actualWeight: barWeight, remainingWeight: 0 };
+  }
+
+  // Weight required on BOTH sides total
+  const weightToLoadTotal = targetWeight - barWeight;
+  // Weight required on ONE side
+  let weightPerSide = weightToLoadTotal / 2;
+
+  // Sort available plates descending
+  const sortedPlates = [...availablePlates].sort((a, b) => b - a);
+
+  for (const plate of sortedPlates) {
+    if (weightPerSide >= plate) {
+      const count = Math.floor(weightPerSide / plate);
+      if (count > 0) {
+        result.push({ plateWeight: plate, count });
+        weightPerSide -= plate * count;
+      }
+    }
+  }
+
+  const loadedWeightPerSide = result.reduce((acc, p) => acc + p.plateWeight * p.count, 0);
+  const actualWeight = barWeight + loadedWeightPerSide * 2;
+  const remainingWeight = targetWeight - actualWeight;
+
+  return {
+    plates: result,
+    actualWeight,
+    remainingWeight,
+  };
+}
+
+/**
+ * Default plates available in a standard gym setup
+ */
+export const DEFAULT_PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5, 0.25];
+export const DEFAULT_PLATES_LBS = [55, 45, 35, 25, 10, 5, 2.5];
