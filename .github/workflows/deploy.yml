@@ -123,36 +123,21 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
-          # Grava o payload JSON em arquivo para evitar problemas de escaping no shell.
-          cat > /tmp/email.json <<'ENDJSON'
-          {
-            "from": "Powerlifting CI <onboarding@resend.dev>",
-            "to": ["MAIL_TO_PLACEHOLDER"],
-            "subject": "SUBJECT_PLACEHOLDER",
-            "html": "HTML_PLACEHOLDER"
-          }
-          ENDJSON
-
-          # Substitui os placeholders com os valores reais.
           SUBJECT="${{ steps.summary.outputs.subject }}"
-          HTML="<h2>${{ steps.summary.outputs.overall }}</h2><p><b>Repositório:</b> ${{ github.repository }}<br/><b>Branch:</b> ${{ github.ref_name }}<br/><b>Commit:</b> <code>${{ github.sha }}</code><br/><b>Autor:</b> ${{ github.actor }}</p><h3>Etapas</h3><ul><li>${{ steps.summary.outputs.build_icon }} Lint, Testes &amp; Build</li><li>${{ steps.summary.outputs.deploy_icon }} Deploy no Dokploy</li><li>${{ steps.summary.outputs.verify_icon }} Smoke test (app no ar)</li></ul><p><a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Ver detalhes no GitHub Actions</a></p>"
+          HTML="<h2>${{ steps.summary.outputs.overall }}</h2><p><b>Repo:</b> ${{ github.repository }}<br/><b>Branch:</b> ${{ github.ref_name }}<br/><b>Commit:</b> ${{ github.sha }}<br/><b>Autor:</b> ${{ github.actor }}</p><h3>Etapas</h3><ul><li>${{ steps.summary.outputs.build_icon }} Lint, Testes &amp; Build</li><li>${{ steps.summary.outputs.deploy_icon }} Deploy no Dokploy</li><li>${{ steps.summary.outputs.verify_icon }} Smoke test (app no ar)</li></ul><p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Ver logs no GitHub Actions</a></p>"
 
-          python3 -c "
-import json, os
-with open('/tmp/email.json') as f:
-    data = json.load(f)
-data['to'] = [os.environ['MAIL_TO']]
-data['subject'] = os.environ['SUBJECT']
-data['html'] = os.environ['HTML']
-with open('/tmp/email.json', 'w') as f:
-    json.dump(data, f)
-" MAIL_TO="$MAIL_TO" SUBJECT="$SUBJECT" HTML="$HTML"
+          PAYLOAD=$(jq -n \
+            --arg from "Powerlifting CI <onboarding@resend.dev>" \
+            --arg to "$MAIL_TO" \
+            --arg subject "$SUBJECT" \
+            --arg html "$HTML" \
+            '{from: $from, to: [$to], subject: $subject, html: $html}')
 
           http_code=$(curl -sS -o /tmp/resend_response.json -w "%{http_code}" \
             -X POST 'https://api.resend.com/emails' \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H 'Content-Type: application/json' \
-            -d @/tmp/email.json)
+            -d "$PAYLOAD")
           echo "Resend HTTP $http_code"
           cat /tmp/resend_response.json || true
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
