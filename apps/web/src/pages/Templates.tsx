@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import type { TemplateExercise } from '../types/workout';
+import type { TemplateExercise } from '@powerlifting/shared';
 import { Plus, Trash2, Play, X, ChevronRight } from 'lucide-react';
 
 interface TemplatesProps {

@@ -1,11 +1,11 @@
 ---
 name: powerlifting-formulas
-description: "Conhecimento de domínio das fórmulas de powerlifting deste app: e1RM (tabela RPE da RTS + Brzycki), Wilks, DOTS, IPF GL e cálculo de anilhas. Use ao implementar, revisar ou explicar cálculos de força em src/utils/powerlifting.ts."
+description: "Conhecimento de domínio das fórmulas de powerlifting deste app: e1RM (tabela RPE da RTS + Brzycki), Wilks, DOTS, IPF GL e cálculo de anilhas. Use ao implementar, revisar ou explicar cálculos de força em apps/web/src/utils/powerlifting.ts."
 ---
 
 # Fórmulas de Powerlifting
 
-Referência de domínio para os cálculos em [src/utils/powerlifting.ts](../../../src/utils/powerlifting.ts). Todas as funções são **puras** e retornam `0` para entradas inválidas.
+Referência de domínio para os cálculos em [apps/web/src/utils/powerlifting.ts](../../../apps/web/src/utils/powerlifting.ts). Todas as funções são **puras** e retornam `0` para entradas inválidas.
 
 ## e1RM — `calculateE1RM(weight, reps, rpe?)`
 
@@ -28,7 +28,7 @@ Coeficiente Wilks clássico. `coeff = 500 / denominador`, onde o denominador é 
 
 `coeff = 100 / (a - b * e^(-c * bodyweight))`; constantes `a, b, c` variam por gênero **e** por modalidade (raw vs. equipado). `pontuação = total * coeff`, arredondada para **0,01**.
 
-> ⚠️ **Limitação:** as constantes para **feminino equipado** são valores *placeholder* (não oficialmente verificados). Os resultados para esse caso específico devem ser tratados como aproximações até que os parâmetros corretos sejam confirmados e atualizados em `src/utils/powerlifting.ts`.
+> ⚠️ **Limitação:** as constantes para **feminino equipado** são valores *placeholder* (não oficialmente verificados). Os resultados para esse caso específico devem ser tratados como aproximações até que os parâmetros corretos sejam confirmados e atualizados em `apps/web/src/utils/powerlifting.ts`.
 
 > `total` = soma de Agachamento + Supino + Terra (1RMs). `bodyweight` e `total` na mesma unidade.
 

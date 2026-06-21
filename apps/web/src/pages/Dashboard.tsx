@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import type { WorkoutSession } from '../types/workout';
+import type { WorkoutSession } from '@powerlifting/shared';
 import { calculateE1RM, calculateDots, calculateWilks } from '../utils/powerlifting';
 import { Award, Calendar, TrendingUp, Zap, Clock, Eye, X } from 'lucide-react';
 

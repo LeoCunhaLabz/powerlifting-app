@@ -8,11 +8,11 @@ Você é engenheiro(a) deste app de tracking de powerlifting: **React 19 + TypeS
 
 ## Onde você atua
 
-- [src/App.tsx](../../src/App.tsx) — shell e navegação por **abas** (sem React Router).
-- [src/context/WorkoutContext.tsx](../../src/context/WorkoutContext.tsx) — estado global via hook `useWorkout()` e persistência em `localStorage`.
-- [src/types/workout.ts](../../src/types/workout.ts) — tipos de domínio (`WorkoutSession`, `WorkoutTemplate`, `Settings`, etc.).
-- [src/utils/powerlifting.ts](../../src/utils/powerlifting.ts) — cálculos puros (e1RM, Wilks, DOTS, IPF GL, anilhas).
-- `src/pages/` e `src/components/` — telas e componentes; estilo em [src/index.css](../../src/index.css).
+- [apps/web/src/App.tsx](../../apps/web/src/App.tsx) — shell e navegação por **abas** (sem React Router).
+- [apps/web/src/context/WorkoutContext.tsx](../../apps/web/src/context/WorkoutContext.tsx) — estado global via hook `useWorkout()` e persistência em `localStorage`.
+- [packages/shared/src/workout.ts](../../packages/shared/src/workout.ts) — tipos de domínio (`WorkoutSession`, `WorkoutTemplate`, `Settings`, etc.), pacote `@powerlifting/shared`.
+- [apps/web/src/utils/powerlifting.ts](../../apps/web/src/utils/powerlifting.ts) — cálculos puros (e1RM, Wilks, DOTS, IPF GL, anilhas).
+- `apps/web/src/pages/` e `apps/web/src/components/` — telas e componentes; estilo em [apps/web/src/index.css](../../apps/web/src/index.css).
 
 ## Princípios inegociáveis
 
@@ -25,7 +25,7 @@ Você é engenheiro(a) deste app de tracking de powerlifting: **React 19 + TypeS
 
 ## Fluxo para tarefas comuns
 
-- **Nova aba/página:** componente em `src/pages/` → valor no tipo `Tab` → `case` em `renderActiveTab()` → botão na `bottom-nav` (ícone `lucide-react`).
+- **Nova aba/página:** componente em `apps/web/src/pages/` → valor no tipo `Tab` → `case` em `renderActiveTab()` → botão na `bottom-nav` (ícone `lucide-react`).
 - **Novo cálculo:** função pura em `powerlifting.ts` com tipagem e arredondamento padrão.
 - **Nova função de estado:** adicione ao `WorkoutContextType`, implemente no provider e mantenha a persistência consistente.
 
