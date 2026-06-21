@@ -17,8 +17,13 @@ await app.register(cors, { origin: env.CORS_ORIGIN })
 await app.register(healthRoutes)
 
 const shutdown = async () => {
-  await app.close()
-  process.exit(0)
+  try {
+    await app.close()
+    process.exit(0)
+  } catch (err) {
+    app.log.error({ err }, 'Erro ao encerrar o servidor')
+    process.exit(1)
+  }
 }
 
 process.on('SIGINT', shutdown)
