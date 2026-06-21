@@ -11,7 +11,8 @@ App **mobile-first** de tracking de powerlifting em **React 19 + TypeScript + Vi
 ```
 powerlifting-app/
 ├─ apps/
-│  └─ web/          ← frontend React (Vite) — código em apps/web/src/
+│  ├─ web/          ← frontend React (Vite) — código em apps/web/src/
+│  └─ api/          ← backend Fastify + TypeScript — código em apps/api/src/
 ├─ packages/
 │  └─ shared/       ← tipos de domínio compartilhados (@powerlifting/shared)
 ├─ package.json     ← raiz: npm workspaces + scripts que delegam
@@ -19,7 +20,6 @@ powerlifting-app/
 └─ docker-compose.yml
 ```
 
-- `apps/api/` será criado pela issue #7 (Fastify). Não existe enquanto essa issue não for concluída.
 - Sem Turborepo/Nx: workspaces do npm são suficientes neste estágio.
 
 ## Comandos
@@ -27,14 +27,18 @@ powerlifting-app/
 Todos os comandos rodam da **raiz** e delegam para os workspaces:
 
 ```bash
-npm install        # instalar dependências de todos os workspaces (Node 20+)
-npm run dev        # dev server do apps/web com HMR
-npm run build      # build do apps/web (tsc -b + vite build)
-npm run preview    # servir o build de produção do apps/web
-npm run lint       # ESLint do apps/web (flat config)
+npm install         # instalar dependências de todos os workspaces (Node 20+)
+npm run dev         # dev server do apps/web com HMR
+npm run build       # build do apps/web (tsc -b + vite build)
+npm run preview     # servir o build de produção do apps/web
+npm run lint        # ESLint do apps/web (flat config)
+npm run dev:api     # dev server do apps/api com hot-reload (tsx watch)
+npm run build:api   # compila apps/api (tsc → dist/)
+npm run start:api   # inicia o servidor compilado do apps/api
+npm run lint:api    # ESLint do apps/api (flat config)
 ```
 
-> Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web`.
+> Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web` ou `-w @powerlifting/api`.
 > Não há testes configurados. Não invente comandos de teste; valide com `npm run lint` e `npm run build`.
 
 ## Princípios
