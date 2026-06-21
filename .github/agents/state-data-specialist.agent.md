@@ -8,16 +8,16 @@ Você é especialista no **estado global e na camada de dados** deste app de pow
 
 ## Onde você atua
 
-- [src/context/WorkoutContext.tsx](../../src/context/WorkoutContext.tsx) — estado global via hook `useWorkout()`.
+- [apps/web/src/context/WorkoutContext.tsx](../../apps/web/src/context/WorkoutContext.tsx) — estado global via hook `useWorkout()`.
   - Interface `WorkoutContextType`: funções e valores expostos ao app.
   - Provider: lógica de negócio, persistência (`useEffect` → `localStorage`), templates embutidos (`BUILT_IN_TEMPLATES`).
   - Chaves de `localStorage`: `powerlifting_app_state`, `powerlifting_active_workout`, `powerlifting_rest_timer_end`.
-- [src/types/workout.ts](../../src/types/workout.ts) — interfaces de domínio: `SetState`, `ExerciseState`, `WorkoutSession`, `TemplateExercise`, `WorkoutTemplate`, `Settings`, `AppState`.
+- [packages/shared/src/workout.ts](../../packages/shared/src/workout.ts) — interfaces de domínio (pacote `@powerlifting/shared`): `SetState`, `ExerciseState`, `WorkoutSession`, `TemplateExercise`, `WorkoutTemplate`, `Settings`, `AppState`.
 
 ## Restrições
 
 - **NUNCA** acesse `localStorage` diretamente em componentes ou páginas. Todo acesso passa pelo hook `useWorkout()`.
-- **NÃO** coloque cálculos de força aqui — pertencem a `src/utils/powerlifting.ts`.
+- **NÃO** coloque cálculos de força aqui — pertencem a `apps/web/src/utils/powerlifting.ts`.
 - Ao adicionar um campo em uma interface, mantenha **retrocompatibilidade** na desserialização do `localStorage` (use `?? defaultValue` ou `|| fallback` ao ler o estado salvo).
 - `BUILT_IN_TEMPLATES` são imutáveis — não permita que o usuário os exclua (`isBuiltIn?: true`). Templates customizados convivem mesclados.
 - TypeScript strict: `noUnusedLocals` e `noUnusedParameters` ativos.

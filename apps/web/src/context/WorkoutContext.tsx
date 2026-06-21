@@ -6,7 +6,7 @@ import type {
   Settings, 
   ExerciseState, 
   SetState 
-} from '../types/workout';
+} from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG } from '../utils/powerlifting';
 
 interface WorkoutContextType {

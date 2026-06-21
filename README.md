@@ -27,9 +27,9 @@ Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dad
 | Build | Vite 8 (`@vitejs/plugin-react`) |
 | Ícones | lucide-react |
 | Lint | ESLint 10 (flat config) + typescript-eslint + react-hooks |
-| Estilo | CSS puro (`src/index.css`), tema "Chalk & Onyx" |
-| Persistência | `localStorage` (sem backend) |
-| Deploy | Docker (multi-stage) + `serve` |
+| Estilo | CSS puro (`apps/web/src/index.css`), tema "Chalk & Onyx" |
+| Persistência | `localStorage` (sem backend, sincronização prevista na fase 3) |
+| Deploy | Docker (multi-stage) + Nginx |
 
 > **Sem framework de testes** configurado no momento.
 
@@ -61,7 +61,7 @@ npm run lint
 | Script | Descrição |
 |--------|-----------|
 | `npm run dev` | Sobe o Vite com hot module replacement. |
-| `npm run build` | Roda `tsc -b` (type-check) e gera o bundle em `dist/`. |
+| `npm run build` | Roda `tsc -b` (type-check) e gera o bundle em `apps/web/dist/`. |
 | `npm run preview` | Serve o build de produção localmente. |
 | `npm run lint` | Verifica qualidade do código com ESLint. |
 
@@ -108,7 +108,7 @@ flowchart TD
 
 ### Estado global — `WorkoutContext`
 
-Todo o estado da aplicação vive em [src/context/WorkoutContext.tsx](src/context/WorkoutContext.tsx) e é exposto via o hook `useWorkout()`. Ele gerencia:
+Todo o estado da aplicação vive em [apps/web/src/context/WorkoutContext.tsx](apps/web/src/context/WorkoutContext.tsx) e é exposto via o hook `useWorkout()`. Ele gerencia:
 
 - `state: AppState` — histórico, templates e configurações.
 - `activeWorkout` — sessão de treino em andamento.
@@ -130,7 +130,7 @@ Backup manual via **exportar/importar JSON** na página de Configurações.
 
 ### Cálculos de powerlifting
 
-Funções puras em [src/utils/powerlifting.ts](src/utils/powerlifting.ts):
+Funções puras em [apps/web/src/utils/powerlifting.ts](apps/web/src/utils/powerlifting.ts):
 
 - `calculateE1RM(weight, reps, rpe?)` — e1RM via tabela RPE da RTS (Mike Tuchscherer); fallback para Brzycki sem RPE.
 - `calculateWilks(bodyweight, total, isMale)` — coeficiente Wilks clássico.
@@ -142,27 +142,41 @@ Funções puras em [src/utils/powerlifting.ts](src/utils/powerlifting.ts):
 
 ## 📁 Estrutura de pastas
 
+O projeto é um **monorepo** com npm workspaces.
+
 ```text
-src/
-  App.tsx                  # Shell + navegação por abas
-  main.tsx                 # Entry point (monta o React)
-  index.css                # Tema "Chalk & Onyx" (CSS puro)
-  components/
-    PlateVisualizer.tsx    # Barra visual com anilhas (cores IPF)
-    RestTimer.tsx          # Cronômetro de descanso flutuante (Web Audio API)
-  context/
-    WorkoutContext.tsx     # Estado global + persistência localStorage
-  pages/
-    Dashboard.tsx          # Início
-    Workout.tsx            # Sessão de treino ativa
-    Templates.tsx          # Rotinas (built-in + customizadas)
-    Analytics.tsx          # Gráficos de evolução
-    Calculators.tsx        # Anilhas + pontuações
-    Settings.tsx           # Preferências + backup
-  types/
-    workout.ts             # Interfaces de domínio
-  utils/
-    powerlifting.ts        # Cálculos puros (e1RM, Wilks, DOTS, IPF GL, anilhas)
+powerlifting-app/
+  apps/
+    web/                     # Frontend React (Vite)
+      index.html
+      vite.config.ts
+      pwa-assets.config.ts
+      tsconfig*.json
+      eslint.config.js
+      src/
+        App.tsx              # Shell + navegação por abas
+        main.tsx             # Entry point (monta o React)
+        index.css            # Tema "Chalk & Onyx" (CSS puro)
+        components/
+          PlateVisualizer.tsx # Barra visual com anilhas (cores IPF)
+          RestTimer.tsx       # Cronômetro de descanso flutuante (Web Audio API)
+        context/
+          WorkoutContext.tsx  # Estado global + persistência localStorage
+        pages/
+          Dashboard.tsx       # Início
+          Workout.tsx         # Sessão de treino ativa
+          Templates.tsx       # Rotinas (built-in + customizadas)
+          Analytics.tsx       # Gráficos de evolução
+          Calculators.tsx     # Anilhas + pontuações
+          Settings.tsx        # Preferências + backup
+        utils/
+          powerlifting.ts     # Cálculos puros (e1RM, Wilks, DOTS, IPF GL, anilhas)
+  packages/
+    shared/                  # Tipos de domínio compartilhados (@powerlifting/shared)
+      src/
+        workout.ts           # Interfaces de domínio
+        index.ts             # Barrel de exportação
+  package.json               # Raiz: npm workspaces + scripts que delegam
 ```
 
 ---
@@ -171,7 +185,7 @@ src/
 
 - Tema escuro, layout travado em `--max-width: 480px` (mobile-first, centralizado no desktop).
 - Fontes: **Outfit** (títulos) e **Plus Jakarta Sans** (corpo), via Google Fonts.
-- Tokens de cor e espaçamento definidos como CSS variables em [src/index.css](src/index.css).
+- Tokens de cor e espaçamento definidos como CSS variables em [apps/web/src/index.css](apps/web/src/index.css).
 
 Detalhes completos e convenções estão em [AGENTS.md](AGENTS.md).
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateE1RM } from '../utils/powerlifting';
-import type { SetState } from '../types/workout';
+import type { SetState } from '@powerlifting/shared';
 import { TrendingUp, BarChart2, Award } from 'lucide-react';
 
 interface ChartDataPoint {

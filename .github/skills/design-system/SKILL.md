@@ -1,11 +1,11 @@
 ---
 name: design-system
-description: "Design system 'Chalk & Onyx' deste app de powerlifting: tokens de cor, tipografia, raios, transições e layout mobile-first (480px) em src/index.css. Use ao estilizar páginas/componentes ou criar UI nova."
+description: "Design system 'Chalk & Onyx' deste app de powerlifting: tokens de cor, tipografia, raios, transições e layout mobile-first (480px) em apps/web/src/index.css. Use ao estilizar páginas/componentes ou criar UI nova."
 ---
 
 # Design System — "Chalk & Onyx"
 
-Tema escuro, mobile-first, definido como CSS variables em [src/index.css](../../../src/index.css). **CSS puro** — não use Tailwind nem bibliotecas de CSS-in-JS. Ícones via `lucide-react`.
+Tema escuro, mobile-first, definido como CSS variables em [apps/web/src/index.css](../../../apps/web/src/index.css). **CSS puro** — não use Tailwind nem bibliotecas de CSS-in-JS. Ícones via `lucide-react`.
 
 ## Tokens (CSS variables)
 
@@ -40,7 +40,7 @@ Tema escuro, mobile-first, definido como CSS variables em [src/index.css](../../
 ## Convenções
 
 - **Sempre** use os tokens acima em vez de hex literais quando houver token equivalente.
-- Estilos inline via objeto `styles: { ... }` no componente são aceitáveis quando seguem o padrão já existente (ver [src/components/RestTimer.tsx](../../../src/components/RestTimer.tsx) e [src/components/PlateVisualizer.tsx](../../../src/components/PlateVisualizer.tsx)).
+- Estilos inline via objeto `styles: { ... }` no componente são aceitáveis quando seguem o padrão já existente (ver [apps/web/src/components/RestTimer.tsx](../../../apps/web/src/components/RestTimer.tsx) e [apps/web/src/components/PlateVisualizer.tsx](../../../apps/web/src/components/PlateVisualizer.tsx)).
 - Navegação inferior (`.bottom-nav`) e itens (`.nav-item`) já estilizados — reutilize as classes ao adicionar abas.
 - Mantenha textos em **pt-BR**.
 

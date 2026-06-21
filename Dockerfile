@@ -3,6 +3,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci
 
 COPY . .
@@ -12,7 +14,7 @@ RUN npm run build
 FROM nginx:1.27-alpine
 
 # Copiar build da stage anterior
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
 # Gerar nginx.conf inline (evita BOM/CRLF de arquivos criados no Windows)
 RUN printf 'server {\n\
@@ -42,3 +44,4 @@ RUN printf 'server {\n\
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+
