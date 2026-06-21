@@ -16,6 +16,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copiar configuração customizada do Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Remover CRLF gerado no Windows (nginx alpine nao tolera \r)
+RUN sed -i 's/\r$//' /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
