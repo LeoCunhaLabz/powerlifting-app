@@ -514,7 +514,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-sm)',
     padding: '8px 12px',
     color: 'var(--text-primary)',
-    fontSize: '13px',
     height: '52px',
     resize: 'none',
     marginBottom: '16px',
@@ -591,7 +590,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   selectType: {
     height: '28px',
-    fontSize: '11px',
     fontWeight: '700',
     padding: '0 4px',
     backgroundColor: '#0a0a0a',
@@ -611,7 +609,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   weightInput: {
     height: '28px',
-    fontSize: '12px',
     fontWeight: '700',
     textAlign: 'center',
     backgroundColor: 'transparent',
@@ -630,7 +627,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   repsInput: {
     height: '28px',
-    fontSize: '12px',
     fontWeight: '700',
     textAlign: 'center',
     backgroundColor: '#0a0a0a',
@@ -642,7 +638,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   selectRpe: {
     height: '28px',
-    fontSize: '11px',
     fontWeight: '700',
     backgroundColor: '#0a0a0a',
     border: '1px solid var(--border-color)',
@@ -739,7 +734,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modalSearch: {
     height: '40px',
-    fontSize: '14px',
     marginBottom: '12px',
   },
   suggestionsList: {

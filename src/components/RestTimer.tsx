@@ -187,7 +187,7 @@ export const RestTimer: React.FC = () => {
 const styles: Record<string, React.CSSProperties> = {
   collapsedContainer: {
     position: 'absolute',
-    bottom: '70px', // Right above the bottom navigation bar
+    bottom: 'calc(70px + env(safe-area-inset-bottom, 0px))', // Right above the bottom navigation bar (with safe-area offset)
     left: 0,
     width: '100%',
     height: '48px',
