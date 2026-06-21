@@ -503,6 +503,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     padding: '20px',
+    paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
   },
   overlayHeader: {
     display: 'flex',
