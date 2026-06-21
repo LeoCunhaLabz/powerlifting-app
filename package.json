@@ -12,6 +12,7 @@
     "build": "npm run build -w @powerlifting/web",
     "preview": "npm run preview -w @powerlifting/web",
     "lint": "npm run lint -w @powerlifting/web",
+    "test": "npm run test -w @powerlifting/web",
     "generate-pwa-assets": "npm run generate-pwa-assets -w @powerlifting/web"
   }
 }

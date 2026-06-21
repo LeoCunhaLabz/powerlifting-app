@@ -27,11 +27,11 @@ Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dad
 | Build | Vite 8 (`@vitejs/plugin-react`) |
 | Ícones | lucide-react |
 | Lint | ESLint 10 (flat config) + typescript-eslint + react-hooks |
+| Testes | Vitest 4 (funções puras em `utils/powerlifting.ts`) |
 | Estilo | CSS puro (`apps/web/src/index.css`), tema "Chalk & Onyx" |
 | Persistência | `localStorage` (sem backend, sincronização prevista na fase 3) |
 | Deploy | Docker (multi-stage) + Nginx |
-
-> **Sem framework de testes** configurado no momento.
+| CI/CD | GitHub Actions (lint → testes → build → deploy Dokploy → smoke test) |
 
 ---
 
@@ -54,6 +54,9 @@ npm run preview
 
 # Lint
 npm run lint
+
+# Testes unitários
+npm run test
 ```
 
 ### Scripts disponíveis
@@ -64,6 +67,31 @@ npm run lint
 | `npm run build` | Roda `tsc -b` (type-check) e gera o bundle em `apps/web/dist/`. |
 | `npm run preview` | Serve o build de produção localmente. |
 | `npm run lint` | Verifica qualidade do código com ESLint. |
+| `npm run test` | Roda os testes unitários com Vitest (modo `run`). |
+
+---
+
+## ⚙️ CI/CD
+
+O pipeline roda automaticamente via **GitHub Actions** em dois contextos:
+
+| Workflow | Gatilho | Etapas |
+|---|---|---|
+| **CI** ([ci.yml](.github/workflows/ci.yml)) | Pull Requests para `main` | lint → testes → build |
+| **Deploy** ([deploy.yml](.github/workflows/deploy.yml)) | Push na `main` | lint → testes → build → deploy Dokploy → smoke test → e-mail |
+
+O deploy só é acionado **após o gate de qualidade passar** (lint + testes + build). Código quebrado nunca chega em produção. Ao final de cada deploy, um e-mail de resumo é enviado com o status de cada etapa e link para os logs no GitHub Actions.
+
+### Secrets necessários (GitHub → Settings → Secrets → Actions)
+
+| Secret | Valor |
+|---|---|
+| `DOKPLOY_WEBHOOK_URL` | Webhook URL da aplicação no Dokploy (aba *Deployments*) |
+| `APP_URL` | URL pública da aplicação (para smoke test) |
+| `RESEND_API_KEY` | API key gerada em resend.com |
+| `MAIL_TO` | E-mail destinatário do resumo |
+
+> E-mails enviados via [Resend](https://resend.com) (gratuito, 100 e-mails/dia). Crie sua conta em resend.com com o mesmo e-mail que quer receber as notificações, gere uma API key e cadastre-a como secret.
 
 ---
 
