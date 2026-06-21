@@ -40,7 +40,7 @@ jobs:
       - name: Build (type-check + bundle)
         run: npm run build
 
-  # 2) Deploy: dispara o build/deploy no Dokploy via webhook.
+  # 2) Deploy: dispara o build/deploy no Dokploy via API REST com API key.
   deploy:
     name: Deploy no Dokploy
     needs: build
@@ -48,13 +48,19 @@ jobs:
     steps:
       - name: Disparar deploy no Dokploy
         env:
-          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          DOKPLOY_APP_ID: ${{ secrets.DOKPLOY_APP_ID }}
         run: |
-          echo "Disparando deploy via webhook..."
-          http_code=$(curl -sS -o response.json -w "%{http_code}" \
-            -X POST "$DOKPLOY_WEBHOOK_URL")
+          echo "Disparando deploy da aplicação $DOKPLOY_APP_ID..."
+          http_code=$(curl -sS -o /tmp/dokploy_response.json -w "%{http_code}" \
+            -X POST "$DOKPLOY_URL/api/application.deploy" \
+            -H 'accept: application/json' \
+            -H "x-api-key: $DOKPLOY_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d "{\"applicationId\": \"$DOKPLOY_APP_ID\"}")
           echo "HTTP $http_code"
-          cat response.json || true
+          cat /tmp/dokploy_response.json || true
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
             echo "::error::Falha ao disparar o deploy no Dokploy (HTTP $http_code)"
             exit 1
