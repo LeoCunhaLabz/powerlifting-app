@@ -503,6 +503,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     padding: '20px',
+    paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
   },
   overlayHeader: {
     display: 'flex',
@@ -540,12 +541,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     height: '40px',
-    fontSize: '14px',
     fontWeight: '600',
   },
   textarea: {
     height: '60px',
-    fontSize: '13px',
     lineHeight: '1.4',
     resize: 'none',
   },
@@ -612,7 +611,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tableSelect: {
     height: '28px',
-    fontSize: '12px',
     padding: '0 4px',
     backgroundColor: '#0a0a0a',
     border: '1px solid var(--border-color)',
@@ -622,7 +620,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tableInput: {
     height: '28px',
-    fontSize: '12px',
     textAlign: 'center',
     backgroundColor: '#0a0a0a',
     border: '1px solid var(--border-color)',
@@ -656,7 +653,6 @@ const styles: Record<string, React.CSSProperties> = {
   searchExerciseInput: {
     width: '100%',
     height: '40px',
-    fontSize: '13px',
   },
   addCustomExBtn: {
     width: '100%',
