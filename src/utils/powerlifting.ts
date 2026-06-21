@@ -96,7 +96,7 @@ export function calculateIpfGl(bodyweight: number, total: number, isMale: boolea
 
   // IPF GL Parameters
   // Rows: Male Raw, Male Equipped, Female Raw, Female Equipped
-  let a = 0, b = 0, c = 0;
+  let a: number, b: number, c: number;
   
   if (isMale) {
     if (isEquipped) {

@@ -19,7 +19,11 @@ export const RestTimer: React.FC = () => {
   // Sound generator using Web Audio API
   const playTimerEndSound = () => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtxClass: (new (options?: AudioContextOptions) => AudioContext) | undefined =
+        window.AudioContext ||
+        (window as { webkitAudioContext?: new (options?: AudioContextOptions) => AudioContext }).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const audioCtx = new AudioCtxClass();
       
       const playBeep = (time: number, freq: number, duration: number) => {
         const osc = audioCtx.createOscillator();
@@ -50,8 +54,6 @@ export const RestTimer: React.FC = () => {
 
   useEffect(() => {
     if (!restTimerEnd) {
-      setTimeLeft(0);
-      setPercentLeft(0);
       return;
     }
 
@@ -87,7 +89,7 @@ export const RestTimer: React.FC = () => {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [restTimerEnd, stopRestTimer]);
+  }, [restTimerEnd, stopRestTimer, restTimerDuration]);
 
   if (!restTimerEnd || timeLeft <= 0) {
     return null;

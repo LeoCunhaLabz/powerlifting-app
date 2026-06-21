@@ -20,6 +20,7 @@ interface WorkoutContextType {
   addSetToExercise: (exerciseIndex: number) => void;
   removeSetFromExercise: (exerciseIndex: number, setIndex: number) => void;
   updateSet: (exerciseIndex: number, setIndex: number, fields: Partial<SetState>) => void;
+  updateWorkoutNotes: (notes: string) => void;
   saveTemplate: (template: Omit<WorkoutTemplate, 'id'> & { id?: string }) => void;
   deleteTemplate: (templateId: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
@@ -333,6 +334,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Determine duration
     const startTime = new Date(activeWorkout.date).getTime();
+    // eslint-disable-next-line react-hooks/purity
     const duration = Math.round((Date.now() - startTime) / 1000);
 
     const completedSession: WorkoutSession = {
@@ -505,6 +507,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
+  // Update notes of the active workout session
+  const updateWorkoutNotes = (notes: string) => {
+    if (!activeWorkout) return;
+    setActiveWorkout(prev => prev ? { ...prev, notes } : null);
+  };
+
   // Save/Create a workout template
   const saveTemplate = (templateData: Omit<WorkoutTemplate, 'id'> & { id?: string }) => {
     setState(prev => {
@@ -604,6 +612,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addSetToExercise,
       removeSetFromExercise,
       updateSet,
+      updateWorkoutNotes,
       saveTemplate,
       deleteTemplate,
       updateSettings,
@@ -621,6 +630,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWorkout = () => {
   const context = useContext(WorkoutContext);
   if (context === undefined) {

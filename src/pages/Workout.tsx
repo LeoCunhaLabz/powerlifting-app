@@ -14,6 +14,7 @@ export const Workout: React.FC = () => {
     addSetToExercise,
     removeSetFromExercise,
     updateSet,
+    updateWorkoutNotes,
     state,
     getMaxE1RM
   } = useWorkout();
@@ -130,11 +131,7 @@ export const Workout: React.FC = () => {
       <textarea
         placeholder="Notas do treino (clima, humor, dores...)"
         value={activeWorkout.notes || ''}
-        onChange={(e) => {
-          // Note editing is handled in parent but let's persist local hook
-          // Actually, we can update context state if we want, but local notes field works
-          activeWorkout.notes = e.target.value;
-        }}
+        onChange={(e) => updateWorkoutNotes(e.target.value)}
         style={styles.notesTextarea}
       />
 

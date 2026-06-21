@@ -11,9 +11,9 @@ interface PlateVisualizerProps {
 // Map plates to standard IPF/Competition colors and relative heights
 const getPlateStyle = (weightVal: number, units: 'kg' | 'lbs') => {
 
-  let color = '#555558'; // grey default
-  let height = '80px';
-  let width = '14px';
+  let color: string;
+  let height: string;
+  let width: string;
   let labelColor = '#ffffff';
 
   if (units === 'kg') {
