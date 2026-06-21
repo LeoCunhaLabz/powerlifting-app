@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
 const envSchema = z.object({
-  PORT: z.coerce.number().default(3000),
+  PORT: z.preprocess(
+    (v) => (v === undefined || v === '' ? undefined : Number(v)),
+    z.number().int().min(1).max(65535).default(3000),
+  ),
   HOST: z.string().default('0.0.0.0'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
 })
