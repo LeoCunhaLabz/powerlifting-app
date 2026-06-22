@@ -99,7 +99,10 @@ jobs:
           fi
           echo "Deploys disparados com sucesso."
 
-  # 3) Smoke test: confirma que a nova versão está no ar (HTTP 200).
+  # 3) Smoke test: espera o Dokploy TERMINAR o build/rollout (status 'done')
+  #    via API e só então confirma que a versão nova responde 200.
+  #    Esperar o status evita o falso negativo de testar a URL enquanto o VPS
+  #    ainda builda: com CPU/IO saturados o curl estoura o tempo (HTTP 000).
   verify:
     name: Smoke test
     needs: deploy
@@ -107,16 +110,52 @@ jobs:
     outputs:
       status: ${{ steps.healthcheck.outputs.status }}
     steps:
-      - name: Aguardar e verificar as aplicações
+      - name: Aguardar deploy do Dokploy e verificar as aplicações
         id: healthcheck
         env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          APP_ID_WEB: ${{ secrets.DOKPLOY_APP_ID_WEB }}
+          APP_ID_API: ${{ secrets.DOKPLOY_APP_ID_API }}
           APP_URL: ${{ secrets.APP_URL }}
           API_URL: ${{ secrets.API_URL }}
         run: |
-          echo "O deploy do Dokploy é assíncrono. Aguardando build/rollout/cert..."
-          echo "Aguardando 60 segundos..."
-          sleep 60
+          # Dá um tempo para o Dokploy registrar o deploy como 'running'
+          # (evita ler por corrida o 'done' do deploy anterior).
+          echo "Aguardando o Dokploy registrar o deploy..."
+          sleep 20
 
+          # 1) Espera o build/rollout terminar consultando a API do Dokploy.
+          #    'done'  -> segue;
+          #    'error' -> falha imediata (build quebrou no servidor);
+          #    indeterminado -> apenas avisa e deixa o teste HTTP ser o juiz
+          #    (não bloqueia o pipeline por instabilidade momentânea da API).
+          wait_dokploy() {
+            local name="$1"
+            local app_id="$2"
+            if [ -z "$app_id" ] || [ -z "$DOKPLOY_URL" ] || [ -z "$DOKPLOY_API_KEY" ]; then
+              echo "::warning::[$name] credenciais do Dokploy ausentes; pulando espera por status."
+              return 0
+            fi
+            local attempts=40   # ~13 min (20s entre tentativas); retorna assim que 'done'
+            for i in $(seq 1 $attempts); do
+              local status
+              status=$(curl -sS --max-time 20 \
+                -H "x-api-key: $DOKPLOY_API_KEY" \
+                "${DOKPLOY_URL}/api/application.one?applicationId=${app_id}" \
+                | jq -r '.applicationStatus // empty' 2>/dev/null) || status=""
+              echo "[$name] status do deploy: ${status:-<sem resposta>} ($i/$attempts)"
+              case "$status" in
+                done)  echo "[$name] build/rollout concluído."; return 0 ;;
+                error) echo "::error::[$name] o deploy falhou no Dokploy (status=error)."; return 1 ;;
+              esac
+              sleep 20
+            done
+            echo "::warning::[$name] status não chegou a 'done' a tempo; seguindo para o teste HTTP."
+            return 0
+          }
+
+          # 2) Confirma que a URL pública responde 200 (VPS já livre do build).
           check_url() {
             local label="$1"
             local url="$2"
@@ -124,10 +163,11 @@ jobs:
               echo "::error::URL de '$label' não definida (secret ausente)."
               return 1
             fi
-            local attempts=24
+            local attempts=18
             for i in $(seq 1 $attempts); do
               local code
-              code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo "000")
+              code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --connect-timeout 10 --max-time 20 "$url") || code="000"
               echo "[$label] Tentativa $i/$attempts -> HTTP $code"
               if [ "$code" = "200" ]; then
                 echo "[$label] respondeu 200. Nova versão no ar."
@@ -140,6 +180,8 @@ jobs:
           }
 
           rc=0
+          wait_dokploy "web" "$APP_ID_WEB" || rc=1
+          wait_dokploy "api" "$APP_ID_API" || rc=1
           check_url "frontend" "$APP_URL" || rc=1
           check_url "api" "$API_URL" || rc=1
           if [ "$rc" -ne 0 ]; then
