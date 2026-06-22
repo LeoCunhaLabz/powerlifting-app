@@ -58,6 +58,8 @@ jobs:
           echo "API_KEY definida: $([ -n "$DOKPLOY_API_KEY" ] && echo 'SIM' || echo 'NAO')"
 
           http_code=$(curl -sS -o /tmp/dokploy_response.json -w "%{http_code}" \
+            --connect-timeout 15 --max-time 60 \
+            --retry 5 --retry-delay 10 --retry-all-errors \
             -X POST "$FULL_URL" \
             -H 'accept: application/json' \
             -H "x-api-key: $DOKPLOY_API_KEY" \
