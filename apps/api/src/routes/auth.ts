@@ -29,12 +29,12 @@ const messageSchema = z.object({ message: z.string() })
 
 const registerBodySchema = z.object({
   name: z.string().min(1).max(255),
-  email: z.string().email().max(255),
+  email: z.string().trim().toLowerCase().email().max(255),
   password: z.string().min(8).max(128),
 })
 
 const loginBodySchema = z.object({
-  email: z.string().email().max(255),
+  email: z.string().trim().toLowerCase().email().max(255),
   password: z.string().min(1).max(128),
 })
 
@@ -83,10 +83,28 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       const passwordHash = await hashPassword(password)
-      const [user] = await app.db
-        .insert(users)
-        .values({ name, email, passwordHash })
-        .returning({ id: users.id, email: users.email, name: users.name })
+      let user:
+        | {
+            id: string
+            email: string
+            name: string
+          }
+        | undefined
+      try {
+        ;[user] = await app.db
+          .insert(users)
+          .values({ name, email, passwordHash })
+          .returning({ id: users.id, email: users.email, name: users.name })
+      } catch (error: unknown) {
+        if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+          return reply.code(409).send({ message: 'E-mail já cadastrado' })
+        }
+        throw error
+      }
+
+      if (!user) {
+        return reply.code(409).send({ message: 'E-mail já cadastrado' })
+      }
 
       const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
       const refreshToken = await issueRefreshToken(app, user.id)
@@ -153,17 +171,17 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       const tokenHash = hashRefreshToken(request.body.refreshToken)
 
       const [session] = await app.db
-        .select()
-        .from(sessions)
+        .delete(sessions)
         .where(eq(sessions.refreshTokenHash, tokenHash))
-        .limit(1)
+        .returning({
+          id: sessions.id,
+          userId: sessions.userId,
+          expiresAt: sessions.expiresAt,
+        })
 
       if (!session) {
         return reply.code(401).send({ message: 'Refresh token inválido' })
       }
-
-      // Rotação: invalida a sessão atual independentemente do resultado.
-      await app.db.delete(sessions).where(eq(sessions.id, session.id))
 
       if (session.expiresAt.getTime() < Date.now()) {
         return reply.code(401).send({ message: 'Refresh token expirado' })
@@ -193,14 +211,14 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         body: refreshBodySchema,
         response: {
-          204: z.null(),
+          204: z.undefined(),
         },
       },
     },
     async (request, reply) => {
       const tokenHash = hashRefreshToken(request.body.refreshToken)
       await app.db.delete(sessions).where(eq(sessions.refreshTokenHash, tokenHash))
-      return reply.code(204).send(null)
+      return reply.code(204).send()
     },
   )
 
