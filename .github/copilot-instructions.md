@@ -7,7 +7,7 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 ## Estrutura do monorepo
 
 - `apps/web/` — frontend React (código em `apps/web/src/`).
-- `apps/api/` — backend Fastify + TypeScript (código em `apps/api/src/`). Stack: Fastify 5, Zod, `fastify-type-provider-zod`, `@fastify/cors`. Tooling: `tsx` (dev), `tsc` (build para `dist/`), módulo NodeNext.
+- `apps/api/` — backend Fastify + TypeScript (código em `apps/api/src/`). Stack: Fastify 5, Zod, `fastify-type-provider-zod`, `@fastify/cors`, `@fastify/jwt` + `@fastify/rate-limit` (auth), `bcryptjs` (hash de senha). Tooling: `tsx` (dev), `tsc` (build para `dist/`), módulo NodeNext.
 - `packages/shared/` — tipos de domínio compartilhados, pacote `@powerlifting/shared`.
 - Comandos raiz: `npm run dev/build/lint` (web), `npm run dev:api/build:api/lint:api/start:api` (api).
 

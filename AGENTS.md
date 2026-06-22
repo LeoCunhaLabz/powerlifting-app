@@ -41,6 +41,16 @@ npm run lint:api    # ESLint do apps/api (flat config)
 > Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web` ou `-w @powerlifting/api`.
 > Não há testes configurados. Não invente comandos de teste; valide com `npm run lint` e `npm run build`.
 
+### Variáveis de ambiente da API
+
+O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zod) — veja [apps/api/.env.example](apps/api/.env.example). Além de `PORT`/`HOST`/`CORS_ORIGIN`/`DATABASE_URL`, a autenticação exige:
+
+- `JWT_SECRET` — segredo HS256 (mín. 32 caracteres), **obrigatório**.
+- `JWT_EXPIRES_IN` — expiração do access token (default `15m`).
+- `REFRESH_TOKEN_EXPIRES_IN` — expiração do refresh token (default `7d`).
+
+Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout` e `GET /auth/me` (protegida via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. Nunca exponha `password_hash` em responses ou logs.
+
 ## Princípios
 
 - **Escopo mínimo.** Faça apenas o que foi pedido. Não refatore, não adicione features ou dependências sem necessidade clara.
