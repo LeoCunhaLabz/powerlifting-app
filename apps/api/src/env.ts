@@ -7,6 +7,7 @@ const envSchema = z.object({
   ),
   HOST: z.string().default('0.0.0.0'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  DATABASE_URL: z.string().url(),
 })
 
 const parsed = envSchema.safeParse(process.env)

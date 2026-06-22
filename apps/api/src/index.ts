@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
+import { dbPluginFp } from './plugins/db.js'
 
 const app = Fastify({
   logger: {
@@ -14,6 +15,7 @@ app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
 
 await app.register(cors, { origin: env.CORS_ORIGIN })
+await app.register(dbPluginFp)
 await app.register(healthRoutes)
 
 const shutdown = async () => {
