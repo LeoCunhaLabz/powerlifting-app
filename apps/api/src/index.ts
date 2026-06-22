@@ -1,9 +1,12 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import rateLimit from '@fastify/rate-limit'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
+import { authRoutes } from './routes/auth.js'
 import { dbPluginFp } from './plugins/db.js'
+import { authPluginFp } from './plugins/auth.js'
 
 const app = Fastify({
   logger: {
@@ -15,8 +18,11 @@ app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
 
 await app.register(cors, { origin: env.CORS_ORIGIN })
+await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
 await app.register(dbPluginFp)
+await app.register(authPluginFp)
 await app.register(healthRoutes)
+await app.register(authRoutes)
 
 const shutdown = async () => {
   try {

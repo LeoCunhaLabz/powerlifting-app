@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint .",
@@ -13,6 +13,9 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
+    "@fastify/jwt": "^9.1.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.3.0",
     "fastify-plugin": "^6.0.0",
