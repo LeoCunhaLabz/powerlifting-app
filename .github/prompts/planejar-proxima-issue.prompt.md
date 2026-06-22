@@ -2,7 +2,7 @@
 description: "Planeje a próxima issue aprovada: leia a issue, defina escopo/tarefas, confirme com o usuário antes de passar para `/executar-issue`. Use para 'planejar issue #N', 'qual é o plano', 'o que fazer agora'."
 name: "Planejar a próxima issue"
 argument-hint: "Número da issue a planejar"
-agent: plan
+agent: Plan
 ---
 
 # Planejar a próxima issue

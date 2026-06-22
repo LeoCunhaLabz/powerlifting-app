@@ -2,7 +2,7 @@
 description: "Implemente o escopo previamente aprovado (gerado por `/planejar-proxima-issue`). Siga o plano, crie branch, commite, valide build/lint, e prepare um PR. Use para 'executar issue #N', 'implementar...', 'fazer a issue'"
 name: "Executar a issue aprovada"
 argument-hint: "Número da issue aprovada"
-agent: powerlifting-dev
+agent: agent
 ---
 
 # Executar a issue aprovada

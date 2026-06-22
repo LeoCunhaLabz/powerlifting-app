@@ -2,7 +2,7 @@
 description: "Brainstorm e redação de novas issues para evoluir o app (UX/UI, bugs, features, dívidas técnicas), sempre com escopo enxuto e sem overengineering. Use para 'gerar issues', 'ideias de melhoria', 'backlog', 'o que fazer a seguir'."
 name: "Gerar issues"
 argument-hint: "Opcional: tema/área (ex.: 'UX do Workout', 'bugs', 'analytics')"
-agent: plan
+agent: Plan
 ---
 
 # Gerar novas issues para evoluir o app

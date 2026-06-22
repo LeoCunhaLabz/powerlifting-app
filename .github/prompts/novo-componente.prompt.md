@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Criar um componente React seguindo o design system Chalk & Onyx."
 ---
 

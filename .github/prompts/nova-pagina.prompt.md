@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Criar uma nova página/aba seguindo o padrão de navegação do App.tsx (sem React Router)."
 ---
 
