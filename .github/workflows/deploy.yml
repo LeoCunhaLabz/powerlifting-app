@@ -1,9 +1,12 @@
 name: Deploy
 
 # Pipeline de produção: roda em todo push para `main`.
-# Fluxo: build (gate) -> deploy via API do Dokploy -> smoke test -> e-mail.
+# Fluxo: build (gate) -> deploy de AMBAS as apps (web + API) via API do Dokploy
+#        -> smoke test (web + API) -> e-mail.
 # Como o deploy só é disparado APÓS o build passar, código quebrado nunca sobe.
-# Pré-requisito: desligue o auto-deploy do Dokploy para evitar deploy duplicado.
+# Pré-requisito: o auto-deploy do Dokploy DEVE estar DESLIGADO nas duas apps
+# (Settings da aplicação) para evitar deploy duplicado — este workflow é o único
+# gatilho de deploy.
 on:
   push:
     branches: ["main"]
@@ -40,47 +43,61 @@ jobs:
       - name: Build (type-check + bundle)
         run: npm run build
 
-  # 2) Deploy: dispara o build/deploy no Dokploy via API REST com API key.
+  # 2) Deploy: dispara o build/deploy no Dokploy via API REST com API key,
+  #    para o frontend e a API. Cada app tem seu applicationId (secret).
   deploy:
     name: Deploy no Dokploy
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Disparar deploy no Dokploy
+      - name: Disparar deploy (frontend + API)
         env:
+          # ⚠️ DOKPLOY_URL DEVE ser o subdomínio HTTPS (ex.: https://dokploy.cunhalabs.tech).
+          # A porta 3000 é bloqueada por firewall do provedor para IPs externos;
+          # exponha o Dokploy via HTTPS (porta 443) em: Dokploy → Settings → Server → Domain.
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-          DOKPLOY_APP_ID: ${{ secrets.DOKPLOY_APP_ID }}
+          APP_ID_WEB: ${{ secrets.DOKPLOY_APP_ID_WEB }}
+          APP_ID_API: ${{ secrets.DOKPLOY_APP_ID_API }}
         run: |
-          # ⚠️ IMPORTANTE: DOKPLOY_URL DEVE ser o subdomínio HTTPS (ex.: https://dokploy.cunhalabs.tech)
-          # Port 3000 é bloqueada por firewall do provedor para IPs externos.
-          # Solução: expor Dokploy via HTTPS subdomínio (porta 443) que está aberta.
-          # Configurar em: Dokploy → Settings → Server → Domain
-          
           FULL_URL="${DOKPLOY_URL}/api/application.deploy"
           echo "URL: $FULL_URL"
-          echo "APP_ID: $DOKPLOY_APP_ID"
           echo "API_KEY definida: $([ -n "$DOKPLOY_API_KEY" ] && echo 'SIM' || echo 'NAO')"
 
-          # Conecta com timeout razoável e retries para transientes
-          http_code=$(curl -sS -o /tmp/dokploy_response.json -w "%{http_code}" \
-            --connect-timeout 20 --max-time 90 \
-            --retry 3 --retry-delay 10 --retry-all-errors \
-            -X POST "$FULL_URL" \
-            -H 'accept: application/json' \
-            -H "x-api-key: $DOKPLOY_API_KEY" \
-            -H 'Content-Type: application/json' \
-            -d "{\"applicationId\": \"$DOKPLOY_APP_ID\"}")
-          
-          echo "HTTP $http_code"
-          echo "Resposta:"
-          cat /tmp/dokploy_response.json || true
-          
-          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-            echo "::error::Falha ao disparar o deploy no Dokploy (HTTP $http_code)"
+          deploy_app() {
+            local name="$1"
+            local app_id="$2"
+            if [ -z "$app_id" ]; then
+              echo "::error::Secret do applicationId de '$name' não definido."
+              return 1
+            fi
+            echo "==> Deploy de $name (applicationId: $app_id)"
+            local http_code
+            http_code=$(curl -sS -o /tmp/dokploy_${name}.json -w "%{http_code}" \
+              --connect-timeout 20 --max-time 90 \
+              --retry 3 --retry-delay 10 --retry-all-errors \
+              -X POST "$FULL_URL" \
+              -H 'accept: application/json' \
+              -H "x-api-key: $DOKPLOY_API_KEY" \
+              -H 'Content-Type: application/json' \
+              -d "{\"applicationId\": \"$app_id\"}")
+            echo "$name -> HTTP $http_code"
+            cat /tmp/dokploy_${name}.json || true
+            echo
+            if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+              echo "::error::Falha ao disparar o deploy de $name (HTTP $http_code)"
+              return 1
+            fi
+            return 0
+          }
+
+          rc=0
+          deploy_app "web" "$APP_ID_WEB" || rc=1
+          deploy_app "api" "$APP_ID_API" || rc=1
+          if [ "$rc" -ne 0 ]; then
             exit 1
           fi
-          echo "Deploy disparado com sucesso."
+          echo "Deploys disparados com sucesso."
 
   # 3) Smoke test: confirma que a nova versão está no ar (HTTP 200).
   verify:
@@ -90,31 +107,46 @@ jobs:
     outputs:
       status: ${{ steps.healthcheck.outputs.status }}
     steps:
-      - name: Aguardar e verificar a aplicação
+      - name: Aguardar e verificar as aplicações
         id: healthcheck
         env:
           APP_URL: ${{ secrets.APP_URL }}
+          API_URL: ${{ secrets.API_URL }}
         run: |
-          echo "Verificando $APP_URL (o deploy do Dokploy é assíncrono)..."
-          # Aguarda tempo inicial para o Dokploy fazer build, rollout e emitir cert SSL.
+          echo "O deploy do Dokploy é assíncrono. Aguardando build/rollout/cert..."
           echo "Aguardando 60 segundos..."
           sleep 60
-          
-          attempts=24
-          for i in $(seq 1 $attempts); do
-            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$APP_URL" || echo "000")
-            echo "Tentativa $i/$attempts -> HTTP $code"
-            if [ "$code" = "200" ]; then
-              echo "status=ok" >> "$GITHUB_OUTPUT"
-              echo "Aplicação respondeu 200. Nova versão no ar."
-              exit 0
+
+          check_url() {
+            local label="$1"
+            local url="$2"
+            if [ -z "$url" ]; then
+              echo "::error::URL de '$label' não definida (secret ausente)."
+              return 1
             fi
-            sleep 10
-          done
-          
-          echo "status=fail" >> "$GITHUB_OUTPUT"
-          echo "::error::A aplicação não respondeu 200 após o deploy."
-          exit 1
+            local attempts=24
+            for i in $(seq 1 $attempts); do
+              local code
+              code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo "000")
+              echo "[$label] Tentativa $i/$attempts -> HTTP $code"
+              if [ "$code" = "200" ]; then
+                echo "[$label] respondeu 200. Nova versão no ar."
+                return 0
+              fi
+              sleep 10
+            done
+            echo "::error::[$label] não respondeu 200 após o deploy."
+            return 1
+          }
+
+          rc=0
+          check_url "frontend" "$APP_URL" || rc=1
+          check_url "api" "$API_URL" || rc=1
+          if [ "$rc" -ne 0 ]; then
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "status=ok" >> "$GITHUB_OUTPUT"
 
   # 4) E-mail: resumo do pipeline. Roda sempre (sucesso ou falha).
   notify:
@@ -149,7 +181,7 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
           SUBJECT="${{ steps.summary.outputs.subject }}"
-          HTML="<h2>${{ steps.summary.outputs.overall }}</h2><p><b>Repo:</b> ${{ github.repository }}<br/><b>Branch:</b> ${{ github.ref_name }}<br/><b>Commit:</b> ${{ github.sha }}<br/><b>Autor:</b> ${{ github.actor }}</p><h3>Etapas</h3><ul><li>${{ steps.summary.outputs.build_icon }} Lint, Testes &amp; Build</li><li>${{ steps.summary.outputs.deploy_icon }} Deploy no Dokploy</li><li>${{ steps.summary.outputs.verify_icon }} Smoke test (app no ar)</li></ul><p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Ver logs no GitHub Actions</a></p>"
+          HTML="<h2>${{ steps.summary.outputs.overall }}</h2><p><b>Repo:</b> ${{ github.repository }}<br/><b>Branch:</b> ${{ github.ref_name }}<br/><b>Commit:</b> ${{ github.sha }}<br/><b>Autor:</b> ${{ github.actor }}</p><h3>Etapas</h3><ul><li>${{ steps.summary.outputs.build_icon }} Lint, Testes &amp; Build</li><li>${{ steps.summary.outputs.deploy_icon }} Deploy no Dokploy (web + API)</li><li>${{ steps.summary.outputs.verify_icon }} Smoke test (web + API no ar)</li></ul><p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Ver logs no GitHub Actions</a></p>"
 
           PAYLOAD=$(jq -n \
             --arg from "Powerlifting CI <onboarding@resend.dev>" \
