@@ -127,6 +127,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const { email, password } = request.body
+      const normalizedEmail = email.trim().toLowerCase()
 
       const [user] = await app.db
         .select({
@@ -136,7 +137,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
           passwordHash: users.passwordHash,
         })
         .from(users)
-        .where(eq(users.email, email))
+        .where(eq(users.email, normalizedEmail))
         .limit(1)
 
       const valid = user ? await verifyPassword(password, user.passwordHash) : false
