@@ -86,8 +86,8 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
         run: |
           echo "Verificando $APP_URL (o deploy do Dokploy é assíncrono)..."
-          # Dá um tempo inicial para o Dokploy começar o build/rollout.
-          sleep 30
+          # Dá um tempo inicial para o Dokploy fazer o build/rollout e o Let's Encrypt emitir o cert.
+          sleep 60
           attempts=20
           for i in $(seq 1 $attempts); do
             code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$APP_URL" || echo "000")
