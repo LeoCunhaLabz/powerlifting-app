@@ -1,259 +1,300 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
-import { calculateE1RM, calculateDots, calculateWilks } from '../utils/powerlifting';
-import { Award, Calendar, TrendingUp, Zap, Clock, Eye, X } from 'lucide-react';
+import { calculateE1RM, calculateDots } from '../utils/powerlifting';
+import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X } from 'lucide-react';
 
-export const Dashboard: React.FC = () => {
-  const { state, getMaxE1RM } = useWorkout();
-  const { history, settings } = state;
+interface DashboardProps {
+  onStartWorkoutTab: () => void;
+}
+
+const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
+
+export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
+  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, logBodyweight } = useWorkout();
+  const { history, settings, templates, bodyweightLog } = state;
 
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
+  const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
+  const [showWeightInput, setShowWeightInput] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
 
-  // Compute best SBD lifts
-  const bestSquatE1RM = getMaxE1RM('Agachamento');
-  const bestBenchE1RM = getMaxE1RM('Supino Reto');
-  const bestDeadliftE1RM = getMaxE1RM('Levantamento Terra');
-  
-  // Best weight lifted (raw absolute max weight)
-  const getAbsoluteMaxWeight = (exerciseName: string): number => {
-    let max = 0;
-    const lowerName = exerciseName.toLowerCase();
-    history.forEach((session) => {
-      session.exercises.forEach((ex) => {
-        if (ex.name.toLowerCase() === lowerName) {
-          ex.sets.forEach((set) => {
-            if (set.completed && set.weight > max) max = set.weight;
-          });
-        }
+  const u = settings.units;
+
+  // ---- Helpers ----
+  const tonnage = (s: WorkoutSession) =>
+    s.exercises.reduce((t, ex) => t + ex.sets.reduce((st, set) => st + (set.completed ? set.weight * set.reps : 0), 0), 0);
+
+  const startOfWeek = (() => {
+    const d = new Date();
+    const day = (d.getDay() + 6) % 7; // Monday = 0
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - day);
+    return d.getTime();
+  })();
+
+  const weekSessions = history.filter((s) => new Date(s.date).getTime() >= startOfWeek);
+  const weekTonnage = weekSessions.reduce((t, s) => t + tonnage(s), 0);
+
+  const last4wStart = Date.now() - 28 * 86400000;
+  const freq = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
+
+  // Week streak (semanas consecutivas com ao menos 1 treino, terminando nesta semana)
+  const weekStreak = (() => {
+    const weeks = new Set(history.map((s) => Math.floor((new Date(s.date).getTime() - startOfWeek) / (7 * 86400000))));
+    let streak = 0;
+    let k = 0;
+    while (weeks.has(-k) || (k === 0 && weeks.has(0))) {
+      streak += 1;
+      k += 1;
+    }
+    return streak;
+  })();
+
+  // SBD bests
+  const bestE1RM = SBD.map((n) => getMaxE1RM(n));
+  const bestTotal = Math.round(bestE1RM.reduce((a, b) => a + b, 0));
+  const bw = getBodyweightAt(new Date().toISOString());
+  const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
+
+  // Bodyweight trend
+  const sortedBw = [...bodyweightLog].sort((a, b) => a.date.localeCompare(b.date));
+  const bwTrend = sortedBw.length >= 2 ? Math.round((sortedBw[sortedBw.length - 1].weight - sortedBw[0].weight) * 10) / 10 : 0;
+
+  // Evolution series (running best total e1RM / dots per session, chronological)
+  const series = (() => {
+    const chrono = [...history].sort((a, b) => a.date.localeCompare(b.date));
+    const best: Record<string, number> = {};
+    const out: { total: number; dots: number }[] = [];
+    chrono.forEach((s) => {
+      s.exercises.forEach((ex) => {
+        const ln = ex.name.toLowerCase();
+        const key = SBD.find((n) => ln === n.toLowerCase());
+        if (!key) return;
+        ex.sets.forEach((set) => {
+          if (set.completed) {
+            const e = calculateE1RM(set.weight, set.reps, set.rpe);
+            if (e > (best[key] || 0)) best[key] = e;
+          }
+        });
       });
+      const total = SBD.reduce((a, n) => a + (best[n] || 0), 0);
+      if (total > 0) out.push({ total: Math.round(total), dots: calculateDots(getBodyweightAt(s.date), total, settings.gender === 'male') });
     });
-    return max || (settings.units === 'kg' ? 60 : 135); // fallback
+    return out.slice(-12);
+  })();
+
+  const polyline = (vals: number[], w: number, h: number, pad = 6) => {
+    if (vals.length === 0) return '';
+    if (vals.length === 1) return `0,${h / 2} ${w},${h / 2}`;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const span = max - min || 1;
+    return vals
+      .map((v, i) => {
+        const x = (i / (vals.length - 1)) * w;
+        const y = h - pad - ((v - min) / span) * (h - pad * 2);
+        return `${Math.round(x)},${Math.round(y)}`;
+      })
+      .join(' ');
   };
 
-  const bestSquatWeight = getAbsoluteMaxWeight('Agachamento');
-  const bestBenchWeight = getAbsoluteMaxWeight('Supino Reto');
-  const bestDeadliftWeight = getAbsoluteMaxWeight('Levantamento Terra');
+  const evoVals = series.map((p) => (metric === 'e1rm' ? p.total : p.dots));
+  const bwVals = sortedBw.slice(-10).map((e) => e.weight);
 
-  // Compute strength points based on best e1RM total
-  const bestTotal = bestSquatE1RM + bestBenchE1RM + bestDeadliftE1RM;
-  const bestDots = calculateDots(settings.bodyweight, bestTotal, settings.gender === 'male');
-  const bestWilks = calculateWilks(settings.bodyweight, bestTotal, settings.gender === 'male');
-
-  // Format date helper
-  const formatDate = (isoString: string) => {
-    const date = new Date(isoString);
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
     const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) return 'Hoje';
-    if (date.toDateString() === yesterday.toDateString()) return 'Ontem';
-
-    return date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+    const yest = new Date();
+    yest.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Hoje';
+    if (d.toDateString() === yest.toDateString()) return 'Ontem';
+    return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
   };
+  const formatDuration = (sec: number) => `${Math.floor(sec / 60)} min`;
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    return `${mins} min`;
+  const suggestedTemplate = templates[0];
+
+  const handleResume = () => {
+    if (!activeWorkout && suggestedTemplate) startWorkout(suggestedTemplate.id);
+    onStartWorkoutTab();
   };
-
-  const calculateTonnage = (session: WorkoutSession) => {
-    return session.exercises.reduce((totalEx, ex) => {
-      return totalEx + ex.sets.reduce((totalSet, set) => {
-        return totalSet + (set.completed ? (set.weight * set.reps) : 0);
-      }, 0);
-    }, 0);
+  const handleAvulso = () => {
+    if (!activeWorkout) startWorkout();
+    onStartWorkoutTab();
+  };
+  const saveWeight = () => {
+    const val = Number(weightInput.replace(',', '.'));
+    if (val > 0) {
+      logBodyweight(val);
+      setWeightInput('');
+      setShowWeightInput(false);
+    }
   };
 
   return (
     <div style={styles.container}>
-      {/* Welcome header */}
+      {/* Header */}
       <div style={styles.header}>
         <div>
-          <span style={styles.appSubtitle}>ONYX POWERLIFTING</span>
-          <h1 style={styles.appTitle}>FORÇA E CONSISTÊNCIA</h1>
+          <div style={styles.kicker}>ONYX</div>
+          <h1 style={styles.title}>Pronto pra treinar</h1>
         </div>
-        <div style={styles.statusBadge}>
-          <Zap size={14} fill="currentColor" />
-          <span>{history.length} TREINOS</span>
-        </div>
-      </div>
-
-      {/* SBD / PR Panel */}
-      <div style={styles.prCard}>
-        <div style={styles.prCardHeader}>
-          <div style={styles.prTitleRow}>
-            <Award size={18} />
-            <span style={styles.prTitle}>RECORDES PESSOAIS (PR)</span>
-          </div>
-          <span style={styles.dotsPoints}>{bestDots} DOTS</span>
-        </div>
-
-        <div style={styles.prGrid}>
-          <div style={styles.prCol}>
-            <span style={styles.liftLabel}>AGACHAMENTO</span>
-            <div style={styles.liftVal}>{bestSquatWeight} <span style={styles.unitSmall}>{settings.units}</span></div>
-            <span style={styles.e1rmLabel}>e1RM: {bestSquatE1RM} {settings.units}</span>
-          </div>
-          <div style={{ ...styles.prCol, borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' }}>
-            <span style={styles.liftLabel}>SUPINO RETO</span>
-            <div style={styles.liftVal}>{bestBenchWeight} <span style={styles.unitSmall}>{settings.units}</span></div>
-            <span style={styles.e1rmLabel}>e1RM: {bestBenchE1RM} {settings.units}</span>
-          </div>
-          <div style={styles.prCol}>
-            <span style={styles.liftLabel}>TERRA</span>
-            <div style={styles.liftVal}>{bestDeadliftWeight} <span style={styles.unitSmall}>{settings.units}</span></div>
-            <span style={styles.e1rmLabel}>e1RM: {bestDeadliftE1RM} {settings.units}</span>
-          </div>
-        </div>
-
-        <div style={styles.prFooter}>
-          <span>Total Estimado: <strong>{bestTotal} {settings.units}</strong></span>
-          <span>Wilks: <strong>{bestWilks} pts</strong></span>
-        </div>
-      </div>
-
-      {/* Quick stats row */}
-      <div style={styles.statsGrid}>
-        <div style={styles.statBox}>
-          <Calendar size={16} />
-          <div>
-            <div style={styles.statLabel}>Frequência</div>
-            <div style={styles.statVal}>{history.length > 0 ? `${Math.round((history.length / 30) * 10) / 10} / semana` : '0'}</div>
-          </div>
-        </div>
-        <div style={styles.statBox}>
-          <TrendingUp size={16} />
-          <div>
-            <div style={styles.statLabel}>Volume Médio</div>
-            <div style={styles.statVal}>
-              {history.length > 0 
-                ? `${Math.round(history.reduce((acc, h) => acc + calculateTonnage(h), 0) / history.length)} ${settings.units}`
-                : `0 ${settings.units}`
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* History section */}
-      <div style={styles.historySection}>
-        <h2 style={styles.sectionTitle}>Histórico Recente</h2>
-        
-        {history.length === 0 ? (
-          <div style={styles.emptyHistoryCard}>
-            Nenhum treino registrado ainda. Inicie seu primeiro treino para visualizar o histórico aqui!
-          </div>
-        ) : (
-          <div style={styles.historyList}>
-            {history.slice(0, 5).map((session) => {
-              const tonnage = calculateTonnage(session);
-              const hasPr = session.exercises.some(ex => ex.sets.some(s => s.isPr));
-              return (
-                <div 
-                  key={session.id} 
-                  onClick={() => setSelectedSession(session)}
-                  style={styles.historyCard}
-                >
-                  <div style={styles.historyHeader}>
-                    <div>
-                      <div style={styles.historyTitleRow}>
-                        <span style={styles.historyName}>{session.name}</span>
-                        {hasPr && <span style={styles.prRecordBadge}>PR</span>}
-                      </div>
-                      <span style={styles.historyDate}>{formatDate(session.date)}</span>
-                    </div>
-                    <Eye size={16} style={styles.eyeIcon} />
-                  </div>
-
-                  <div style={styles.historyStatsRow}>
-                    <span style={styles.hStat}><Clock size={12} /> {formatDuration(session.duration)}</span>
-                    <span style={styles.hStat}><TrendingUp size={12} /> {tonnage} {settings.units}</span>
-                    <span style={styles.hStat}><Zap size={12} /> {session.exercises.length} Exs</span>
-                  </div>
-
-                  <div style={styles.historyExercisesPreview}>
-                    {session.exercises.slice(0, 3).map((ex, idx) => (
-                      <div key={idx} style={styles.previewExRow}>
-                        <span style={styles.previewExName}>{ex.name}</span>
-                        <span style={styles.previewExSets}>
-                          {ex.sets.length} séries • Max {Math.max(...ex.sets.map(s => s.weight))} {settings.units}
-                        </span>
-                      </div>
-                    ))}
-                    {session.exercises.length > 3 && (
-                      <div style={styles.previewExMore}>+ {session.exercises.length - 3} exercícios</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {weekStreak > 0 && (
+          <span style={styles.streak}>
+            <Flame size={13} fill="currentColor" /> {weekStreak} sem
+          </span>
         )}
       </div>
 
-      {/* MODAL: WORKOUT SESSION DETAILS */}
+      {/* Resume / start hero */}
+      <div style={styles.hero}>
+        <div>
+          <div style={styles.heroKicker}>{activeWorkout ? 'Em andamento' : 'Próximo treino'}</div>
+          <div style={styles.heroTitle}>{activeWorkout ? activeWorkout.name : suggestedTemplate?.name || 'Treino avulso'}</div>
+          {!activeWorkout && suggestedTemplate && (
+            <div style={styles.heroSub}>{suggestedTemplate.exercises.length} exercícios</div>
+          )}
+        </div>
+        <button onClick={handleResume} style={styles.heroPlay} aria-label="Iniciar">
+          <Play size={22} fill="var(--accent-ink)" stroke="none" />
+        </button>
+      </div>
+      <button onClick={handleAvulso} style={styles.avulsoBtn}>
+        <Plus size={15} /> Treino avulso
+      </button>
+
+      {/* Week summary */}
+      <div style={styles.sectionLabel}>Esta semana</div>
+      <div style={styles.statGrid}>
+        <div style={styles.statTile}><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
+        <div style={styles.statTile}><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
+        <div style={styles.statTile}><div style={styles.statVal}>{freq}<span style={styles.unit}>/sem</span></div><div style={styles.statLbl}>FREQUÊNCIA</div></div>
+      </div>
+
+      {/* Bodyweight */}
+      <div style={styles.bwCard}>
+        <div style={styles.bwLeft}>
+          <div style={styles.bwLabel}>Peso corporal</div>
+          <div style={styles.bwValRow}>
+            <span style={styles.bwVal}>{bw}</span>
+            <span style={styles.bwUnit}>{u}</span>
+            {bwTrend !== 0 && (
+              <span style={{ ...styles.bwTrend, color: bwTrend > 0 ? 'var(--success)' : 'var(--text-secondary)' }}>
+                {bwTrend > 0 ? '↑' : '↓'} {Math.abs(bwTrend)}
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={styles.bwRight}>
+          {bwVals.length >= 2 && (
+            <svg width="74" height="34" viewBox="0 0 74 34" fill="none">
+              <polyline points={polyline(bwVals, 74, 34, 4)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+          <button onClick={() => setShowWeightInput((v) => !v)} style={styles.bwAdd} aria-label="Registrar peso">
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+      {showWeightInput && (
+        <div style={styles.weightInputRow}>
+          <input
+            type="number"
+            inputMode="decimal"
+            autoFocus
+            value={weightInput}
+            onChange={(e) => setWeightInput(e.target.value)}
+            placeholder={`Peso de hoje (${u})`}
+            style={styles.weightInput}
+          />
+          <button onClick={saveWeight} style={styles.weightSave}>Registrar</button>
+        </div>
+      )}
+
+      {/* Evolution */}
+      <div style={styles.card}>
+        <div style={styles.cardHead}>
+          <span style={styles.cardTitle}>Evolução</span>
+          <div style={styles.toggle}>
+            <button onClick={() => setMetric('e1rm')} style={metric === 'e1rm' ? styles.toggleOn : styles.toggleOff}>e1RM</button>
+            <button onClick={() => setMetric('dots')} style={metric === 'dots' ? styles.toggleOn : styles.toggleOff}>DOTS</button>
+          </div>
+        </div>
+        {evoVals.length >= 2 ? (
+          <svg width="100%" height="84" viewBox="0 0 300 84" fill="none" preserveAspectRatio="none">
+            <polyline points={polyline(evoVals, 300, 84, 10)} stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <div style={styles.emptyMini}>Registre treinos para ver sua evolução.</div>
+        )}
+      </div>
+
+      {/* PR compact */}
+      <div style={styles.card}>
+        <div style={styles.cardHead}>
+          <span style={styles.prKicker}><Award size={14} /> RECORDES (e1RM)</span>
+          <span style={styles.dotsBadge}>{dots} DOTS</span>
+        </div>
+        <div style={styles.prGrid}>
+          {SBD.map((n, i) => (
+            <div key={n} style={{ ...styles.prCol, ...(i === 1 ? styles.prColMid : {}) }}>
+              <span style={styles.prLbl}>{i === 0 ? 'AGACH.' : i === 1 ? 'SUPINO' : 'TERRA'}</span>
+              <span style={styles.prVal}>{bestE1RM[i]}</span>
+            </div>
+          ))}
+        </div>
+        <div style={styles.prFooter}>Total estimado <strong style={{ color: 'var(--text-primary)' }}>{bestTotal} {u}</strong></div>
+      </div>
+
+      {/* Recent history */}
+      {history.length > 0 && (
+        <>
+          <div style={styles.sectionLabel}>Histórico recente</div>
+          <div style={styles.historyList}>
+            {history.slice(0, 4).map((s) => {
+              const hasPr = s.exercises.some((ex) => ex.sets.some((set) => set.isPr));
+              return (
+                <button key={s.id} onClick={() => setSelectedSession(s)} style={styles.historyCard}>
+                  <div style={styles.historyTop}>
+                    <span style={styles.historyName}>{s.name}{hasPr && <span style={styles.prTag}>PR</span>}</span>
+                    <Eye size={15} color="var(--text-muted)" />
+                  </div>
+                  <div style={styles.historyStats}>
+                    <span style={styles.hStat}>{formatDate(s.date)}</span>
+                    <span style={styles.hStat}><Clock size={12} /> {formatDuration(s.duration)}</span>
+                    <span style={styles.hStat}><TrendingUp size={12} /> {Math.round(tonnage(s))} {u}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Session detail modal */}
       {selectedSession && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
+        <div style={styles.modalOverlay} onClick={() => setSelectedSession(null)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <div>
                 <h3 style={styles.modalTitle}>{selectedSession.name}</h3>
                 <span style={styles.modalDate}>{new Date(selectedSession.date).toLocaleString('pt-BR')}</span>
               </div>
-              <button onClick={() => setSelectedSession(null)} style={styles.closeBtn}>
-                <X size={20} />
-              </button>
+              <button onClick={() => setSelectedSession(null)} style={styles.closeBtn}><X size={20} /></button>
             </div>
-
             <div style={styles.modalBody}>
-              {selectedSession.notes && (
-                <div style={styles.modalNotes}>
-                  <strong>Notas:</strong> {selectedSession.notes}
+              {selectedSession.exercises.map((ex) => (
+                <div key={ex.id} style={styles.modalEx}>
+                  <div style={styles.modalExName}>{ex.name}</div>
+                  {ex.sets.map((set, i) => (
+                    <div key={set.id} style={styles.modalSet}>
+                      <span>Série {i + 1}{set.isPr && <span style={styles.prTag}>PR</span>}</span>
+                      <span>{set.weight} {u} × {set.reps}{set.rpe ? ` · RPE ${set.rpe}` : ''}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              <div style={styles.modalExercisesList}>
-                {selectedSession.exercises.map((ex) => (
-                  <div key={ex.id} style={styles.modalExBlock}>
-                    <div style={styles.modalExName}>{ex.name}</div>
-                    
-                    <table style={styles.modalTable}>
-                      <thead>
-                        <tr>
-                          <th style={styles.modalTh}>Série</th>
-                          <th style={styles.modalTh}>Tipo</th>
-                          <th style={styles.modalTh}>Peso</th>
-                          <th style={styles.modalTh}>Reps</th>
-                          <th style={styles.modalTh}>RPE</th>
-                          <th style={styles.modalTh}>e1RM</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ex.sets.map((set, setIdx) => {
-                          const e1rm = calculateE1RM(set.weight, set.reps, set.rpe);
-                          return (
-                            <tr key={set.id} style={styles.modalTr}>
-                              <td style={styles.modalTdIndex}>{setIdx + 1}</td>
-                              <td style={styles.modalTd}>{set.type}</td>
-                              <td style={styles.modalTd}>
-                                {set.weight} {settings.units}
-                                {set.isPr && <span style={styles.modalPrBadge} title="Recorde Pessoal!">PR</span>}
-                              </td>
-                              <td style={styles.modalTd}>{set.reps}</td>
-                              <td style={styles.modalTd}>{set.rpe || '-'}</td>
-                              <td style={{ ...styles.modalTd, fontWeight: '700' }}>
-                                {e1rm ? `${e1rm} ${settings.units}` : '-'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -262,357 +303,76 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  appSubtitle: {
-    fontSize: '9px',
-    fontWeight: '800',
-    color: 'var(--text-secondary)',
-    letterSpacing: '0.15em',
-  },
-  appTitle: {
-    fontSize: '20px',
-    fontWeight: '800',
-    fontFamily: 'var(--font-display)',
-    letterSpacing: '0.02em',
-    color: '#ffffff',
-  },
-  statusBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    padding: '4px 10px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '800',
-  },
-  prCard: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '16px',
-    marginBottom: '16px',
-  },
-  prCardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '14px',
-  },
-  prTitleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: 'var(--text-secondary)',
-  },
-  prTitle: {
-    fontSize: '11px',
-    fontWeight: '800',
-    letterSpacing: '0.05em',
-  },
-  dotsPoints: {
-    fontSize: '11px',
-    fontWeight: '800',
-    color: '#ffffff',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    padding: '2px 8px',
-    borderRadius: '4px',
-  },
-  prGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '8px',
-    margin: '12px 0',
-    textAlign: 'center',
-  },
-  prCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '6px 0',
-  },
-  liftLabel: {
-    fontSize: '9px',
-    fontWeight: '800',
-    color: 'var(--text-secondary)',
-    letterSpacing: '0.05em',
-    marginBottom: '4px',
-  },
-  liftVal: {
-    fontSize: '22px',
-    fontWeight: '800',
-    fontFamily: 'var(--font-display)',
-    color: '#ffffff',
-  },
-  unitSmall: {
-    fontSize: '11px',
-    fontWeight: '400',
-    color: 'var(--text-secondary)',
-  },
-  e1rmLabel: {
-    fontSize: '10px',
-    color: 'var(--text-muted)',
-    marginTop: '2px',
-  },
-  prFooter: {
-    borderTop: '1px solid rgba(255, 255, 255, 0.04)',
-    paddingTop: '10px',
-    marginTop: '6px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
-    marginBottom: '20px',
-  },
-  statBox: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    padding: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    color: 'var(--text-secondary)',
-  },
-  statLabel: {
-    fontSize: '10px',
-    color: 'var(--text-muted)',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  statVal: {
-    fontSize: '14px',
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  historySection: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  sectionTitle: {
-    fontSize: '14px',
-    fontWeight: '800',
-    letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-    marginBottom: '12px',
-    color: 'var(--text-secondary)',
-  },
-  emptyHistoryCard: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px dashed var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    padding: '24px',
-    textAlign: 'center',
-    fontSize: '13px',
-    color: 'var(--text-secondary)',
-    lineHeight: '1.5',
-  },
-  historyList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  },
-  historyCard: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    padding: '14px',
-    cursor: 'pointer',
-    transition: 'border-color var(--transition-fast)',
-  },
-  historyHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '8px',
-  },
-  historyTitleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  historyName: {
-    fontSize: '14px',
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  prRecordBadge: {
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    fontSize: '8px',
-    fontWeight: '800',
-    padding: '1px 4px',
-    borderRadius: '2px',
-  },
-  historyDate: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-  },
-  eyeIcon: {
-    color: 'var(--text-muted)',
-  },
-  historyStatsRow: {
-    display: 'flex',
-    gap: '16px',
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    marginBottom: '10px',
-  },
-  hStat: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  historyExercisesPreview: {
-    borderTop: '1px solid rgba(255,255,255,0.03)',
-    paddingTop: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  previewExRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '12px',
-  },
-  previewExName: {
-    color: '#eaeaea',
-    fontWeight: '500',
-  },
-  previewExSets: {
-    color: 'var(--text-muted)',
-  },
-  previewExMore: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-    fontStyle: 'italic',
-    marginTop: '2px',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    zIndex: 1000,
-    backdropFilter: 'blur(4px)',
-  },
-  modalContent: {
-    backgroundColor: 'var(--bg-secondary)',
-    borderTopLeftRadius: 'var(--radius-lg)',
-    borderTopRightRadius: 'var(--radius-lg)',
-    border: '1px solid var(--border-color)',
-    width: '100%',
-    maxWidth: 'var(--max-width)',
-    maxHeight: '85vh',
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '20px',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '16px',
-  },
-  modalTitle: {
-    fontSize: '16px',
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  modalDate: {
-    fontSize: '11px',
-    color: 'var(--text-secondary)',
-  },
-  closeBtn: {
-    color: 'var(--text-secondary)',
-    padding: '4px',
-  },
-  modalBody: {
-    overflowY: 'auto',
-    flex: 1,
-  },
-  modalNotes: {
-    backgroundColor: 'var(--bg-tertiary)',
-    padding: '10px 12px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '12px',
-    lineHeight: '1.4',
-    marginBottom: '16px',
-    color: '#eaeaea',
-  },
-  modalExercisesList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  modalExBlock: {
-    borderBottom: '1px solid rgba(255,255,255,0.03)',
-    paddingBottom: '12px',
-  },
-  modalExName: {
-    fontSize: '13px',
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: '8px',
-  },
-  modalTable: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  modalTh: {
-    fontSize: '8px',
-    fontWeight: '800',
-    color: 'var(--text-secondary)',
-    textAlign: 'center',
-    paddingBottom: '4px',
-    textTransform: 'uppercase',
-  },
-  modalTr: {
-    height: '28px',
-    borderBottom: '1px solid rgba(255,255,255,0.02)',
-  },
-  modalTdIndex: {
-    textAlign: 'center',
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-  },
-  modalTd: {
-    textAlign: 'center',
-    fontSize: '12px',
-    color: 'var(--text-primary)',
-    padding: '2px',
-  },
-  modalPrBadge: {
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    fontSize: '8px',
-    fontWeight: '800',
-    padding: '0px 3px',
-    borderRadius: '2px',
-    marginLeft: '6px',
-    verticalAlign: 'middle',
-  },
+const card: React.CSSProperties = {
+  backgroundColor: 'var(--bg-secondary)',
+  border: '1px solid var(--border-color)',
+  borderRadius: 'var(--radius-lg)',
+  padding: '15px',
+  marginBottom: '14px',
 };
+
+const styles: Record<string, React.CSSProperties> = {
+  container: { display: 'flex', flexDirection: 'column', width: '100%' },
+  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' },
+  kicker: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-secondary)' },
+  title: { fontSize: '23px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)', marginTop: '2px' },
+  streak: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 800, padding: '6px 11px', borderRadius: '999px' },
+  hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-lg)', padding: '18px', marginBottom: '12px' },
+  heroKicker: { fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)', textTransform: 'uppercase' },
+  heroTitle: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' },
+  heroSub: { fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' },
+  heroPlay: { width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avulsoBtn: { width: '100%', height: '44px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 700, marginBottom: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' },
+  sectionLabel: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px' },
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '20px' },
+  statTile: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '13px 10px' },
+  statVal: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' },
+  unit: { fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 },
+  statLbl: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginTop: '2px' },
+  bwCard: { ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0' },
+  bwLeft: {},
+  bwLabel: { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' },
+  bwValRow: { display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' },
+  bwVal: { fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' },
+  bwUnit: { fontSize: '12px', color: 'var(--text-secondary)' },
+  bwTrend: { fontSize: '11px', fontWeight: 700 },
+  bwRight: { display: 'flex', alignItems: 'center', gap: '12px' },
+  bwAdd: { width: '38px', height: '38px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  weightInputRow: { display: 'flex', gap: '8px', margin: '10px 0 14px' },
+  weightInput: { flex: 1, height: '42px' },
+  weightSave: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: 800, fontSize: '13px', padding: '0 18px' },
+  card,
+  cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
+  cardTitle: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
+  toggle: { display: 'flex', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '2px' },
+  toggleOn: { fontSize: '11px', fontWeight: 700, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '4px 10px', borderRadius: '7px' },
+  toggleOff: { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', padding: '4px 10px' },
+  emptyMini: { fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '18px 0' },
+  prKicker: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--text-secondary)' },
+  dotsBadge: { fontSize: '11px', fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '3px 9px', borderRadius: '6px' },
+  prGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', textAlign: 'center' },
+  prCol: { display: 'flex', flexDirection: 'column' },
+  prColMid: { borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' },
+  prLbl: { fontSize: '9px', fontWeight: 800, color: 'var(--text-secondary)' },
+  prVal: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' },
+  prFooter: { borderTop: '1px solid var(--border-color)', marginTop: '10px', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' },
+  historyList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  historyCard: { textAlign: 'left', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' },
+  historyTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
+  historyName: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  prTag: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '8px', fontWeight: 800, padding: '1px 5px', borderRadius: '3px' },
+  historyStats: { display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--text-secondary)' },
+  hStat: { display: 'inline-flex', alignItems: 'center', gap: '4px' },
+  modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 1000, backdropFilter: 'blur(4px)' },
+  modalContent: { backgroundColor: 'var(--bg-secondary)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', width: '100%', maxWidth: 'var(--max-width)', maxHeight: '82vh', display: 'flex', flexDirection: 'column', padding: '20px' },
+  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
+  modalTitle: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
+  modalDate: { fontSize: '11px', color: 'var(--text-secondary)' },
+  closeBtn: { color: 'var(--text-secondary)', padding: '4px' },
+  modalBody: { overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' },
+  modalEx: { borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '10px' },
+  modalExName: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' },
+  modalSet: { display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', padding: '3px 0' },
+};
+
 export default Dashboard;
