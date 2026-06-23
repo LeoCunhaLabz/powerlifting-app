@@ -36,7 +36,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const weekSessions = history.filter((s) => new Date(s.date).getTime() >= startOfWeek);
   const weekTonnage = weekSessions.reduce((t, s) => t + tonnage(s), 0);
 
-  const last4wStart = Date.now() - 28 * 86400000;
+  const last4wStart = new Date().getTime() - 28 * 86400000;
   const freq = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
 
   // Week streak (semanas consecutivas com ao menos 1 treino, terminando nesta semana)

@@ -125,14 +125,15 @@ export const Analytics: React.FC = () => {
   const isMale = settings.gender === 'male';
 
   // --- Janela de tempo ---
+  const now = new Date().getTime();
   let from = 0;
-  let to = Date.now();
-  if (period === '4w') from = Date.now() - 4 * 7 * 86400000;
-  else if (period === '12w') from = Date.now() - 12 * 7 * 86400000;
-  else if (period === 'year') from = Date.now() - 365 * 86400000;
+  let to = now;
+  if (period === '4w') from = now - 4 * 7 * 86400000;
+  else if (period === '12w') from = now - 12 * 7 * 86400000;
+  else if (period === 'year') from = now - 365 * 86400000;
   else if (period === 'custom') {
     from = customStart ? new Date(customStart).getTime() : 0;
-    to = customEnd ? new Date(customEnd).getTime() + 86400000 : Date.now();
+    to = customEnd ? new Date(customEnd).getTime() + 86400000 : now;
   }
   const inRange = (iso: string) => {
     const t = new Date(iso).getTime();
