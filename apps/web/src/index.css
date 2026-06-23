@@ -1,38 +1,66 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Chalk & Onyx Palette */
-  --bg-primary: #050505;
-  --bg-secondary: #121212;
-  --bg-tertiary: #1a1a1a;
-  
-  --text-primary: #ffffff;
-  --text-secondary: #8a8a8f;
-  --text-muted: #555558;
-  
-  --accent-white: #ffffff;
+  /* Chalk & Onyx 2.0 — Superfícies (escala de elevação) */
+  --bg-primary: #060606;
+  --bg-secondary: #161616;
+  --bg-tertiary: #1e1e1e;
+
+  /* Texto (3 níveis de ênfase) */
+  --text-primary: #fafafa;
+  --text-secondary: #9a9aa0;
+  --text-muted: #5c5c61;
+
+  /* Linhas / foco */
+  --border-color: #242424;
+  --border-focus: #4a4a4a;
+
+  /* Compat: usados como "destaque" em vários componentes — agora seguem o acento do tema */
+  --accent-white: var(--accent);
   --accent-gray: #333333;
   --accent-dark: #1a1a1a;
-  
-  --border-color: #222222;
-  --border-focus: #444444;
-  
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  
+
+  /* Status */
+  --success: #37b87f;
+  --error: #e5544b;
+  --warning: #e0a93f;
+
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
-  
+
   --radius-sm: 4px;
   --radius-md: 8px;
-  --radius-lg: 12px;
-  
+  --radius-lg: 14px;
+
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
-  
+
   /* Layout constraints */
   --max-width: 480px; /* Locked to a premium mobile shell for optimal UX, centered on desktop */
+}
+
+/* ====== Temas de acento (selecionáveis em Configurações) ====== */
+/* Padrão (sem atributo) = Brass */
+:root,
+:root[data-theme='brass'] {
+  --accent: #e3a83b;
+  --accent-soft: rgba(227, 168, 59, 0.12);
+  --accent-border: rgba(227, 168, 59, 0.30);
+  --accent-ink: #1a1304;
+}
+
+:root[data-theme='onyx'] {
+  --accent: #fafafa;
+  --accent-soft: rgba(255, 255, 255, 0.10);
+  --accent-border: rgba(255, 255, 255, 0.22);
+  --accent-ink: #0a0a0a;
+}
+
+:root[data-theme='volt'] {
+  --accent: #b6e34a;
+  --accent-soft: rgba(182, 227, 74, 0.12);
+  --accent-border: rgba(182, 227, 74, 0.30);
+  --accent-ink: #11160a;
 }
 
 /* Base Reset */
@@ -117,8 +145,8 @@ button {
 }
 
 .btn-primary {
-  background-color: var(--accent-white);
-  color: var(--bg-primary);
+  background-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -142,13 +170,13 @@ button {
 }
 
 .btn-danger {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: rgba(229, 84, 75, 0.1);
   color: var(--error);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(229, 84, 75, 0.2);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: rgba(239, 68, 68, 0.2);
+  background-color: rgba(229, 84, 75, 0.2);
 }
 
 .btn-text {
@@ -169,18 +197,19 @@ button:disabled {
 /* Form Inputs */
 input, select, textarea {
   font-family: var(--font-sans);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 16px; /* >=16px evita zoom automático no iOS Safari */
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: var(--border-focus);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 input::placeholder, textarea::placeholder {
@@ -327,7 +356,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .nav-item.active {
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .nav-item svg {
@@ -352,9 +381,9 @@ input::placeholder, textarea::placeholder {
 }
 
 .badge-highlight {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-border);
 }
 
 /* Overlay / Modal */
