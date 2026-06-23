@@ -5,9 +5,10 @@ import type {
   WorkoutTemplate, 
   Settings, 
   ExerciseState, 
-  SetState 
+  SetState,
+  BodyweightEntry 
 } from '@powerlifting/shared';
-import { calculateE1RM, DEFAULT_PLATES_KG } from '../utils/powerlifting';
+import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 
 interface WorkoutContextType {
   state: AppState;
@@ -32,6 +33,9 @@ interface WorkoutContextType {
   restTimerEnd: number | null;
   startRestTimer: (seconds: number) => void;
   stopRestTimer: () => void;
+  logBodyweight: (weight: number, date?: string) => void;
+  deleteBodyweightEntry: (date: string) => void;
+  getBodyweightAt: (date: string | number | Date) => number;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -155,13 +159,15 @@ const DEFAULT_SETTINGS: Settings = {
   availablePlates: DEFAULT_PLATES_KG,
   bodyweight: 80,
   gender: 'male',
-  isEquipped: false
+  isEquipped: false,
+  theme: 'brass'
 };
 
 const DEFAULT_STATE: AppState = {
   history: [],
   templates: BUILT_IN_TEMPLATES,
-  settings: DEFAULT_SETTINGS
+  settings: DEFAULT_SETTINGS,
+  bodyweightLog: []
 };
 
 export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -174,6 +180,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Merge with built-in templates to make sure they are always present or updated
         const customTemplates = parsed.templates?.filter(t => !t.isBuiltIn) || [];
         parsed.templates = [...BUILT_IN_TEMPLATES, ...customTemplates];
+        parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
+        parsed.bodyweightLog = parsed.bodyweightLog || [];
         return parsed;
       } catch (e) {
         console.error('Failed to parse app state:', e);
@@ -206,6 +214,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     localStorage.setItem('powerlifting_app_state', JSON.stringify(state));
   }, [state]);
+
+  // Aplica o tema de acento no documento (lido pelo CSS via [data-theme])
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.settings.theme);
+  }, [state.settings.theme]);
 
   // Sync active workout to local storage on change
   useEffect(() => {
@@ -581,6 +594,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const parsed = JSON.parse(jsonData);
       if (parsed && typeof parsed === 'object' && parsed.history && parsed.templates && parsed.settings) {
+        parsed.bodyweightLog = parsed.bodyweightLog || [];
         setState(parsed as AppState);
         return true;
       }
@@ -589,6 +603,40 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     return false;
   };
+
+  // Bodyweight log
+  const logBodyweight = (weight: number, date?: string) => {
+    if (!weight || weight <= 0) return;
+    const iso = date || new Date().toISOString();
+    const dayKey = iso.slice(0, 10);
+    setState(prev => {
+      const log: BodyweightEntry[] = [
+        ...prev.bodyweightLog.filter(e => e.date.slice(0, 10) !== dayKey),
+        { date: iso, weight },
+      ].sort((a, b) => a.date.localeCompare(b.date));
+      const latest = log[log.length - 1];
+      return {
+        ...prev,
+        bodyweightLog: log,
+        settings: { ...prev.settings, bodyweight: latest ? latest.weight : prev.settings.bodyweight },
+      };
+    });
+  };
+
+  const deleteBodyweightEntry = (date: string) => {
+    setState(prev => {
+      const log = prev.bodyweightLog.filter(e => e.date !== date);
+      const latest = log[log.length - 1];
+      return {
+        ...prev,
+        bodyweightLog: log,
+        settings: { ...prev.settings, bodyweight: latest ? latest.weight : prev.settings.bodyweight },
+      };
+    });
+  };
+
+  const getBodyweightAt = (date: string | number | Date): number =>
+    getEffectiveBodyweight(state.bodyweightLog, date, state.settings.bodyweight);
 
   // Rest Timer Functions
   const startRestTimer = (seconds: number) => {
@@ -623,7 +671,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setRestTimerDuration,
       restTimerEnd,
       startRestTimer,
-      stopRestTimer
+      stopRestTimer,
+      logBodyweight,
+      deleteBodyweightEntry,
+      getBodyweightAt
     }}>
       {children}
     </WorkoutContext.Provider>

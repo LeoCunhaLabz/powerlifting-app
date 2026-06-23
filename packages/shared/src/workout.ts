@@ -43,6 +43,9 @@ export interface WorkoutTemplate {
   isBuiltIn?: boolean;
 }
 
+/** Tema de acento da interface. 'brass' é o padrão (cor original do app). */
+export type ThemeName = 'onyx' | 'brass' | 'volt';
+
 export interface Settings {
   units: 'kg' | 'lbs';
   barWeight: number;
@@ -50,10 +53,17 @@ export interface Settings {
   bodyweight: number;
   gender: 'male' | 'female';
   isEquipped: boolean;
+  theme: ThemeName;
+}
+
+export interface BodyweightEntry {
+  date: string;   // ISO (YYYY-MM-DD ou ISO completo)
+  weight: number; // na unidade corrente (Settings.units)
 }
 
 export interface AppState {
   history: WorkoutSession[];
   templates: WorkoutTemplate[];
   settings: Settings;
+  bodyweightLog: BodyweightEntry[];
 }
