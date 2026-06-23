@@ -48,14 +48,18 @@ jobs:
   deploy:
     name: Deploy no Dokploy
     needs: build
-    runs-on: ubuntu-latest
+    # Roda no runner SELF-HOSTED do VPS: ele abre conexão DE SAÍDA para o GitHub,
+    # então não depende do firewall do provedor liberar acesso de entrada (que
+    # bloqueia os IPs dos runners hospedados do GitHub na 443/3000). O deploy é
+    # disparado pela API do Dokploy via rede interna (localhost), sem passar pela
+    # internet/Traefik.
+    runs-on: [self-hosted, dokploy-vps]
     steps:
       - name: Disparar deploy (frontend + API)
         env:
-          # ⚠️ DOKPLOY_URL DEVE ser o subdomínio HTTPS (ex.: https://dokploy.cunhalabs.tech).
-          # A porta 3000 é bloqueada por firewall do provedor para IPs externos;
-          # exponha o Dokploy via HTTPS (porta 443) em: Dokploy → Settings → Server → Domain.
-          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          # URL INTERNA do painel Dokploy (mesmo host do runner). Não passa pelo
+          # firewall externo nem por TLS — é loopback dentro do VPS.
+          DOKPLOY_URL: http://localhost:3000
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           APP_ID_WEB: ${{ secrets.DOKPLOY_APP_ID_WEB }}
           APP_ID_API: ${{ secrets.DOKPLOY_APP_ID_API }}
@@ -106,14 +110,16 @@ jobs:
   verify:
     name: Smoke test
     needs: deploy
-    runs-on: ubuntu-latest
+    # Também no runner self-hosted: consulta o status do deploy pela API interna do
+    # Dokploy (localhost) e testa as URLs públicas (hairpin pelo Traefik do próprio VPS).
+    runs-on: [self-hosted, dokploy-vps]
     outputs:
       status: ${{ steps.healthcheck.outputs.status }}
     steps:
       - name: Aguardar deploy do Dokploy e verificar as aplicações
         id: healthcheck
         env:
-          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_URL: http://localhost:3000
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           APP_ID_WEB: ${{ secrets.DOKPLOY_APP_ID_WEB }}
           APP_ID_API: ${{ secrets.DOKPLOY_APP_ID_API }}

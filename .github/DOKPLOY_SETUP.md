@@ -1,66 +1,59 @@
-# Setup: Exposição do Dokploy via HTTPS
+# Setup: Runner self-hosted para o deploy
 
 ## Diagnóstico
 
-A porta 3000 do Dokploy está **bloqueada por firewall de rede do provedor** para IPs externos (ex.: GitHub Actions). Porém, portas 80/443 (HTTP/HTTPS) estão abertas. A solução é expor o Dokploy via **subdomínio HTTPS**.
+O firewall de rede do provedor do VPS **bloqueia os IPs dos runners hospedados do GitHub** (datacenter/Azure) tanto na porta `3000` quanto na `443` — mesmo o painel Dokploy estando acessível por HTTPS a partir de IPs residenciais. Por isso os jobs `deploy` e `verify` falhavam com timeout (`curl 28 / HTTP 000`).
 
-## Configuração necessária
+## Solução
 
-### 1. DNS: Registros A dos subdomínios
+Um **GitHub Actions runner self-hosted** roda no próprio VPS. Ele abre uma conexão **de saída** (VPS → GitHub) por long-poll, então **não depende** do firewall liberar acesso de entrada. Os jobs de deploy passam a chamar a API do Dokploy **internamente** em `http://localhost:3000`.
 
-Adicione no seu provedor de domínio (cunhalabs.tech):
+- `build`, `lint`, `test` e `notify` continuam em `ubuntu-latest` (runners hospedados do GitHub).
+- `deploy` e `verify` rodam no runner self-hosted (label `dokploy-vps`) — ver [deploy.yml](workflows/deploy.yml).
 
-```
-dokploy.cunhalabs.tech    A    187.77.245.102
-powerlifting.cunhalabs.tech   A    187.77.245.102
-```
+## O que já está provisionado no VPS
 
-Aguarde propagação (5-60 min). Teste:
-```bash
-nslookup dokploy.cunhalabs.tech
-nslookup powerlifting.cunhalabs.tech
-```
+Feito automaticamente (usuário `github-runner`, em `/home/github-runner/actions-runner`):
 
-### 2. Dokploy: Configurar domínio do painel
+- Runner `v2.335.1` (linux-x64) baixado e com dependências instaladas.
+- Unit do systemd `github-runner.service` criada (auto-restart, `Restart=always`).
 
-**Acesse:** `http://187.77.245.102:3000` (do seu PC local)
+Falta apenas **registrar o runner com um token** (passo manual — o token é secreto).
 
-**Navegue para:** Settings → Server → Domain
+## Passo manual: registrar o runner
 
-**Adicione:** `dokploy.cunhalabs.tech`
+1. No GitHub, acesse: **Settings → Actions → Runners → New self-hosted runner**
+   (URL direta: `https://github.com/LeoCunhaLabz/powerlifting-app/settings/actions/runners/new`)
+2. Copie o **registration token** (começa com `A...`, válido por 1h).
+3. No **seu** terminal, rode (substituindo `COLE_O_TOKEN`):
 
-O Dokploy gera certificado SSL automaticamente via Let's Encrypt. Aguarde ~1 min.
+   ```bash
+   ssh root@187.77.245.102 "su - github-runner -c 'cd /home/github-runner/actions-runner && ./config.sh --url https://github.com/LeoCunhaLabz/powerlifting-app --token COLE_O_TOKEN --name dokploy-vps --labels dokploy-vps --unattended --replace'"
+   ```
 
-**Teste:**
-```bash
-curl -k https://dokploy.cunhalabs.tech/
-# Deve retornar 200 (com SSL)
-```
+4. Inicie o serviço (auto-start no boot):
 
-### 3. Dokploy: Mover aplicação para subdomínio
+   ```bash
+   ssh root@187.77.245.102 "systemctl enable --now github-runner.service && systemctl --no-pager status github-runner.service | head -5"
+   ```
 
-**Aplicação powerlifting**
+5. Confirme que o runner aparece **online** em Settings → Actions → Runners.
 
-1. Dentro do Dokploy, acesse a aplicação powerlifting
-2. **Domains** → remova `cunhalabs.tech`, adicione `powerlifting.cunhalabs.tech`
-3. Aguarde rebuild (1-2 min)
+## Validação
 
-**Teste:**
-```bash
-curl -I https://powerlifting.cunhalabs.tech
-```
+Após o runner ficar online, qualquer `push` em `main` dispara o pipeline; os jobs `deploy` e `verify` rodarão no runner do VPS. Acompanhe em **Actions**.
 
-### 4. GitHub Secrets: Atualizar URLs
+## Manutenção
 
-```
-DOKPLOY_URL=https://dokploy.cunhalabs.tech
-APP_URL=https://powerlifting.cunhalabs.tech
-```
+- O runner se **auto-atualiza** por padrão.
+- Logs: `journalctl -u github-runner.service -f` (no VPS).
+- Reiniciar: `systemctl restart github-runner.service`.
+- Remover: `su - github-runner -c '.../config.sh remove --token <TOKEN>'` + `systemctl disable --now github-runner.service`.
 
-No seu repo: **Settings → Secrets and variables → Actions → Secrets**
+## Secrets do GitHub ainda usados
 
-**Após isso:** o próximo `push` em `main` disparará o deploy via HTTPS (porta 443, sem firewall).
+`deploy`/`verify` não usam mais `DOKPLOY_URL` (agora é `http://localhost:3000` fixo, interno). Continuam necessários:
 
-## Rollback (se precisar revertir)
-
-Se precisar voltar ao IP:3000 por algum motivo, remova os subdomínios do DNS e revert os secrets em GitHub. Mas **recomenda-se deixar assim** — é mais seguro e profissional.
+- `DOKPLOY_API_KEY`, `DOKPLOY_APP_ID_WEB`, `DOKPLOY_APP_ID_API` — disparo do deploy.
+- `APP_URL`, `API_URL` — smoke test das URLs públicas (hairpin pelo Traefik do VPS).
+- `RESEND_API_KEY` (e afins) — notificação por e-mail no job `notify`.
