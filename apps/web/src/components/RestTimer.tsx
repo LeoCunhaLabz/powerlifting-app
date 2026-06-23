@@ -219,7 +219,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   progressBar: {
     height: '3px',
-    backgroundColor: 'var(--text-primary)',
+    backgroundColor: 'var(--accent)',
     transition: 'width 1s linear',
   },
   content: {
