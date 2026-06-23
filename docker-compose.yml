@@ -1,3 +1,8 @@
+# docker-compose.yml — APENAS para desenvolvimento/teste local (web + api + postgres
+# num único stack autocontido). NÃO é o que roda em produção: no Dokploy, web, api e
+# o PostgreSQL são recursos NATIVOS e separados na rede `dokploy-network` (o banco é
+# gerenciado pelo Dokploy, com seu próprio painel/backups). Não faça deploy deste
+# compose no Dokploy, ou um segundo Postgres paralelo seria criado.
 version: '3.8'
 
 services:
@@ -5,6 +10,8 @@ services:
     build: .
     expose:
       - "80"
+    depends_on:
+      - api
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:80/ || exit 1"]
       interval: 10s
@@ -27,6 +34,9 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
       - REFRESH_TOKEN_EXPIRES_IN=${REFRESH_TOKEN_EXPIRES_IN:-7d}
       - CORS_ORIGIN=${CORS_ORIGIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/health || exit 1"]
       interval: 10s
@@ -34,3 +44,21 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=powerlifting
+      - POSTGRES_USER=powerlifting
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U powerlifting"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

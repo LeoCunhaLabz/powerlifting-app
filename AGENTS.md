@@ -16,8 +16,9 @@ powerlifting-app/
 ├─ packages/
 │  └─ shared/       ← tipos de domínio compartilhados (@powerlifting/shared)
 ├─ package.json     ← raiz: npm workspaces + scripts que delegam
+├─ .env.example     ← variáveis de ambiente do docker-compose (raiz)
 ├─ Dockerfile       ← build do web a partir do workspace
-└─ docker-compose.yml
+└─ docker-compose.yml  ← stack local (web + api + postgres); produção usa Dokploy
 ```
 
 - Sem Turborepo/Nx: workspaces do npm são suficientes neste estágio.
@@ -43,13 +44,21 @@ npm run lint:api    # ESLint do apps/api (flat config)
 
 ### Variáveis de ambiente da API
 
-O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zod) — veja [apps/api/.env.example](apps/api/.env.example). Além de `PORT`/`HOST`/`CORS_ORIGIN`/`DATABASE_URL`, a autenticação exige:
+O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zod) — veja [apps/api/.env.example](apps/api/.env.example) (dev local) ou [.env.example](.env.example) (docker-compose). Além de `PORT`/`HOST`/`CORS_ORIGIN`/`DATABASE_URL`, a autenticação exige:
 
 - `JWT_SECRET` — segredo HS256 (mín. 32 caracteres), **obrigatório**.
 - `JWT_EXPIRES_IN` — expiração do access token (default `15m`).
 - `REFRESH_TOKEN_EXPIRES_IN` — expiração do refresh token (default `7d`).
 
 Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout` e `GET /auth/me` (protegida via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. Nunca exponha `password_hash` em responses ou logs.
+
+### Banco de dados e migrations
+
+Em **produção** o app roda no **Dokploy**: web, api e PostgreSQL são recursos **nativos e separados** do Dokploy, na rede `dokploy-network`. O banco é um recurso **gerenciado pelo Dokploy** (`postgres:16`, com painel/backups próprios) — a API conecta nele via `DATABASE_URL` apontando para o hostname do serviço de banco do Dokploy (ex.: `...@powerliftingapp-powerliftingdb-...:5432/powerlifting`). O roteamento/TLS é feito pelo Traefik.
+
+O `docker-compose.yml` da raiz é **apenas para desenvolvimento/teste local** — sobe um stack autocontido com **web + api + postgres** (`postgres:16-alpine`, volume nomeado `postgres_data`), em que a API depende do healthcheck do postgres (`service_healthy`). **Não** faça deploy desse compose no Dokploy (criaria um segundo Postgres paralelo ao gerenciado).
+
+Migrations são aplicadas **automaticamente no boot** da API via `runMigrations()` em [apps/api/src/db/index.ts](apps/api/src/db/index.ts) (usa `drizzle-orm/postgres-js/migrator`, não a CLI `drizzle-kit`; é idempotente e pula migrations já aplicadas). Como o `src/index.ts` chama `runMigrations()` incondicionalmente, normalmente **não é preciso migrar manualmente**; o comando `npm run db:migrate -w @powerlifting/api` é **opcional** (ex.: aplicar migrations sem subir a API). Para gerar novas migrations: `npm run db:generate -w @powerlifting/api`.
 
 ## Princípios
 
