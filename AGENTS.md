@@ -75,7 +75,7 @@ Migrations são aplicadas **automaticamente no boot** da API via `runMigrations(
 A raiz [apps/web/src/App.tsx](apps/web/src/App.tsx) controla a aba atual via `useState<Tab>` e renderiza a página em `renderActiveTab()`. Abas válidas:
 
 ```
-'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings'
+'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more'
 ```
 
 Para **adicionar uma aba/página**:
@@ -83,6 +83,8 @@ Para **adicionar uma aba/página**:
 2. Adicione o valor ao tipo `Tab`.
 3. Adicione o `case` em `renderActiveTab()`.
 4. Adicione o botão na `bottom-nav` (com ícone do `lucide-react` e label em pt-BR).
+
+> **Navegação enxuta (4 destinos).** A `bottom-nav` tem no máximo **4 botões**: Início · Rotinas · Treinar · **Mais**. Páginas secundárias (Análises, Calculadoras, Configurações) **não** entram na barra — vivem no hub [apps/web/src/pages/More.tsx](apps/web/src/pages/More.tsx), que recebe `onNavigate(tab)` e lista atalhos; o `App.tsx` exibe um "voltar" quando uma aba-filha do "Mais" está ativa. Para uma nova página secundária, registre-a em `More.tsx` (tipo `MoreTab`) em vez da `bottom-nav`.
 
 ### Estado global — `WorkoutContext`
 
@@ -110,6 +112,8 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 
 - **CSS puro** em [apps/web/src/index.css](apps/web/src/index.css). Não introduza Tailwind, CSS-in-JS libs ou outros frameworks.
 - Use as **CSS variables** existentes (cores, raios, transições). Não hardcode hex que já tenha token.
+- **Tema de acento (ONYX).** A cor de destaque é uma **única** variável `--accent` (+ `--accent-soft`, `--accent-border`, `--accent-ink`), trocada por `:root[data-theme="onyx|brass|volt"]`; padrão **Brass** (`#e3a83b`). O `WorkoutContext` aplica `data-theme` no `<html>` a partir de `settings.theme`. Para qualquer destaque (botão primário, aba ativa, badge, foco) use `var(--accent)` / `var(--accent-ink)` — **nunca** `#ffffff`/`#000000`. O alias legado `--accent-white` aponta para `var(--accent)`.
+- **Marca ONYX.** Wordmark Outfit 900 + a marca (anilha de frente — anel dourado). Assets do PWA em `apps/web/public/`; `favicon.svg` é a fonte vetorial — para refazer os PNGs (`pwa-*`, maskable, apple-touch) parta dela via `@vite-pwa/assets-generator` (`pwa-assets.config.ts`).
 - Layout travado em `--max-width: 480px` (mobile-first). Componentes devem funcionar bem nessa largura.
 - Estilos inline pontuais (objeto `styles`) são aceitáveis quando seguem o padrão já usado nos componentes.
 - Ícones via `lucide-react`.
