@@ -38,5 +38,10 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
-await runMigrations(env.DATABASE_URL)
-await app.listen({ port: env.PORT, host: env.HOST })
+try {
+  await runMigrations(env.DATABASE_URL)
+  await app.listen({ port: env.PORT, host: env.HOST })
+} catch (err) {
+  app.log.error({ err }, 'Falha ao iniciar o servidor')
+  process.exit(1)
+}

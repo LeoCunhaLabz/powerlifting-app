@@ -25,10 +25,8 @@ COPY apps/api/package.json ./apps/api/package.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci --omit=dev
-# Copy compiled output from build stage
+# Copy compiled output from build stage (inclui dist/db/migrations gerado pelo build)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-# Copy migrations (SQL files — not emitted by tsc)
-COPY --from=builder /app/apps/api/src/db/migrations ./apps/api/dist/db/migrations
 
 EXPOSE 3000
 

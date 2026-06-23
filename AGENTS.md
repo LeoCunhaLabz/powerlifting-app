@@ -58,7 +58,7 @@ Em **produção** o app roda no **Dokploy**: web, api e PostgreSQL são recursos
 
 O `docker-compose.yml` da raiz é **apenas para desenvolvimento/teste local** — sobe um stack autocontido com **web + api + postgres** (`postgres:16-alpine`, volume nomeado `postgres_data`), em que a API depende do healthcheck do postgres (`service_healthy`). **Não** faça deploy desse compose no Dokploy (criaria um segundo Postgres paralelo ao gerenciado).
 
-Migrations são aplicadas **automaticamente no boot** da API via `runMigrations()` em [apps/api/src/db/index.ts](apps/api/src/db/index.ts) (usa `drizzle-orm/postgres-js/migrator`, não a CLI `drizzle-kit`; é idempotente e pula migrations já aplicadas). Em desenvolvimento local, pode rodar `npm run db:migrate -w @powerlifting/api` manualmente. Para gerar novas migrations: `npm run db:generate -w @powerlifting/api`.
+Migrations são aplicadas **automaticamente no boot** da API via `runMigrations()` em [apps/api/src/db/index.ts](apps/api/src/db/index.ts) (usa `drizzle-orm/postgres-js/migrator`, não a CLI `drizzle-kit`; é idempotente e pula migrations já aplicadas). Como o `src/index.ts` chama `runMigrations()` incondicionalmente, normalmente **não é preciso migrar manualmente**; o comando `npm run db:migrate -w @powerlifting/api` é **opcional** (ex.: aplicar migrations sem subir a API). Para gerar novas migrations: `npm run db:generate -w @powerlifting/api`.
 
 ## Princípios
 
