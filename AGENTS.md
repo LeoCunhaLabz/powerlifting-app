@@ -84,7 +84,7 @@ Para **adicionar uma aba/página**:
 3. Adicione o `case` em `renderActiveTab()`.
 4. Adicione o botão na `bottom-nav` (com ícone do `lucide-react` e label em pt-BR).
 
-> **Navegação enxuta (4 destinos).** A `bottom-nav` tem no máximo **4 botões**: Início · Rotinas · Treinar · **Mais**. Páginas secundárias (Análises, Calculadoras, Configurações) **não** entram na barra — vivem no hub [apps/web/src/pages/More.tsx](apps/web/src/pages/More.tsx), que recebe `onNavigate(tab)` e lista atalhos; o `App.tsx` exibe um "voltar" quando uma aba-filha do "Mais" está ativa. Para uma nova página secundária, registre-a em `More.tsx` (tipo `MoreTab`) em vez da `bottom-nav`.
+> **Navegação de 5 slots com FAB central.** A `bottom-nav` tem **4 botões + um FAB central**: Início · Rotinas · **[+ Treinar]** · Análises · **Mais**. O slot central é um FAB flutuante (`Plus`) que abre o Treino e exibe um ponto quando há treino ativo. Páginas secundárias (Calculadoras, Configurações) **não** entram na barra — vivem no hub [apps/web/src/pages/More.tsx](apps/web/src/pages/More.tsx), que recebe `onNavigate(tab)` e lista atalhos; o `App.tsx` exibe um "voltar" quando uma aba-filha do "Mais" (`calculators`/`settings`) está ativa. Para uma nova página secundária, registre-a em `More.tsx` (tipo `MoreTab`) em vez da `bottom-nav`.
 
 ### Estado global — `WorkoutContext`
 
