@@ -1,3 +1,8 @@
+# docker-compose.yml — APENAS para desenvolvimento/teste local (web + api + postgres
+# num único stack autocontido). NÃO é o que roda em produção: no Dokploy, web, api e
+# o PostgreSQL são recursos NATIVOS e separados na rede `dokploy-network` (o banco é
+# gerenciado pelo Dokploy, com seu próprio painel/backups). Não faça deploy deste
+# compose no Dokploy, ou um segundo Postgres paralelo seria criado.
 version: '3.8'
 
 services:

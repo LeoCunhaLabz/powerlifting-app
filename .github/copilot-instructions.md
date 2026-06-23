@@ -10,7 +10,7 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 - `apps/api/` — backend Fastify + TypeScript (código em `apps/api/src/`). Stack: Fastify 5, Zod, `fastify-type-provider-zod`, `@fastify/cors`, `@fastify/jwt` + `@fastify/rate-limit` (auth), `bcryptjs` (hash de senha). Tooling: `tsx` (dev), `tsc` (build para `dist/`), módulo NodeNext.
 - `packages/shared/` — tipos de domínio compartilhados, pacote `@powerlifting/shared`.
 - Comandos raiz: `npm run dev/build/lint` (web), `npm run dev:api/build:api/lint:api/start:api` (api).
-- `docker-compose.yml` — orquestra **web + api + postgres** (`postgres:16-alpine`, volume `postgres_data`). A API depende do healthcheck do postgres. Migrations são aplicadas automaticamente no boot via `runMigrations()` ([apps/api/src/db/index.ts](../apps/api/src/db/index.ts)). Variáveis de ambiente em [.env.example](../.env.example) (docker-compose) e [apps/api/.env.example](../apps/api/.env.example) (dev local).
+- `docker-compose.yml` — **stack local de dev** (web + api + postgres `postgres:16-alpine`, volume `postgres_data`). **Produção roda no Dokploy** com web, api e Postgres como recursos nativos/separados na rede `dokploy-network` (DB gerenciado pelo Dokploy); não faça deploy deste compose lá. Migrations são aplicadas automaticamente no boot via `runMigrations()` ([apps/api/src/db/index.ts](../apps/api/src/db/index.ts)). Variáveis de ambiente em [.env.example](../.env.example) (docker-compose) e [apps/api/.env.example](../apps/api/.env.example) (dev local).
 
 ## Regras essenciais
 
