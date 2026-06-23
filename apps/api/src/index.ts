@@ -7,6 +7,7 @@ import { healthRoutes } from './routes/health.js'
 import { authRoutes } from './routes/auth.js'
 import { dbPluginFp } from './plugins/db.js'
 import { authPluginFp } from './plugins/auth.js'
+import { runMigrations } from './db/index.js'
 
 const app = Fastify({
   logger: {
@@ -37,4 +38,5 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
+await runMigrations(env.DATABASE_URL)
 await app.listen({ port: env.PORT, host: env.HOST })

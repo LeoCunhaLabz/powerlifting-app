@@ -16,8 +16,9 @@ powerlifting-app/
 ├─ packages/
 │  └─ shared/       ← tipos de domínio compartilhados (@powerlifting/shared)
 ├─ package.json     ← raiz: npm workspaces + scripts que delegam
+├─ .env.example     ← variáveis de ambiente do docker-compose (raiz)
 ├─ Dockerfile       ← build do web a partir do workspace
-└─ docker-compose.yml
+└─ docker-compose.yml  ← orquestra web + api + postgres
 ```
 
 - Sem Turborepo/Nx: workspaces do npm são suficientes neste estágio.
@@ -43,13 +44,19 @@ npm run lint:api    # ESLint do apps/api (flat config)
 
 ### Variáveis de ambiente da API
 
-O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zod) — veja [apps/api/.env.example](apps/api/.env.example). Além de `PORT`/`HOST`/`CORS_ORIGIN`/`DATABASE_URL`, a autenticação exige:
+O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zod) — veja [apps/api/.env.example](apps/api/.env.example) (dev local) ou [.env.example](.env.example) (docker-compose). Além de `PORT`/`HOST`/`CORS_ORIGIN`/`DATABASE_URL`, a autenticação exige:
 
 - `JWT_SECRET` — segredo HS256 (mín. 32 caracteres), **obrigatório**.
 - `JWT_EXPIRES_IN` — expiração do access token (default `15m`).
 - `REFRESH_TOKEN_EXPIRES_IN` — expiração do refresh token (default `7d`).
 
 Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout` e `GET /auth/me` (protegida via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. Nunca exponha `password_hash` em responses ou logs.
+
+### Banco de dados e migrations
+
+O `docker-compose.yml` orquestra três serviços: **web** (nginx), **api** (Fastify) e **postgres** (`postgres:16-alpine`, volume nomeado `postgres_data`). A API depende do healthcheck do postgres (`service_healthy`) antes de iniciar.
+
+Migrations são aplicadas **automaticamente no boot** da API via `runMigrations()` em [apps/api/src/db/index.ts](apps/api/src/db/index.ts) (usa `drizzle-orm/postgres-js/migrator`, não a CLI `drizzle-kit`). Em desenvolvimento local, rode `npm run db:migrate -w @powerlifting/api` manualmente. Para gerar novas migrations: `npm run db:generate -w @powerlifting/api`.
 
 ## Princípios
 
