@@ -36,6 +36,8 @@ interface WorkoutContextType {
   logBodyweight: (weight: number, date?: string) => void;
   deleteBodyweightEntry: (date: string) => void;
   getBodyweightAt: (date: string | number | Date) => number;
+  saveError: string | null;
+  dismissSaveError: () => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -210,9 +212,28 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return saved ? parseInt(saved, 10) : null;
   });
 
+  // Sinaliza falha ao persistir no localStorage (cota cheia, modo privado, indisponivel)
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const dismissSaveError = () => setSaveError(null);
+
+  // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
+  // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
+  // Obs.: o setSaveError no sucesso usa update funcional que faz bail-out quando ja
+  // esta null, entao nao ha render em cascata (o lint set-state-in-effect e falso-positivo aqui).
+  const safeSetItem = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+      setSaveError(prev => (prev === null ? prev : null));
+    } catch (e) {
+      console.error(`Failed to save "${key}" to localStorage:`, e);
+      setSaveError('Não foi possível salvar localmente. O armazenamento pode estar cheio ou indisponível.');
+    }
+  };
+
   // Sync state to local storage on change
   useEffect(() => {
-    localStorage.setItem('powerlifting_app_state', JSON.stringify(state));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
+    safeSetItem('powerlifting_app_state', JSON.stringify(state));
   }, [state]);
 
   // Aplica o tema de acento no documento (lido pelo CSS via [data-theme])
@@ -223,7 +244,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Sync active workout to local storage on change
   useEffect(() => {
     if (activeWorkout) {
-      localStorage.setItem('powerlifting_active_workout', JSON.stringify(activeWorkout));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
+      safeSetItem('powerlifting_active_workout', JSON.stringify(activeWorkout));
     } else {
       localStorage.removeItem('powerlifting_active_workout');
     }
@@ -232,7 +254,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Sync rest timer target time to local storage
   useEffect(() => {
     if (restTimerEnd !== null) {
-      localStorage.setItem('powerlifting_rest_timer_end', restTimerEnd.toString());
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
+      safeSetItem('powerlifting_rest_timer_end', restTimerEnd.toString());
     } else {
       localStorage.removeItem('powerlifting_rest_timer_end');
     }
@@ -677,7 +700,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       stopRestTimer,
       logBodyweight,
       deleteBodyweightEntry,
-      getBodyweightAt
+      getBodyweightAt,
+      saveError,
+      dismissSaveError
     }}>
       {children}
     </WorkoutContext.Provider>
