@@ -56,14 +56,35 @@ Use isto como checklist de cobertura. Numa varredura geral, passe por **todas**;
    - **Risco/Urgência:** Alto para correção de segurança/bug de dados; senão Médio/Baixo.
    - **ROI:** síntese (Valor alto + Esforço P/M ⇒ topo). **Segurança e bugs de correção sobem na fila** mesmo com valor "de usuário" baixo.
    - Logo abaixo da tabela, escreva **um parágrafo curto de recomendação**: as 3–5 issues que eu deveria fazer **primeiro** e por quê.
+   - Mapeie cada linha para as **labels de sequenciamento** (prioridade/esforço/status) — ver seção abaixo.
 
 4. **Perguntar antes de redigir** quais itens da tabela transformar em issues prontas.
 
-5. **Redigir as issues** aprovadas no formato padrão abaixo, prontas para colar no GitHub.
+5. **Redigir as issues** aprovadas no formato padrão abaixo, prontas para colar no GitHub. Issues novas nascem com `status:triagem` (ainda não aprovadas).
+
+> Fluxo completo (gerar → planejar → executar → aprovar) documentado em [.github/prompts/README.md](README.md).
 
 ## Armadilhas de overengineering a evitar (exemplos deste projeto)
 
 Não proponha (a menos que haja dor real e medível agora): trocar o estado por Redux/Zustand "por boas práticas"; introduzir Tailwind/CSS-in-JS/biblioteca de UI; criar camada de abstração/genéricos para um único uso; microserviços ou filas; cache/ORM/índices para volume de dados que não existe; GraphQL; testes E2E pesados antes de testes unitários dos cálculos; reescrever o que funciona. Se algo assim parecer necessário, **justifique a dor concreta** na issue ou descarte.
+
+## Sistema de labels (define a ordem de execução)
+
+As labels não são decorativas: elas respondem **"o que fazer a seguir e em que ordem"**. Toda issue deve sair com **4 eixos**:
+
+1. **Tipo** (o que é): `bug` · `enhancement` · `documentation` · `tech-debt`.
+2. **Área** (onde): `security` · `infra` · `backend` · `performance` · `ux` (frentes sem label própria — frontend/dashboards/dx — ficam no campo "Frente").
+3. **Prioridade** (dirige a ordem): `p0` (segurança/perda de dados — faz primeiro) · `p1` (alta) · `p2` (média) · `p3` (baixa).
+4. **Esforço** (acha quick wins): `esforco:p` · `esforco:m` · `esforco:g`.
+
+E **1 eixo de status** (estado no fluxo / porta de aprovação):
+
+- `status:triagem` — proposta nova, **ainda não aprovada** (toda issue gerada aqui começa assim).
+- `status:aprovada` — escopo aprovado, pronta para `/planejar-proxima-issue` e `/executar-issue`.
+- `status:bloqueada` — espera uma dependência (`Depende de: #N`).
+- `status:em-andamento` — já tem branch/PR.
+
+`fase-*` é reservado a **épicos de roadmap** (ex.: sincronização = `fase-3`), não a cada bug/UX pequeno. A regra de ordem prática: **p0 antes de p1 antes de p2/p3**, e dentro da mesma prioridade prefira `esforco:p` (quick wins). Issues `status:bloqueada` saem da fila até a dependência fechar.
 
 ## Formato de cada issue (saída)
 
@@ -88,6 +109,6 @@ Não proponha (a menos que haja dor real e medível agora): trocar o estado por 
 
 **Arquivos prováveis:** <caminhos>
 **Frente:** <segurança | infra | backend | frontend | ux | dashboards | perf | dx>
-**Labels sugeridas:** <ex.: security, ux, bug, enhancement, tech-debt>
+**Labels sugeridas:** <tipo> + <área> + <prioridade `p0`–`p3`> + <`esforco:p|m|g`> + `status:triagem`
 **Branch sugerido:** <type>/<resumo> · **Esforço:** P/M/G · **Depende de:** <#N ou —>
 ```

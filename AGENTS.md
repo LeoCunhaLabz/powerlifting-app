@@ -128,6 +128,8 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 
 ## Fluxo de trabalho (PRs e iterações)
 
+> **Fluxo completo de issues** (ciclo de vida, qual prompt usar em cada etapa, sistema de labels de prioridade/status/esforço e **como aprovar uma issue**): [.github/prompts/README.md](.github/prompts/README.md).
+
 A codebase evolui por **issues**, uma de cada vez. Para cada issue:
 
 1. **Branch dedicado** a partir de `main` com o padrão `<type>/<issue-number>-<resumo>` (ex.: `feat/7-api-fastify`, `chore/6-monorepo-restructure`, `fix/99-correcao-calculo`). O número da issue no nome facilita rastreabilidade.
@@ -142,6 +144,6 @@ A codebase evolui por **issues**, uma de cada vez. Para cada issue:
 ## Customizações de agente neste repo
 
 - `.github/copilot-instructions.md` — instruções sempre ativas.
-- `.github/prompts/` — prompts para tarefas comuns.
+- `.github/prompts/` — prompts para tarefas comuns; veja [.github/prompts/README.md](.github/prompts/README.md) para o fluxo de issues (gerar → planejar → executar), labels e aprovação.
 - `.github/agents/powerlifting-dev.agent.md` — agente especializado.
 - `.github/skills/` — conhecimento de domínio (fórmulas, design system).
