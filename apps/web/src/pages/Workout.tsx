@@ -1,397 +1,242 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale } from 'lucide-react';
+import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
+
+const EXERCISE_OPTIONS = [
+  'Agachamento', 'Supino Reto', 'Levantamento Terra', 'Desenvolvimento Militar',
+  'Remada Curvada', 'Barra Fixa', 'Agachamento Frontal', 'Supino Inclinado',
+  'Terra Romeno', 'Elevação Lateral', 'Tríceps Testa', 'Rosca Direta',
+];
+
+const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D: 'N' };
 
 export const Workout: React.FC = () => {
   const {
-    activeWorkout,
-    startWorkout,
-    cancelWorkout,
-    completeActiveWorkout,
-    addExerciseToActiveWorkout,
-    removeExerciseFromActiveWorkout,
-    addSetToExercise,
-    removeSetFromExercise,
-    updateSet,
-    updateWorkoutNotes,
-    state,
-    getMaxE1RM
+    activeWorkout, startWorkout, cancelWorkout, completeActiveWorkout,
+    addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
+    removeSetFromExercise, updateSet, updateWorkoutNotes, state, getMaxE1RM,
   } = useWorkout();
+  const { settings, history } = state;
+  const u = settings.units;
 
-  const { settings } = state;
-
-  // Local state for exercise search modal
   const [showAddExModal, setShowAddExModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Local state for Integrated Plate Calculator Modal
   const [plateCalcWeight, setPlateCalcWeight] = useState<number | null>(null);
   const [plateCalcTarget, setPlateCalcTarget] = useState({ exIdx: 0, setIdx: 0 });
-
-  // Local state for Cancel Confirmation Modal
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
-
-  // Time elapsed state
-  const [elapsedTime, setElapsedTime] = useState('00:00');
+  const [showNotes, setShowNotes] = useState(false);
+  const [elapsed, setElapsed] = useState('00:00');
 
   useEffect(() => {
     if (!activeWorkout) return;
-
-    const interval = setInterval(() => {
-      const start = new Date(activeWorkout.date).getTime();
-      const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
-      
-      const hrs = Math.floor(diff / 3600);
-      const mins = Math.floor((diff % 3600) / 60);
-      const secs = diff % 60;
-      
-      const formatted = hrs > 0 
-        ? `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-        : `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      
-      setElapsedTime(formatted);
-    }, 1000);
-
-    return () => clearInterval(interval);
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((Date.now() - new Date(activeWorkout.date).getTime()) / 1000));
+      const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+      setElapsed(h > 0
+        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+        : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
   }, [activeWorkout]);
 
   if (!activeWorkout) {
     return (
-      <div style={styles.emptyContainer}>
-        <div style={styles.emptyIconBox}>
-          <Dumbbell size={48} color="var(--text-secondary)" />
-        </div>
-        <h2 style={styles.emptyTitle}>NENHUM TREINO ATIVO</h2>
-        <p style={styles.emptyDesc}>
-          Inicie um treino avulso para registrar na hora ou vá na aba <strong>Rotinas</strong> para carregar um template pré-definido.
-        </p>
-        <button onClick={() => startWorkout()} style={styles.startEmptyBtn}>
-          <Play size={16} fill="currentColor" /> Iniciar Treino Avulso
+      <div style={styles.empty}>
+        <div style={styles.emptyIcon}><Dumbbell size={44} color="var(--text-secondary)" /></div>
+        <h2 style={styles.emptyTitle}>Nenhum treino ativo</h2>
+        <p style={styles.emptyDesc}>Inicie um treino avulso para registrar na hora, ou carregue uma rotina na aba <strong>Rotinas</strong>.</p>
+        <button onClick={() => startWorkout()} style={styles.startBtn}>
+          <Play size={16} fill="var(--accent-ink)" stroke="none" /> Iniciar treino avulso
         </button>
       </div>
     );
   }
 
-  const handleOpenPlateCalc = (exIdx: number, setIdx: number, currentWeight: number) => {
-    setPlateCalcWeight(currentWeight || 60);
-    setPlateCalcTarget({ exIdx, setIdx });
+  const lastPerf = (name: string, setIdx: number): string | null => {
+    const ln = name.toLowerCase();
+    for (const s of history) {
+      const ex = s.exercises.find((e) => e.name.toLowerCase() === ln);
+      if (ex) {
+        const set = ex.sets[setIdx] || ex.sets[ex.sets.length - 1];
+        if (set) return `${set.weight}×${set.reps}`;
+      }
+    }
+    return null;
   };
 
-  const handleApplyPlateWeight = () => {
+  const openPlate = (exIdx: number, setIdx: number, w: number) => {
+    setPlateCalcWeight(w || settings.barWeight || 60);
+    setPlateCalcTarget({ exIdx, setIdx });
+  };
+  const applyPlate = () => {
     if (plateCalcWeight !== null) {
       updateSet(plateCalcTarget.exIdx, plateCalcTarget.setIdx, { weight: plateCalcWeight });
       setPlateCalcWeight(null);
     }
   };
-
-  const handleAddExercise = (name: string) => {
+  const addExercise = (name: string) => {
     addExerciseToActiveWorkout(name);
     setSearchQuery('');
     setShowAddExModal(false);
   };
 
-  const EXERCISE_OPTIONS = [
-    'Agachamento',
-    'Supino Reto',
-    'Levantamento Terra',
-    'Desenvolvimento Militar',
-    'Remada Curvada',
-    'Barra Fixa',
-    'Agachamento Frontal',
-    'Supino Inclinado',
-    'Terra Romeno',
-    'Elevação Lateral',
-    'Tríceps Testa',
-    'Rosca Direta'
-  ];
-
   return (
     <div style={styles.container}>
-      {/* Workout Info Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.workoutTitle}>{activeWorkout.name}</h1>
-          <div style={styles.timeBadge}>
-            <Clock size={12} />
-            <span>{elapsedTime}</span>
+      {/* App bar */}
+      <div style={styles.appbar}>
+        <div style={styles.titleWrap}>
+          <h1 style={styles.title}>{activeWorkout.name}</h1>
+          <span style={styles.timer}><Clock size={12} /> {elapsed}</span>
+        </div>
+        <div style={styles.actions}>
+          <button onClick={() => setShowConfirmCancel(true)} style={styles.discardBtn}>Descartar</button>
+          <button onClick={completeActiveWorkout} style={styles.finishBtn}>Finalizar</button>
+        </div>
+      </div>
+
+      <div style={styles.metaRow}>
+        <span style={styles.metaItem}>{activeWorkout.exercises.length} exercícios</span>
+        <button onClick={() => setShowNotes((v) => !v)} style={styles.notesToggle}>
+          {showNotes ? 'Ocultar notas' : 'Notas'}
+        </button>
+      </div>
+      {showNotes && (
+        <textarea
+          placeholder="Notas do treino (clima, humor, dores...)"
+          value={activeWorkout.notes || ''}
+          onChange={(e) => updateWorkoutNotes(e.target.value)}
+          style={styles.notes}
+        />
+      )}
+
+      {/* Exercises */}
+      <div style={styles.exList}>
+        {activeWorkout.exercises.map((ex, exIdx) => (
+          <div key={ex.id} style={styles.exCard}>
+            <div style={styles.exHead}>
+              <div>
+                <div style={styles.exName}>{ex.name}</div>
+                <div style={styles.exSub}>e1RM {getMaxE1RM(ex.name)} {u}</div>
+              </div>
+              <button onClick={() => removeExerciseFromActiveWorkout(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
+            </div>
+
+            <div style={styles.colHead}>
+              <span>SÉRIE</span><span>ANT.</span><span style={styles.colC}>{u.toUpperCase()}</span><span style={styles.colC}>REPS</span><span style={styles.colC}>RPE</span><span></span>
+            </div>
+
+            {ex.sets.map((set, setIdx) => {
+              const prev = lastPerf(ex.name, setIdx);
+              return (
+                <div key={set.id} style={{ ...styles.setRow, backgroundColor: set.completed ? 'var(--accent-soft)' : 'transparent' }}>
+                  <button
+                    onClick={() => updateSet(exIdx, setIdx, { type: TYPE_CYCLE[set.type] })}
+                    style={{
+                      ...styles.typeChip,
+                      color: set.type === 'N' ? 'var(--text-secondary)' : 'var(--accent)',
+                      borderColor: set.type === 'N' ? 'transparent' : 'var(--accent-border)',
+                    }}
+                    title="Tipo: Normal / Aquecimento / Drop"
+                  >
+                    {set.type === 'N' ? setIdx + 1 : set.type}
+                  </button>
+                  <span style={styles.prev}>{prev || '—'}</span>
+                  <div style={styles.weightCell}>
+                    <input type="number" inputMode="decimal" value={set.weight || ''} disabled={set.completed}
+                      onChange={(e) => updateSet(exIdx, setIdx, { weight: Number(e.target.value) })}
+                      style={styles.field} placeholder="0" />
+                    <button onClick={() => openPlate(exIdx, setIdx, set.weight)} style={styles.plateBtn} title="Montar anilhas"><Scale size={12} /></button>
+                  </div>
+                  <input type="number" inputMode="numeric" value={set.reps || ''} disabled={set.completed}
+                    onChange={(e) => updateSet(exIdx, setIdx, { reps: Number(e.target.value) })}
+                    style={styles.field} placeholder="0" />
+                  <select value={set.rpe || ''} disabled={set.completed}
+                    onChange={(e) => updateSet(exIdx, setIdx, { rpe: e.target.value ? Number(e.target.value) : undefined })}
+                    style={styles.rpe}>
+                    <option value="">—</option>
+                    {[10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5].map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <button
+                    onClick={() => updateSet(exIdx, setIdx, { completed: !set.completed })}
+                    style={{
+                      ...styles.check,
+                      backgroundColor: set.completed ? 'var(--accent)' : 'transparent',
+                      borderColor: set.completed ? 'var(--accent)' : 'var(--border-color)',
+                    }}
+                  >
+                    <Check size={15} strokeWidth={3.5} color={set.completed ? 'var(--accent-ink)' : 'var(--border-focus)'} />
+                  </button>
+                </div>
+              );
+            })}
+
+            <div style={styles.exActions}>
+              <button onClick={() => addSetToExercise(exIdx)} style={styles.addSet}><Plus size={14} /> Adicionar série</button>
+              <button onClick={() => removeSetFromExercise(exIdx, ex.sets.length - 1)} disabled={ex.sets.length <= 1} style={styles.delSet}>Remover</button>
+            </div>
           </div>
-        </div>
-        <div style={styles.headerActions}>
-          <button onClick={() => setShowConfirmCancel(true)} style={styles.cancelBtn}>
-            Descartar
-          </button>
-          <button onClick={completeActiveWorkout} style={styles.completeBtn}>
-            Finalizar
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Workout Notes */}
-      <textarea
-        placeholder="Notas do treino (clima, humor, dores...)"
-        value={activeWorkout.notes || ''}
-        onChange={(e) => updateWorkoutNotes(e.target.value)}
-        style={styles.notesTextarea}
-      />
+      <button onClick={() => setShowAddExModal(true)} style={styles.addEx}><Plus size={15} /> Adicionar exercício</button>
 
-      {/* Exercises list */}
-      <div style={styles.exercisesList}>
-        {activeWorkout.exercises.map((ex, exIdx) => {
-          const maxE1RM = getMaxE1RM(ex.name);
-          return (
-            <div key={ex.id} style={styles.exCard}>
-              <div style={styles.exCardHeader}>
-                <div>
-                  <span style={styles.exName}>{ex.name}</span>
-                  <span style={styles.e1rmIndicator}>e1RM atual: {maxE1RM} {settings.units}</span>
-                </div>
-                <button onClick={() => removeExerciseFromActiveWorkout(exIdx)} style={styles.removeExBtn}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
-
-              {/* Sets Table */}
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.thCol}>SÉRIE</th>
-                    <th style={styles.thCol}>TIPO</th>
-                    <th style={styles.thCol}>PESO ({settings.units})</th>
-                    <th style={styles.thCol}>REPS</th>
-                    <th style={styles.thCol}>RPE</th>
-                    <th style={{ ...styles.thCol, width: '40px' }}>✓</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ex.sets.map((set, setIdx) => {
-                    return (
-                      <tr
-                        key={set.id}
-                        style={{
-                          ...styles.tr,
-                          backgroundColor: set.completed ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-                        }}
-                      >
-                        <td style={styles.tdIndex}>
-                          {setIdx + 1}
-                          {set.percentage && (
-                            <span style={styles.pctLabel}>{set.percentage}%</span>
-                          )}
-                        </td>
-                        <td style={styles.td}>
-                          <select
-                            value={set.type}
-                            disabled={set.completed}
-                            onChange={(e) => updateSet(exIdx, setIdx, { type: e.target.value as 'W' | 'N' | 'D' })}
-                            style={styles.selectType}
-                          >
-                            <option value="N">N</option>
-                            <option value="W">W</option>
-                            <option value="D">D</option>
-                          </select>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.weightCell}>
-                            <input
-                              type="number"
-                              value={set.weight || ''}
-                              disabled={set.completed}
-                              onChange={(e) => updateSet(exIdx, setIdx, { weight: Number(e.target.value) })}
-                              style={styles.weightInput}
-                              placeholder="0"
-                            />
-                            <button
-                              onClick={() => handleOpenPlateCalc(exIdx, setIdx, set.weight)}
-                              style={styles.plateCalcBtn}
-                              title="Calculadora de Anilhas"
-                            >
-                              <Scale size={12} />
-                            </button>
-                          </div>
-                        </td>
-                        <td style={styles.td}>
-                          <input
-                            type="number"
-                            value={set.reps || ''}
-                            disabled={set.completed}
-                            onChange={(e) => updateSet(exIdx, setIdx, { reps: Number(e.target.value) })}
-                            style={styles.repsInput}
-                            placeholder="0"
-                          />
-                        </td>
-                        <td style={styles.td}>
-                          <select
-                            value={set.rpe || ''}
-                            disabled={set.completed}
-                            onChange={(e) => updateSet(exIdx, setIdx, { rpe: e.target.value ? Number(e.target.value) : undefined })}
-                            style={styles.selectRpe}
-                          >
-                            <option value="">-</option>
-                            <option value="10">10</option>
-                            <option value="9.5">9.5</option>
-                            <option value="9">9</option>
-                            <option value="8.5">8.5</option>
-                            <option value="8">8</option>
-                            <option value="7.5">7.5</option>
-                            <option value="7">7</option>
-                            <option value="6.5">6.5</option>
-                          </select>
-                        </td>
-                        <td style={styles.td}>
-                          <button
-                            onClick={() => updateSet(exIdx, setIdx, { completed: !set.completed })}
-                            style={{
-                              ...styles.checkBtn,
-                              backgroundColor: set.completed ? 'var(--accent-white)' : 'transparent',
-                              borderColor: set.completed ? 'var(--accent-white)' : 'var(--border-color)',
-                              color: set.completed ? 'var(--bg-primary)' : 'transparent',
-                            }}
-                          >
-                            <Check size={14} strokeWidth={3} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              <div style={styles.exCardActions}>
-                <button onClick={() => addSetToExercise(exIdx)} style={styles.addSetBtn}>
-                  + Adicionar Série
-                </button>
-                <button
-                  onClick={() => removeSetFromExercise(exIdx, ex.sets.length - 1)}
-                  disabled={ex.sets.length <= 1}
-                  style={styles.removeSetBtn}
-                >
-                  Remover Série
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Add Exercise Trigger Button */}
-      <button onClick={() => setShowAddExModal(true)} style={styles.addExBtn}>
-        + Adicionar Exercício
-      </button>
-
-      {/* MODAL: ADD EXERCISE */}
+      {/* Add exercise modal */}
       {showAddExModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>ADICIONAR EXERCÍCIO</h3>
-              <button onClick={() => setShowAddExModal(false)} style={styles.closeBtn}>
-                <X size={20} />
-              </button>
+        <div style={styles.overlay} onClick={() => setShowAddExModal(false)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <h3 style={styles.modalTitle}>Adicionar exercício</h3>
+              <button onClick={() => setShowAddExModal(false)} style={styles.close}><X size={20} /></button>
             </div>
-
-            <input
-              type="text"
-              placeholder="Buscar ou digitar exercício..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={styles.modalSearch}
-              autoFocus
-            />
-
-            <div style={styles.suggestionsList}>
-              {searchQuery.trim() !== '' && !EXERCISE_OPTIONS.some(o => o.toLowerCase() === searchQuery.toLowerCase()) && (
-                <div
-                  onClick={() => handleAddExercise(searchQuery)}
-                  style={{ ...styles.suggestionItem, fontWeight: '700' }}
-                >
-                  Criar exercício "{searchQuery}"
-                </div>
+            <input type="text" placeholder="Buscar ou digitar exercício..." value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)} style={styles.search} autoFocus />
+            <div style={styles.suggestions}>
+              {searchQuery.trim() && !EXERCISE_OPTIONS.some((o) => o.toLowerCase() === searchQuery.toLowerCase()) && (
+                <button onClick={() => addExercise(searchQuery)} style={{ ...styles.suggestion, color: 'var(--accent)', fontWeight: 700 }}>
+                  Criar "{searchQuery}"
+                </button>
               )}
-              {EXERCISE_OPTIONS.filter((o) =>
-                o.toLowerCase().includes(searchQuery.toLowerCase())
-              ).map((name) => (
-                <div
-                  key={name}
-                  onClick={() => handleAddExercise(name)}
-                  style={styles.suggestionItem}
-                >
-                  {name}
-                </div>
+              {EXERCISE_OPTIONS.filter((o) => o.toLowerCase().includes(searchQuery.toLowerCase())).map((name) => (
+                <button key={name} onClick={() => addExercise(name)} style={styles.suggestion}>{name}</button>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: DISCARD CONFIRMATION */}
+      {/* Discard modal */}
       {showConfirmCancel && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modalContent, padding: '20px', alignItems: 'center', textAlign: 'center' }}>
-            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: '12px' }} />
-            <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '8px' }}>DESCARTAR TREINO</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.4' }}>
-              Tem certeza que deseja apagar esta sessão de treino? Todo o progresso registrado será perdido.
-            </p>
+        <div style={styles.overlay} onClick={() => setShowConfirmCancel(false)}>
+          <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12 }} />
+            <h3 style={styles.modalTitle}>Descartar treino</h3>
+            <p style={styles.confirmDesc}>Todo o progresso registrado nesta sessão será perdido.</p>
             <div style={styles.confirmActions}>
-              <button onClick={() => setShowConfirmCancel(false)} style={styles.cancelBackBtn}>
-                Voltar ao Treino
-              </button>
-              <button
-                onClick={() => {
-                  cancelWorkout();
-                  setShowConfirmCancel(false);
-                }}
-                style={styles.confirmDiscardBtn}
-              >
-                Descartar
-              </button>
+              <button onClick={() => setShowConfirmCancel(false)} style={styles.confirmBack}>Voltar</button>
+              <button onClick={() => { cancelWorkout(); setShowConfirmCancel(false); }} style={styles.confirmDiscard}>Descartar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: INTEGRATED PLATE CALCULATOR */}
+      {/* Plate calc modal */}
       {plateCalcWeight !== null && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>CALCULADORA DE ANILHAS</h3>
-              <button onClick={() => setPlateCalcWeight(null)} style={styles.closeBtn}>
-                <X size={20} />
-              </button>
+        <div style={styles.overlay} onClick={() => setPlateCalcWeight(null)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <h3 style={styles.modalTitle}>Calculadora de anilhas</h3>
+              <button onClick={() => setPlateCalcWeight(null)} style={styles.close}><X size={20} /></button>
             </div>
-
-            <div style={styles.plateCalcBody}>
-              <div style={styles.plateCalcAdjustRow}>
-                <button
-                  onClick={() => setPlateCalcWeight((prev) => Math.max(settings.barWeight, (prev || 0) - 2.5))}
-                  style={styles.adjustPlateValBtn}
-                >
-                  -2.5
-                </button>
-                <div style={styles.plateCalcVal}>
-                  {plateCalcWeight} <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{settings.units}</span>
-                </div>
-                <button
-                  onClick={() => setPlateCalcWeight((prev) => (prev || 0) + 2.5)}
-                  style={styles.adjustPlateValBtn}
-                >
-                  +2.5
-                </button>
-              </div>
-
-              <PlateVisualizer
-                weight={plateCalcWeight}
-                barWeight={settings.barWeight}
-                availablePlates={settings.availablePlates}
-                units={settings.units}
-              />
+            <div style={styles.plateAdjust}>
+              <button onClick={() => setPlateCalcWeight((p) => Math.max(settings.barWeight, (p || 0) - 2.5))} style={styles.adjBtn}>−2.5</button>
+              <div style={styles.plateVal}>{plateCalcWeight} <span style={styles.plateUnit}>{u}</span></div>
+              <button onClick={() => setPlateCalcWeight((p) => (p || 0) + 2.5)} style={styles.adjBtn}>+2.5</button>
             </div>
-
-            <button onClick={handleApplyPlateWeight} style={styles.applyPlateBtn}>
-              Aplicar Peso ao Treino
-            </button>
+            <PlateVisualizer weight={plateCalcWeight} barWeight={settings.barWeight} availablePlates={settings.availablePlates} units={u} />
+            <button onClick={applyPlate} style={styles.applyPlate}>Aplicar peso à série</button>
           </div>
         </div>
       )}
@@ -399,415 +244,63 @@ export const Workout: React.FC = () => {
   );
 };
 
-const X: React.FC<{ size: number }> = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-);
+const cols = '34px 52px 1fr 1fr 50px 38px';
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-  },
-  emptyContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '60vh',
-    padding: '24px',
-    textAlign: 'center',
-  },
-  emptyIconBox: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '20px',
-  },
-  emptyTitle: {
-    fontSize: '18px',
-    fontWeight: '800',
-    letterSpacing: '0.05em',
-    marginBottom: '8px',
-  },
-  emptyDesc: {
-    fontSize: '13px',
-    lineHeight: '1.5',
-    color: 'var(--text-secondary)',
-    maxWidth: '300px',
-    marginBottom: '24px',
-  },
-  startEmptyBtn: {
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    padding: '12px 24px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
-    fontWeight: '700',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px',
-    borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '10px',
-  },
-  workoutTitle: {
-    fontSize: '18px',
-    fontWeight: '800',
-    fontFamily: 'var(--font-display)',
-    letterSpacing: '0.02em',
-    color: '#ffffff',
-  },
-  timeBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '700',
-    color: 'var(--text-secondary)',
-    marginTop: '4px',
-    fontFamily: 'monospace',
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '8px',
-  },
-  cancelBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    color: 'var(--error)',
-    padding: '6px 12px',
-    fontSize: '12px',
-    fontWeight: '700',
-    borderRadius: 'var(--radius-sm)',
-    border: '1px solid rgba(239, 68, 68, 0.15)',
-  },
-  completeBtn: {
-    backgroundColor: 'var(--accent-white)',
-    color: 'var(--bg-primary)',
-    padding: '6px 14px',
-    fontSize: '12px',
-    fontWeight: '700',
-    borderRadius: 'var(--radius-sm)',
-  },
-  notesTextarea: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-sm)',
-    padding: '8px 12px',
-    color: 'var(--text-primary)',
-    height: '52px',
-    resize: 'none',
-    marginBottom: '16px',
-    width: '100%',
-    outline: 'none',
-  },
-  exercisesList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-    marginBottom: '16px',
-  },
-  exCard: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    padding: '12px',
-  },
-  exCardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '10px',
-    paddingBottom: '4px',
-    borderBottom: '1px solid rgba(255,255,255,0.03)',
-  },
-  exName: {
-    fontSize: '14px',
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  e1rmIndicator: {
-    display: 'block',
-    fontSize: '10px',
-    color: 'var(--text-secondary)',
-    marginTop: '2px',
-  },
-  removeExBtn: {
-    color: 'var(--text-muted)',
-    padding: '4px',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  thCol: {
-    fontSize: '9px',
-    fontWeight: '800',
-    color: 'var(--text-secondary)',
-    textAlign: 'center',
-    paddingBottom: '6px',
-    letterSpacing: '0.05em',
-  },
-  tr: {
-    borderBottom: '1px solid rgba(255,255,255,0.03)',
-    height: '38px',
-  },
-  tdIndex: {
-    textAlign: 'center',
-    fontSize: '11px',
-    fontWeight: '700',
-    color: 'var(--text-secondary)',
-    position: 'relative',
-  },
-  pctLabel: {
-    display: 'block',
-    fontSize: '8px',
-    color: '#ffffff',
-    opacity: 0.6,
-  },
-  td: {
-    padding: '4px 2px',
-    textAlign: 'center',
-  },
-  selectType: {
-    height: '28px',
-    fontWeight: '700',
-    padding: '0 4px',
-    backgroundColor: '#0a0a0a',
-    border: '1px solid var(--border-color)',
-    borderRadius: '3px',
-    color: '#fff',
-    width: '38px',
-    textAlign: 'center',
-  },
-  weightCell: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    backgroundColor: '#0a0a0a',
-    border: '1px solid var(--border-color)',
-    borderRadius: '3px',
-    paddingRight: '4px',
-  },
-  weightInput: {
-    height: '28px',
-    fontWeight: '700',
-    textAlign: 'center',
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: '#fff',
-    width: '46px',
-    padding: '0',
-  },
-  plateCalcBtn: {
-    color: 'var(--text-secondary)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '16px',
-    height: '16px',
-  },
-  repsInput: {
-    height: '28px',
-    fontWeight: '700',
-    textAlign: 'center',
-    backgroundColor: '#0a0a0a',
-    border: '1px solid var(--border-color)',
-    borderRadius: '3px',
-    color: '#fff',
-    width: '42px',
-    padding: '0',
-  },
-  selectRpe: {
-    height: '28px',
-    fontWeight: '700',
-    backgroundColor: '#0a0a0a',
-    border: '1px solid var(--border-color)',
-    borderRadius: '3px',
-    color: '#fff',
-    width: '42px',
-    textAlign: 'center',
-  },
-  checkBtn: {
-    width: '26px',
-    height: '26px',
-    borderRadius: '4px',
-    border: '2px solid',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all var(--transition-fast)',
-  },
-  exCardActions: {
-    display: 'flex',
-    gap: '8px',
-    marginTop: '10px',
-  },
-  addSetBtn: {
-    flex: 2,
-    height: '28px',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  removeSetBtn: {
-    flex: 1,
-    height: '28px',
-    backgroundColor: 'transparent',
-    border: '1px solid transparent',
-    fontSize: '11px',
-    fontWeight: '600',
-    color: 'var(--text-muted)',
-  },
-  addExBtn: {
-    width: '100%',
-    height: '42px',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px dashed var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '13px',
-    fontWeight: '700',
-    color: 'var(--text-secondary)',
-    marginBottom: '16px',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    zIndex: 1000,
-    backdropFilter: 'blur(4px)',
-  },
-  modalContent: {
-    backgroundColor: 'var(--bg-secondary)',
-    borderTopLeftRadius: 'var(--radius-lg)',
-    borderTopRightRadius: 'var(--radius-lg)',
-    border: '1px solid var(--border-color)',
-    width: '100%',
-    maxWidth: 'var(--max-width)',
-    maxHeight: '80vh',
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '20px',
-    paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  modalTitle: {
-    fontSize: '14px',
-    fontWeight: '800',
-    letterSpacing: '0.05em',
-  },
-  closeBtn: {
-    color: 'var(--text-secondary)',
-    padding: '4px',
-  },
-  modalSearch: {
-    height: '40px',
-    marginBottom: '12px',
-  },
-  suggestionsList: {
-    overflowY: 'auto',
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  suggestionItem: {
-    padding: '12px 8px',
-    fontSize: '13px',
-    borderBottom: '1px solid rgba(255,255,255,0.03)',
-    color: 'var(--text-primary)',
-    cursor: 'pointer',
-  },
-  confirmActions: {
-    display: 'flex',
-    gap: '12px',
-    width: '100%',
-  },
-  cancelBackBtn: {
-    flex: 1,
-    height: '40px',
-    backgroundColor: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '13px',
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  confirmDiscardBtn: {
-    flex: 1,
-    height: '40px',
-    backgroundColor: 'var(--error)',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '13px',
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  plateCalcBody: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    overflowY: 'auto',
-    flex: 1,
-  },
-  plateCalcAdjustRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-    margin: '12px 0 20px',
-  },
-  adjustPlateValBtn: {
-    width: '40px',
-    height: '40px',
-    backgroundColor: 'var(--bg-tertiary)',
-    borderRadius: '50%',
-    fontSize: '13px',
-    fontWeight: '700',
-    color: '#fff',
-    border: '1px solid var(--border-color)',
-  },
-  plateCalcVal: {
-    fontSize: '32px',
-    fontWeight: '800',
-    fontFamily: 'var(--font-display)',
-    color: '#ffffff',
-  },
-  applyPlateBtn: {
-    height: '44px',
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    fontWeight: '800',
-    fontSize: '14px',
-    borderRadius: 'var(--radius-sm)',
-    marginTop: '16px',
-    width: '100%',
-  },
+  container: { display: 'flex', flexDirection: 'column', width: '100%' },
+  empty: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: '24px', textAlign: 'center' },
+  emptyIcon: { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' },
+  emptyTitle: { fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' },
+  emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
+  startBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '12px 24px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
+  appbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
+  titleWrap: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  title: { fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)' },
+  timer: { display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-display)', padding: '3px 10px', borderRadius: '999px' },
+  actions: { display: 'flex', gap: '8px' },
+  discardBtn: { backgroundColor: 'rgba(229,84,75,0.1)', color: 'var(--error)', padding: '8px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '999px', border: '1px solid rgba(229,84,75,0.18)' },
+  finishBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '8px 18px', fontSize: '12px', fontWeight: 800, borderRadius: '999px' },
+  metaRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
+  metaItem: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 },
+  notesToggle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' },
+  notes: { width: '100%', height: '54px', resize: 'none', marginBottom: '14px', backgroundColor: 'var(--bg-secondary)' },
+  exList: { display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '14px' },
+  exCard: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px' },
+  exHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' },
+  exName: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
+  exSub: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' },
+  exDel: { color: 'var(--text-muted)', padding: '4px' },
+  colHead: { display: 'grid', gridTemplateColumns: cols, gap: '8px', alignItems: 'center', fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em', color: 'var(--text-muted)', padding: '0 2px 8px' },
+  colC: { textAlign: 'center' },
+  setRow: { display: 'grid', gridTemplateColumns: cols, gap: '8px', alignItems: 'center', height: '52px', borderTop: '1px solid var(--border-color)', borderRadius: '8px', transition: 'background-color var(--transition-fast)' },
+  typeChip: { width: '28px', height: '28px', borderRadius: '8px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
+  prev: { fontSize: '11px', color: 'var(--text-muted)' },
+  weightCell: { display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '10px', paddingRight: '4px', height: '38px' },
+  field: { height: '38px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '16px', textAlign: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-primary)', width: '100%', padding: '0', minWidth: 0 },
+  plateBtn: { color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', flexShrink: 0 },
+  rpe: { height: '38px', fontWeight: 700, fontSize: '13px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-primary)', width: '100%', textAlign: 'center', padding: '0 2px', minWidth: 0 },
+  check: { width: '34px', height: '34px', borderRadius: '10px', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
+  exActions: { display: 'flex', gap: '8px', marginTop: '12px' },
+  addSet: { flex: 2, height: '42px', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed var(--border-color)', borderRadius: '12px', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
+  delSet: { flex: 1, height: '42px', backgroundColor: 'transparent', border: '1px solid transparent', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' },
+  addEx: { width: '100%', height: '46px', backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' },
+  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 1000, backdropFilter: 'blur(4px)' },
+  modal: { backgroundColor: 'var(--bg-secondary)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', width: '100%', maxWidth: 'var(--max-width)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '20px', paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' },
+  modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' },
+  modalTitle: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
+  close: { color: 'var(--text-secondary)', padding: '4px' },
+  search: { height: '44px', marginBottom: '12px' },
+  suggestions: { overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' },
+  suggestion: { textAlign: 'left', padding: '13px 8px', fontSize: '14px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'none' },
+  confirmDesc: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.4 },
+  confirmActions: { display: 'flex', gap: '12px', width: '100%' },
+  confirmBack: { flex: 1, height: '44px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' },
+  confirmDiscard: { flex: 1, height: '44px', backgroundColor: 'var(--error)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800, color: '#fff' },
+  plateAdjust: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', margin: '8px 0 16px' },
+  adjBtn: { width: '46px', height: '46px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '13px' },
+  plateVal: { fontSize: '34px', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' },
+  plateUnit: { fontSize: '14px', color: 'var(--text-secondary)' },
+  applyPlate: { height: '48px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontWeight: 800, fontSize: '14px', borderRadius: 'var(--radius-md)', marginTop: '16px', width: '100%' },
 };
+
 export default Workout;

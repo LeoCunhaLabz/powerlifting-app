@@ -5,5 +5,7 @@ export type {
   TemplateExercise,
   WorkoutTemplate,
   Settings,
+  ThemeName,
+  BodyweightEntry,
   AppState,
 } from './workout';

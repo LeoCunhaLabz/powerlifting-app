@@ -41,8 +41,8 @@ export const Calculators: React.FC = () => {
           onClick={() => setActiveTab('plates')}
           style={{
             ...styles.tabBtn,
-            borderBottom: activeTab === 'plates' ? '2px solid #ffffff' : '2px solid transparent',
-            color: activeTab === 'plates' ? '#ffffff' : 'var(--text-secondary)',
+            backgroundColor: activeTab === 'plates' ? 'var(--accent)' : 'transparent', borderRadius: '9px',
+            color: activeTab === 'plates' ? 'var(--accent-ink)' : 'var(--text-secondary)',
           }}
         >
           Carregamento de Barra
@@ -51,8 +51,8 @@ export const Calculators: React.FC = () => {
           onClick={() => setActiveTab('score')}
           style={{
             ...styles.tabBtn,
-            borderBottom: activeTab === 'score' ? '2px solid #ffffff' : '2px solid transparent',
-            color: activeTab === 'score' ? '#ffffff' : 'var(--text-secondary)',
+            backgroundColor: activeTab === 'score' ? 'var(--accent)' : 'transparent', borderRadius: '9px',
+            color: activeTab === 'score' ? 'var(--accent-ink)' : 'var(--text-secondary)',
           }}
         >
           Coeficiente de Força
@@ -266,7 +266,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   subTabs: {
     display: 'flex',
-    borderBottom: '1px solid var(--border-color)',
+    backgroundColor: 'var(--bg-secondary)',
+    border: '1px solid var(--border-color)',
+    borderRadius: '12px',
+    padding: '3px',
     marginBottom: '20px',
     width: '100%',
   },

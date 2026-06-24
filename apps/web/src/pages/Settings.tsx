@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Download, Upload, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
+import type { ThemeName } from '@powerlifting/shared';
+
+const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = [
+  { id: 'onyx', name: 'Onyx', swatch: '#fafafa', desc: 'Monocromático' },
+  { id: 'brass', name: 'Brass', swatch: '#e3a83b', desc: 'Padrão' },
+  { id: 'volt', name: 'Volt', swatch: '#b6e34a', desc: 'Elétrico' },
+];
 
 export const Settings: React.FC = () => {
   const { state, updateSettings, exportData, importData } = useWorkout();
@@ -71,10 +78,45 @@ export const Settings: React.FC = () => {
     <div style={styles.container}>
       <h1 style={styles.pageTitle}>CONFIGURAÇÕES</h1>
 
+      {/* Aparência / Tema */}
+      <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Aparência</h2>
+        <div style={{ ...styles.settingDesc, marginBottom: '12px' }}>
+          Escolha a cor de acento do app. Brass é o padrão.
+        </div>
+
+        <div style={styles.themeGrid}>
+          {THEMES.map((theme) => {
+            const isActive = settings.theme === theme.id;
+            return (
+              <button
+                key={theme.id}
+                onClick={() => updateSettings({ theme: theme.id })}
+                style={{
+                  ...styles.themeCard,
+                  borderColor: isActive ? 'var(--accent)' : 'var(--border-color)',
+                }}
+              >
+                {isActive && (
+                  <span style={styles.themeCheck}>
+                    <Check size={13} strokeWidth={3} />
+                  </span>
+                )}
+                <span style={styles.themeSwatchWrap}>
+                  <span style={{ ...styles.themeSwatch, borderColor: theme.swatch }} />
+                </span>
+                <span style={styles.themeName}>{theme.name}</span>
+                <span style={styles.themeDesc}>{theme.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Preferências do Atleta */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Preferências do Atleta</h2>
-        
+
         <div style={styles.settingRow}>
           <div style={styles.settingInfo}>
             <div style={styles.settingLabel}>Unidade de Medida</div>
@@ -85,8 +127,8 @@ export const Settings: React.FC = () => {
               onClick={() => handleUnitChange('kg')}
               style={{
                 ...styles.unitBtn,
-                backgroundColor: settings.units === 'kg' ? '#ffffff' : '#1a1a1a',
-                color: settings.units === 'kg' ? '#000000' : '#ffffff',
+                backgroundColor: settings.units === 'kg' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: settings.units === 'kg' ? 'var(--accent-ink)' : 'var(--text-primary)',
               }}
             >
               KG
@@ -95,8 +137,8 @@ export const Settings: React.FC = () => {
               onClick={() => handleUnitChange('lbs')}
               style={{
                 ...styles.unitBtn,
-                backgroundColor: settings.units === 'lbs' ? '#ffffff' : '#1a1a1a',
-                color: settings.units === 'lbs' ? '#000000' : '#ffffff',
+                backgroundColor: settings.units === 'lbs' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: settings.units === 'lbs' ? 'var(--accent-ink)' : 'var(--text-primary)',
               }}
             >
               LBS
@@ -136,7 +178,7 @@ export const Settings: React.FC = () => {
       {/* Configuração de Equipamento */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Equipamento & Barra</h2>
-        
+
         <div style={styles.settingRow}>
           <div style={styles.settingInfo}>
             <div style={styles.settingLabel}>Peso da Barra Padrão</div>
@@ -155,7 +197,7 @@ export const Settings: React.FC = () => {
           <div style={{ ...styles.settingDesc, marginBottom: '10px' }}>
             Desmarque as anilhas que sua academia não possui para que o cálculo seja correto.
           </div>
-          
+
           <div style={styles.platesGrid}>
             {availablePlatesPool.map((plate) => {
               const isActive = settings.availablePlates.includes(plate);
@@ -165,9 +207,9 @@ export const Settings: React.FC = () => {
                   onClick={() => handlePlateToggle(plate)}
                   style={{
                     ...styles.plateCheckbox,
-                    backgroundColor: isActive ? '#ffffff' : '#121212',
-                    color: isActive ? '#000000' : '#8a8a8f',
-                    borderColor: isActive ? '#ffffff' : '#222222',
+                    backgroundColor: isActive ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: isActive ? 'var(--accent-ink)' : 'var(--text-secondary)',
+                    borderColor: isActive ? 'var(--accent)' : 'var(--border-color)',
                   }}
                 >
                   {plate} {settings.units}
@@ -275,6 +317,61 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
     paddingBottom: '6px',
   },
+  themeGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '10px',
+  },
+  themeCard: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: 'var(--bg-tertiary)',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--radius-md)',
+    padding: '14px 8px',
+  },
+  themeCheck: {
+    position: 'absolute',
+    top: '-7px',
+    right: '-7px',
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--accent)',
+    color: 'var(--accent-ink)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeSwatchWrap: {
+    width: '100%',
+    height: '44px',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: 'var(--bg-primary)',
+    border: '1px solid var(--border-color)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeSwatch: {
+    width: '26px',
+    height: '26px',
+    borderRadius: '50%',
+    border: '5px solid',
+    boxSizing: 'border-box',
+  },
+  themeName: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  themeDesc: {
+    fontSize: '10px',
+    color: 'var(--text-muted)',
+  },
   settingRow: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -292,7 +389,7 @@ const styles: Record<string, React.CSSProperties> = {
   settingLabel: {
     fontSize: '13px',
     fontWeight: '700',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
   },
   settingDesc: {
     fontSize: '11px',
@@ -300,7 +397,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   unitToggle: {
     display: 'flex',
-    backgroundColor: '#1c1c1e',
+    backgroundColor: 'var(--bg-tertiary)',
     borderRadius: '6px',
     padding: '2px',
     border: '1px solid var(--border-color)',
@@ -363,18 +460,18 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '8px',
   },
   btnBackup: {
-    backgroundColor: 'var(--accent-white)',
-    color: 'var(--bg-primary)',
+    backgroundColor: 'var(--accent)',
+    color: 'var(--accent-ink)',
   },
   btnImport: {
     backgroundColor: 'var(--bg-tertiary)',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
     border: '1px solid var(--border-color)',
   },
   btnDelete: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(229, 84, 75, 0.1)',
     color: 'var(--error)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
+    border: '1px solid rgba(229, 84, 75, 0.2)',
   },
   textarea: {
     width: '100%',
@@ -382,36 +479,36 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontFamily: 'monospace',
     resize: 'none',
-    backgroundColor: '#0a0a0a',
+    backgroundColor: 'var(--bg-primary)',
     marginTop: '6px',
   },
   successAlert: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: 'rgba(55, 184, 127, 0.1)',
     color: 'var(--success)',
     padding: '10px',
     borderRadius: 'var(--radius-sm)',
     fontSize: '12px',
     marginTop: '10px',
-    border: '1px solid rgba(16, 185, 129, 0.2)',
+    border: '1px solid rgba(55, 184, 127, 0.2)',
   },
   errorAlert: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(229, 84, 75, 0.1)',
     color: 'var(--error)',
     padding: '10px',
     borderRadius: 'var(--radius-sm)',
     fontSize: '12px',
     marginTop: '10px',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
+    border: '1px solid rgba(229, 84, 75, 0.2)',
   },
   confirmBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(229, 84, 75, 0.05)',
+    border: '1px solid rgba(229, 84, 75, 0.2)',
     borderRadius: 'var(--radius-sm)',
     padding: '12px',
   },

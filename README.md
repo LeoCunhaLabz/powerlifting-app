@@ -13,9 +13,10 @@ Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dad
 - **Início (Dashboard):** melhores marcas (e1RM) de Agachamento, Supino e Terra, pontuação DOTS/Wilks, histórico de sessões e tonelagem.
 - **Treinar (Workout):** sessão ativa com adição de exercícios e séries, registro de peso/reps/RPE, marcação de conclusão e calculadora de anilhas embutida.
 - **Rotinas (Templates):** templates embutidos (LP Iniciante, Madcow 5x5, Wendler 5/3/1) + criação de rotinas próprias; iniciar treino a partir de um template.
-- **Análises (Analytics):** evolução do e1RM ao longo do tempo para os três levantamentos principais.
+- **Análises (Analytics):** dashboard a partir do histórico real — evolução de e1RM (SBD), tonelagem por sessão, distribuição de RPE, DOTS/Wilks, heatmap de frequência e linha do tempo de recordes, com filtro de período.
 - **Calculadoras (Calculators):** cálculo/visualização de anilhas na barra e cálculo de pontuações (Wilks, DOTS, IPF GL).
-- **Configurações (Settings):** unidades (kg/lbs), peso da barra, peso corporal, gênero, status equipado, inventário de anilhas e backup/restauração em JSON.
+- **Configurações (Settings):** **tema de acento (Onyx · Brass · Volt)**, unidades (kg/lbs), peso da barra, peso corporal, gênero, status equipado, inventário de anilhas e backup/restauração em JSON.
+- **Mais (More):** hub que agrupa **Calculadoras** e **Configurações**, mantendo a navegação inferior com 4 botões + FAB central (Início · Rotinas · **[+ Treinar]** · Análises · Mais).
 
 ---
 
@@ -28,7 +29,7 @@ Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dad
 | Ícones | lucide-react |
 | Lint | ESLint 10 (flat config) + typescript-eslint + react-hooks |
 | Testes | Vitest 4 (funções puras em `utils/powerlifting.ts`) |
-| Estilo | CSS puro (`apps/web/src/index.css`), tema "Chalk & Onyx" |
+| Estilo | CSS puro (`apps/web/src/index.css`), design system **ONYX / "Chalk & Onyx"** com temas de acento (Onyx · Brass · Volt) |
 | Persistência | `localStorage` (sem backend, sincronização prevista na fase 3) |
 | Deploy | Docker (multi-stage) + Nginx |
 | CI/CD | GitHub Actions (lint → testes → build → deploy Dokploy → smoke test) |
@@ -117,7 +118,7 @@ docker run -p 3000:3000 powerlifting-app
 
 ## 🏗️ Arquitetura
 
-A navegação é baseada em **abas** (não usa React Router). O componente raiz alterna entre as páginas via um `switch` em `renderActiveTab()` e uma barra de navegação inferior.
+A navegação é baseada em **abas** (não usa React Router). O componente raiz alterna entre as páginas via um `switch` em `renderActiveTab()` e uma barra de navegação inferior com **4 botões + um FAB central** (Início · Rotinas · **[+ Treinar]** · Análises · Mais). Apenas Calculadoras e Configurações vivem dentro do hub **Mais**.
 
 ```mermaid
 flowchart TD
@@ -127,8 +128,9 @@ flowchart TD
     C --> E[Workout]
     C --> F[Templates]
     C --> G[Analytics]
-    C --> H[Calculators]
-    C --> I[Settings]
+    C --> M[More · hub]
+    M --> H[Calculators]
+    M --> I[Settings]
     B --> J[RestTimer]
     B -. estado global .-> K[(WorkoutContext)]
     K -. persiste .-> L[(localStorage)]
@@ -181,6 +183,7 @@ powerlifting-app/
       pwa-assets.config.ts
       tsconfig*.json
       eslint.config.js
+      public/               # Marca ONYX: favicon.svg, pwa-*.png, maskable, apple-touch, logo.svg, mark.svg
       src/
         App.tsx              # Shell + navegação por abas
         main.tsx             # Entry point (monta o React)
@@ -197,6 +200,7 @@ powerlifting-app/
           Analytics.tsx       # Gráficos de evolução
           Calculators.tsx     # Anilhas + pontuações
           Settings.tsx        # Preferências + backup
+          More.tsx            # Hub "Mais" (Análises · Calculadoras · Configurações)
         utils/
           powerlifting.ts     # Cálculos puros (e1RM, Wilks, DOTS, IPF GL, anilhas)
   packages/
@@ -209,11 +213,27 @@ powerlifting-app/
 
 ---
 
-## 🎨 Design system — "Chalk & Onyx"
+## 🎨 Design system — ONYX ("Chalk & Onyx")
 
 - Tema escuro, layout travado em `--max-width: 480px` (mobile-first, centralizado no desktop).
-- Fontes: **Outfit** (títulos) e **Plus Jakarta Sans** (corpo), via Google Fonts.
-- Tokens de cor e espaçamento definidos como CSS variables em [apps/web/src/index.css](apps/web/src/index.css).
+- Fontes: **Outfit** (títulos e números) e **Plus Jakarta Sans** (corpo), via Google Fonts.
+- Tokens de cor, raio e transição definidos como CSS variables em [apps/web/src/index.css](apps/web/src/index.css).
+
+### Tema de acento (Onyx · Brass · Volt)
+
+A cor de destaque é uma **única** variável `--accent` (com `--accent-soft`, `--accent-border` e `--accent-ink`). Trocar de tema é só mudar o atributo `data-theme` no `<html>`:
+
+| Tema | `--accent` | Caráter |
+|---|---|---|
+| **Brass** (padrão) | `#e3a83b` | dourado de anilha |
+| **Onyx** | `#fafafa` | monocromático |
+| **Volt** | `#b6e34a` | elétrico |
+
+Escolhido em **Configurações → Aparência**, persistido em `settings.theme` e aplicado pelo `WorkoutContext` no `<html>`. Use sempre `var(--accent)` / `var(--accent-ink)` para destaques — não hardcode `#ffffff`/`#000000`.
+
+### Marca
+
+Wordmark **ONYX** (Outfit 900) + a marca: uma **anilha vista de frente** (anel dourado). Ícones do PWA em [apps/web/public/](apps/web/public/) — `favicon.svg` é a fonte vetorial; `pwa-*.png`, `maskable-icon-512x512.png` e `apple-touch-icon-180x180.png` formam o set instalável; `logo.svg`/`mark.svg` para uso em tela.
 
 Detalhes completos e convenções estão em [AGENTS.md](AGENTS.md).
 

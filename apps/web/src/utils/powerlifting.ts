@@ -187,3 +187,70 @@ export function calculatePlates(
  */
 export const DEFAULT_PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5, 0.25];
 export const DEFAULT_PLATES_LBS = [55, 45, 35, 25, 10, 5, 2.5];
+
+// ===== Mapa de músculos por exercício (heatmap de volume) =====
+export type MuscleGroup =
+  | 'peito' | 'costas' | 'ombros' | 'biceps' | 'triceps' | 'antebraco'
+  | 'abdomen' | 'lombar' | 'gluteos' | 'quadriceps' | 'posterior' | 'panturrilha' | 'trapezio';
+
+export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
+  peito: 'Peito', costas: 'Costas', ombros: 'Ombros', biceps: 'Bíceps', triceps: 'Tríceps',
+  antebraco: 'Antebraço', abdomen: 'Abdômen', lombar: 'Lombar', gluteos: 'Glúteos',
+  quadriceps: 'Quadríceps', posterior: 'Posterior de coxa', panturrilha: 'Panturrilha', trapezio: 'Trapézio',
+};
+
+interface MuscleRule { match: string[]; primary: MuscleGroup[]; secondary?: MuscleGroup[]; }
+
+// Ordem importa: padrões específicos antes dos genéricos.
+const EXERCISE_MUSCLE_MAP: MuscleRule[] = [
+  { match: ['supino inclinado', 'incline'], primary: ['peito', 'ombros'], secondary: ['triceps'] },
+  { match: ['supino', 'bench', 'crucifixo', 'peck', 'peitoral'], primary: ['peito'], secondary: ['triceps', 'ombros'] },
+  { match: ['agachamento frontal', 'front squat', 'frontal'], primary: ['quadriceps'], secondary: ['gluteos', 'abdomen'] },
+  { match: ['hack', 'leg press', 'legpress'], primary: ['quadriceps', 'gluteos'], secondary: ['posterior'] },
+  { match: ['agachamento', 'squat', 'agacho'], primary: ['quadriceps', 'gluteos'], secondary: ['posterior', 'lombar', 'abdomen'] },
+  { match: ['terra romeno', 'romeno', 'rdl', 'stiff'], primary: ['posterior', 'gluteos'], secondary: ['lombar', 'costas'] },
+  { match: ['levantamento terra', 'terra', 'deadlift'], primary: ['posterior', 'gluteos', 'lombar'], secondary: ['costas', 'trapezio', 'antebraco'] },
+  { match: ['desenvolvimento', 'militar', 'ohp', 'overhead', 'arnold'], primary: ['ombros'], secondary: ['triceps', 'trapezio'] },
+  { match: ['elevação lateral', 'elevacao lateral', 'lateral raise'], primary: ['ombros'] },
+  { match: ['encolhimento', 'shrug'], primary: ['trapezio'] },
+  { match: ['barra fixa', 'pull up', 'pull-up', 'pullup', 'puxada', 'pulldown'], primary: ['costas'], secondary: ['biceps', 'antebraco'] },
+  { match: ['remada', 'row'], primary: ['costas'], secondary: ['biceps', 'antebraco', 'trapezio'] },
+  { match: ['rosca', 'curl', 'biceps', 'bíceps'], primary: ['biceps'], secondary: ['antebraco'] },
+  { match: ['tríceps', 'triceps', 'testa', 'pulley', 'francês', 'frances'], primary: ['triceps'] },
+  { match: ['cadeira extensora', 'extensora', 'leg extension'], primary: ['quadriceps'] },
+  { match: ['mesa flexora', 'flexora', 'leg curl'], primary: ['posterior'] },
+  { match: ['hip thrust', 'elevação pélvica', 'elevacao pelvica', 'glúteo', 'gluteo'], primary: ['gluteos'], secondary: ['posterior'] },
+  { match: ['panturrilha', 'calf', 'gêmeos', 'gemeos'], primary: ['panturrilha'] },
+  { match: ['abdominal', 'abdômen', 'abdomen', 'prancha', 'crunch', 'core'], primary: ['abdomen'] },
+  { match: ['lombar', 'hiperextensão', 'hiperextensao', 'hyperextension'], primary: ['lombar'] },
+];
+
+/** Grupos musculares (primários e secundários) de um exercício pelo nome. */
+export function getExerciseMuscles(name: string): { primary: MuscleGroup[]; secondary: MuscleGroup[] } {
+  const n = (name || '').toLowerCase();
+  for (const rule of EXERCISE_MUSCLE_MAP) {
+    if (rule.match.some((m) => n.includes(m))) {
+      return { primary: rule.primary, secondary: rule.secondary ?? [] };
+    }
+  }
+  return { primary: [], secondary: [] };
+}
+
+/**
+ * Peso corporal vigente em uma data: registro mais recente com data <= alvo;
+ * cai no fallback (Settings.bodyweight) se não houver registro anterior.
+ */
+export function getEffectiveBodyweight(
+  log: { date: string; weight: number }[],
+  at: string | number | Date,
+  fallback: number,
+): number {
+  const t = new Date(at).getTime();
+  let best: { date: string; weight: number } | null = null;
+  for (const e of log) {
+    const et = new Date(e.date).getTime();
+    if (et <= t && (!best || et > new Date(best.date).getTime())) best = e;
+  }
+  return best ? best.weight : fallback;
+}
+
