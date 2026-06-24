@@ -28,7 +28,7 @@ const tonnageOf = (s: WorkoutSession): number =>
   );
 
 const relativeDate = (iso: string): string => {
-  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  const d = Math.floor((new Date().getTime() - new Date(iso).getTime()) / 86400000);
   if (d <= 0) return 'Hoje';
   if (d === 1) return 'Ontem';
   if (d < 7) return `${d} dias`;
@@ -74,39 +74,39 @@ const MuscleMap: React.FC<{ view: 'front' | 'back'; fill: (m: MuscleGroup) => st
     <path d="M58 140 H102 V158 Q80 168 58 158 Z" fill="#191919" />
     {view === 'front' ? (
       <>
-        <path d="M65 47 Q80 43 95 47 L91 58 Q80 53 69 58 Z" fill={fill('trapezio')} />
-        <path d="M50 54 Q34 56 33 72 Q42 78 52 70 Q54 60 50 54 Z" fill={fill('ombros')} />
-        <path d="M110 54 Q126 56 127 72 Q118 78 108 70 Q106 60 110 54 Z" fill={fill('ombros')} />
-        <path d="M78 58 C68 56 57 59 55 68 C54 80 62 87 78 85 Z" fill={fill('peito')} />
-        <path d="M82 58 C92 56 103 59 105 68 C106 80 98 87 82 85 Z" fill={fill('peito')} />
-        <path d={ARM_L} fill={fill('biceps')} />
-        <path d={ARM_R} fill={fill('biceps')} />
-        <path d={FOREARM_L} fill={fill('antebraco')} />
-        <path d={FOREARM_R} fill={fill('antebraco')} />
-        <rect x="67" y="89" width="26" height="50" rx="7" fill={fill('abdomen')} />
-        <path d={LEG_L} fill={fill('quadriceps')} />
-        <path d={LEG_R} fill={fill('quadriceps')} />
-        <path d={CALF_L} fill={fill('panturrilha')} />
-        <path d={CALF_R} fill={fill('panturrilha')} />
+        <path d="M65 47 Q80 43 95 47 L91 58 Q80 53 69 58 Z" style={{ fill: fill('trapezio') }} />
+        <path d="M50 54 Q34 56 33 72 Q42 78 52 70 Q54 60 50 54 Z" style={{ fill: fill('ombros') }} />
+        <path d="M110 54 Q126 56 127 72 Q118 78 108 70 Q106 60 110 54 Z" style={{ fill: fill('ombros') }} />
+        <path d="M78 58 C68 56 57 59 55 68 C54 80 62 87 78 85 Z" style={{ fill: fill('peito') }} />
+        <path d="M82 58 C92 56 103 59 105 68 C106 80 98 87 82 85 Z" style={{ fill: fill('peito') }} />
+        <path d={ARM_L} style={{ fill: fill('biceps') }} />
+        <path d={ARM_R} style={{ fill: fill('biceps') }} />
+        <path d={FOREARM_L} style={{ fill: fill('antebraco') }} />
+        <path d={FOREARM_R} style={{ fill: fill('antebraco') }} />
+        <rect x="67" y="89" width="26" height="50" rx="7" style={{ fill: fill('abdomen') }} />
+        <path d={LEG_L} style={{ fill: fill('quadriceps') }} />
+        <path d={LEG_R} style={{ fill: fill('quadriceps') }} />
+        <path d={CALF_L} style={{ fill: fill('panturrilha') }} />
+        <path d={CALF_R} style={{ fill: fill('panturrilha') }} />
       </>
     ) : (
       <>
-        <path d="M66 46 L80 58 L94 46 L91 64 L80 98 L69 64 Z" fill={fill('trapezio')} />
-        <path d="M50 56 Q35 58 34 72 Q43 77 52 70 Z" fill={fill('ombros')} />
-        <path d="M110 56 Q125 58 126 72 Q117 77 108 70 Z" fill={fill('ombros')} />
-        <path d="M68 70 L80 100 L75 126 C64 120 59 92 68 70 Z" fill={fill('costas')} />
-        <path d="M92 70 L80 100 L85 126 C96 120 101 92 92 70 Z" fill={fill('costas')} />
-        <path d={ARM_L} fill={fill('triceps')} />
-        <path d={ARM_R} fill={fill('triceps')} />
-        <path d={FOREARM_L} fill={fill('antebraco')} />
-        <path d={FOREARM_R} fill={fill('antebraco')} />
-        <rect x="69" y="120" width="22" height="22" rx="6" fill={fill('lombar')} />
-        <ellipse cx="70" cy="152" rx="12" ry="13" fill={fill('gluteos')} />
-        <ellipse cx="90" cy="152" rx="12" ry="13" fill={fill('gluteos')} />
-        <path d={LEG_L} fill={fill('posterior')} />
-        <path d={LEG_R} fill={fill('posterior')} />
-        <path d={CALF_L} fill={fill('panturrilha')} />
-        <path d={CALF_R} fill={fill('panturrilha')} />
+        <path d="M66 46 L80 58 L94 46 L91 64 L80 98 L69 64 Z" style={{ fill: fill('trapezio') }} />
+        <path d="M50 56 Q35 58 34 72 Q43 77 52 70 Z" style={{ fill: fill('ombros') }} />
+        <path d="M110 56 Q125 58 126 72 Q117 77 108 70 Z" style={{ fill: fill('ombros') }} />
+        <path d="M68 70 L80 100 L75 126 C64 120 59 92 68 70 Z" style={{ fill: fill('costas') }} />
+        <path d="M92 70 L80 100 L85 126 C96 120 101 92 92 70 Z" style={{ fill: fill('costas') }} />
+        <path d={ARM_L} style={{ fill: fill('triceps') }} />
+        <path d={ARM_R} style={{ fill: fill('triceps') }} />
+        <path d={FOREARM_L} style={{ fill: fill('antebraco') }} />
+        <path d={FOREARM_R} style={{ fill: fill('antebraco') }} />
+        <rect x="69" y="120" width="22" height="22" rx="6" style={{ fill: fill('lombar') }} />
+        <ellipse cx="70" cy="152" rx="12" ry="13" style={{ fill: fill('gluteos') }} />
+        <ellipse cx="90" cy="152" rx="12" ry="13" style={{ fill: fill('gluteos') }} />
+        <path d={LEG_L} style={{ fill: fill('posterior') }} />
+        <path d={LEG_R} style={{ fill: fill('posterior') }} />
+        <path d={CALF_L} style={{ fill: fill('panturrilha') }} />
+        <path d={CALF_R} style={{ fill: fill('panturrilha') }} />
       </>
     )}
   </svg>
@@ -268,8 +268,9 @@ export const Analytics: React.FC = () => {
   const maxMuscle = Math.max(1, ...Object.values(muscleVal));
   const fillFor = (m: MuscleGroup): string => {
     const r = (muscleVal[m] || 0) / maxMuscle;
-    if (r <= 0) return '#1a1a1a';
-    return `rgba(227,168,59,${(0.18 + r * 0.82).toFixed(2)})`;
+    if (r <= 0) return 'var(--bg-tertiary)';
+    const pct = Math.round((0.18 + r * 0.82) * 100);
+    return `color-mix(in srgb, var(--accent) ${pct}%, var(--bg-tertiary))`;
   };
   const topMuscles = (Object.entries(muscleVal) as [MuscleGroup, number][])
     .sort((a, b) => b[1] - a[1])
@@ -736,7 +737,7 @@ const styles: Record<string, React.CSSProperties> = {
   muscleChips: { display: 'flex', flexWrap: 'wrap', gap: '7px', justifyContent: 'center' },
   muscleChip: { fontSize: '11px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '4px 10px', borderRadius: '999px' },
   heatBarRow: { display: 'flex', alignItems: 'center', gap: '10px' },
-  heatGradient: { flex: 1, height: '8px', borderRadius: '4px', background: 'linear-gradient(90deg, rgba(227,168,59,0.18), var(--accent))' },
+  heatGradient: { flex: 1, height: '8px', borderRadius: '4px', background: 'linear-gradient(90deg, var(--accent-soft), var(--accent))' },
   heatLegendTxt: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 },
   muscleFootRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   barsRow: { display: 'flex', alignItems: 'flex-end', gap: '6px', height: '120px' },
