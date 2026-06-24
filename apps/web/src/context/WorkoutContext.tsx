@@ -594,6 +594,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const parsed = JSON.parse(jsonData);
       if (parsed && typeof parsed === 'object' && parsed.history && parsed.templates && parsed.settings) {
+        const customTemplates = (parsed.templates as WorkoutTemplate[]).filter((t) => !t.isBuiltIn);
+        parsed.templates = [...BUILT_IN_TEMPLATES, ...customTemplates];
+        parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
         parsed.bodyweightLog = parsed.bodyweightLog || [];
         setState(parsed as AppState);
         return true;
