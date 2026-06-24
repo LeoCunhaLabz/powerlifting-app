@@ -1,10 +1,7 @@
 # ONYX — Redesign completo (tema, marca, nav, telas, análises)
 
-Este pacote (`code/`) espelha a estrutura do repo `powerlifting-app/`. Copie os arquivos por cima
-dos atuais **dentro de uma branch dedicada** e valide com `lint` + `build` antes do commit.
-
-> ⚠️ Não tenho build do app React aqui, então **rode `npm run lint` e `npm run build` localmente**
-> antes de commitar — corrija qualquer ajuste fino de tipo que apareça.
+Notas do redesign **ONYX** aplicado ao `apps/web`. Este documento resume, por área,
+o que mudou nesta entrega. Valide as alterações com `npm run lint` e `npm run build` na raiz.
 
 ## O que mudou
 

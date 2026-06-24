@@ -16,7 +16,7 @@ Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dad
 - **Análises (Analytics):** dashboard a partir do histórico real — evolução de e1RM (SBD), tonelagem por sessão, distribuição de RPE, DOTS/Wilks, heatmap de frequência e linha do tempo de recordes, com filtro de período.
 - **Calculadoras (Calculators):** cálculo/visualização de anilhas na barra e cálculo de pontuações (Wilks, DOTS, IPF GL).
 - **Configurações (Settings):** **tema de acento (Onyx · Brass · Volt)**, unidades (kg/lbs), peso da barra, peso corporal, gênero, status equipado, inventário de anilhas e backup/restauração em JSON.
-- **Mais (More):** hub que agrupa **Análises**, **Calculadoras** e **Configurações** — mantém a navegação inferior enxuta em 4 destinos (Início · Rotinas · Treinar · Mais).
+- **Mais (More):** hub que agrupa **Calculadoras** e **Configurações**, mantendo a navegação inferior com 4 botões + FAB central (Início · Rotinas · **[+ Treinar]** · Análises · Mais).
 
 ---
 
@@ -118,7 +118,7 @@ docker run -p 3000:3000 powerlifting-app
 
 ## 🏗️ Arquitetura
 
-A navegação é baseada em **abas** (não usa React Router). O componente raiz alterna entre as páginas via um `switch` em `renderActiveTab()` e uma barra de navegação inferior com **4 destinos** (Início · Rotinas · Treinar · Mais). Análises, Calculadoras e Configurações vivem dentro do hub **Mais**.
+A navegação é baseada em **abas** (não usa React Router). O componente raiz alterna entre as páginas via um `switch` em `renderActiveTab()` e uma barra de navegação inferior com **4 botões + um FAB central** (Início · Rotinas · **[+ Treinar]** · Análises · Mais). Apenas Calculadoras e Configurações vivem dentro do hub **Mais**.
 
 ```mermaid
 flowchart TD
@@ -127,8 +127,8 @@ flowchart TD
     C --> D[Dashboard]
     C --> E[Workout]
     C --> F[Templates]
+    C --> G[Analytics]
     C --> M[More · hub]
-    M --> G[Analytics]
     M --> H[Calculators]
     M --> I[Settings]
     B --> J[RestTimer]
