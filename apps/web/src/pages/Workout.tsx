@@ -121,7 +121,7 @@ export const Workout: React.FC = () => {
                 <div style={styles.exName}>{ex.name}</div>
                 <div style={styles.exSub}>e1RM {getMaxE1RM(ex.name)} {u}</div>
               </div>
-              <button onClick={() => removeExerciseFromActiveWorkout(exIdx)} style={styles.exDel}><Trash2 size={15} /></button>
+              <button onClick={() => removeExerciseFromActiveWorkout(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
             </div>
 
             <div style={styles.colHead}>
