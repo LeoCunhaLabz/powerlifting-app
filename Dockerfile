@@ -16,9 +16,12 @@ FROM nginx:1.27-alpine
 # Copiar build da stage anterior
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-# Gerar nginx.conf inline (evita BOM/CRLF de arquivos criados no Windows)
-RUN printf 'server {\n\
-    listen 80;\n\
+# Remover diretiva 'user nginx' do nginx.conf principal, gerar o config inline
+# e só então corrigir permissões — assim o chown cobre o default.conf gerado.
+# Porta 8080: processos não-root não podem fazer bind em portas < 1024
+RUN sed -i '/^user[[:space:]]/d' /etc/nginx/nginx.conf && \
+    printf 'server {\n\
+    listen 8080;\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
     gzip on;\n\
@@ -39,9 +42,18 @@ RUN printf 'server {\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
     }\n\
-}\n' > /etc/nginx/conf.d/default.conf
+}\n' > /etc/nginx/conf.d/default.conf && \
+    chown -R nginx:nginx \
+        /usr/share/nginx/html \
+        /var/cache/nginx \
+        /var/log/nginx \
+        /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && \
+    chown nginx:nginx /var/run/nginx.pid
 
-EXPOSE 80
+EXPOSE 8080
+
+USER nginx
 
 CMD ["nginx", "-g", "daemon off;"]
 

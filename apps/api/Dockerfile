@@ -28,6 +28,9 @@ RUN npm ci --omit=dev
 # Copy compiled output from build stage (inclui dist/db/migrations gerado pelo build)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
+# Rodar como usuário não-root (node: uid 1000, presente no node:20-alpine)
+USER node
+
 EXPOSE 3000
 
 ENV PORT=3000
