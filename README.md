@@ -2,9 +2,9 @@
 
 Aplicativo **mobile-first** para acompanhamento de treinos de powerlifting: registre sessões, siga rotinas (templates), calcule e1RM por RPE, monte a barra com anilhas e acompanhe sua evolução com pontuações Wilks, DOTS e IPF GL.
 
-Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dados são persistidos em `localStorage` e podem ser exportados/importados via JSON.
+O projeto é um **monorepo** (npm workspaces): o frontend (`apps/web`) é **client-side** com estado em `localStorage`; a API (`apps/api`) é um servidor Fastify + PostgreSQL introduzido de forma incremental.
 
-> **Status:** projeto pessoal em desenvolvimento. A interface está em português (pt-BR).
+> **Status:** projeto pessoal em desenvolvimento. A interface está em português (pt-BR). Setup de produção: [docs/deploy-vps.md](docs/deploy-vps.md).
 
 ---
 
@@ -29,9 +29,10 @@ Toda a aplicação roda **100% no navegador** (client-side), sem backend. Os dad
 | Ícones | lucide-react |
 | Lint | ESLint 10 (flat config) + typescript-eslint + react-hooks |
 | Testes | Vitest 4 (funções puras em `utils/powerlifting.ts`) |
-| Estilo | CSS puro (`apps/web/src/index.css`), design system **ONYX / "Chalk & Onyx"** com temas de acento (Onyx · Brass · Volt) |
-| Persistência | `localStorage` (sem backend, sincronização prevista na fase 3) |
-| Deploy | Docker (multi-stage) + Nginx |
+| Estilo | CSS puro (`apps/web/src/index.css`), design system **ONYX** com temas de acento (Onyx · Brass · Volt) |
+| Persistência | `localStorage` (frontend client-side; sincronização com a API prevista na fase 3) |
+| Backend | Fastify 5 + PostgreSQL 16 + Drizzle ORM + `@fastify/jwt` |
+| Deploy | Docker (multi-stage) + Nginx (non-root, porta 8080) |
 | CI/CD | GitHub Actions (lint → testes → build → deploy Dokploy → smoke test) |
 
 ---
@@ -67,8 +68,12 @@ npm run test
 | `npm run dev` | Sobe o Vite com hot module replacement. |
 | `npm run build` | Roda `tsc -b` (type-check) e gera o bundle em `apps/web/dist/`. |
 | `npm run preview` | Serve o build de produção localmente. |
-| `npm run lint` | Verifica qualidade do código com ESLint. |
+| `npm run lint` | Verifica qualidade do código do web com ESLint. |
 | `npm run test` | Roda os testes unitários com Vitest (modo `run`). |
+| `npm run dev:api` | Dev server da API com hot-reload (`tsx watch`). |
+| `npm run build:api` | Compila a API TypeScript para `apps/api/dist/`. |
+| `npm run lint:api` | ESLint da API. |
+| `npm run start:api` | Inicia o servidor compilado da API. |
 
 ---
 
@@ -87,32 +92,28 @@ O deploy só é acionado **após o gate de qualidade passar** (lint + testes + b
 
 | Secret | Valor |
 |---|---|
-| `DOKPLOY_WEBHOOK_URL` | Webhook URL da aplicação no Dokploy (aba *Deployments*) |
-| `APP_URL` | URL pública da aplicação (para smoke test) |
+| `DOKPLOY_API_KEY` | API key do painel Dokploy (Settings → API) |
+| `DOKPLOY_APP_ID_WEB` | `applicationId` do serviço web no Dokploy |
+| `DOKPLOY_APP_ID_API` | `applicationId` do serviço api no Dokploy |
+| `APP_URL` | URL pública do frontend (para smoke test) |
+| `API_URL` | URL pública da API (para smoke test) |
 | `RESEND_API_KEY` | API key gerada em resend.com |
 | `MAIL_TO` | E-mail destinatário do resumo |
 
-> E-mails enviados via [Resend](https://resend.com) (gratuito, 100 e-mails/dia). Crie sua conta em resend.com com o mesmo e-mail que quer receber as notificações, gere uma API key e cadastre-a como secret.
+> E-mails enviados via [Resend](https://resend.com) (gratuito, 100 e-mails/dia). O deploy usa o **runner self-hosted** `dokploy-vps` instalado no VPS — veja [docs/deploy-vps.md](docs/deploy-vps.md) para o setup completo.
 
 ---
 
-## 🐳 Docker
+## 🐳 Docker (desenvolvimento local)
 
-A aplicação tem um build multi-stage que gera os estáticos e os serve com `serve` na porta **3000**.
+O stack local sobe **web + API + PostgreSQL** via `docker compose`. Os serviços usam `expose` (não publicam portas no host); o acesso externo é via Traefik em produção. Para expor localmente, adicione `ports:` no `docker-compose.yml` conforme necessário.
 
 ```bash
-# Build + subir o container
+# Build + subir todo o stack
 docker compose up --build
-
-# App disponível em http://localhost:3000
 ```
 
-Ou diretamente com Docker:
-
-```bash
-docker build -t powerlifting-app .
-docker run -p 3000:3000 powerlifting-app
-```
+Copie `.env.example` para `.env` e ajuste as variáveis antes de subir. A API aplica as migrations automaticamente no boot. Para produção, veja [docs/deploy-vps.md](docs/deploy-vps.md).
 
 ---
 
@@ -187,7 +188,7 @@ powerlifting-app/
       src/
         App.tsx              # Shell + navegação por abas
         main.tsx             # Entry point (monta o React)
-        index.css            # Tema "Chalk & Onyx" (CSS puro)
+        index.css            # Design system ONYX (CSS puro)
         components/
           PlateVisualizer.tsx # Barra visual com anilhas (cores IPF)
           RestTimer.tsx       # Cronômetro de descanso flutuante (Web Audio API)
@@ -213,7 +214,7 @@ powerlifting-app/
 
 ---
 
-## 🎨 Design system — ONYX ("Chalk & Onyx")
+## 🎨 Design system — ONYX
 
 - Tema escuro, layout travado em `--max-width: 480px` (mobile-first, centralizado no desktop).
 - Fontes: **Outfit** (títulos e números) e **Plus Jakarta Sans** (corpo), via Google Fonts.

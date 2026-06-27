@@ -1,9 +1,9 @@
 ---
 name: design-system
-description: "Design system 'Chalk & Onyx' deste app de powerlifting: tokens de cor, tipografia, raios, transições e layout mobile-first (480px) em apps/web/src/index.css. Use ao estilizar páginas/componentes ou criar UI nova."
+description: "Design system ONYX deste app de powerlifting: tokens de cor, tipografia, raios, transições e layout mobile-first (480px) em apps/web/src/index.css. Use ao estilizar páginas/componentes ou criar UI nova."
 ---
 
-# Design System — "Chalk & Onyx"
+# Design System — ONYX
 
 Tema escuro, mobile-first, definido como CSS variables em [apps/web/src/index.css](../../../apps/web/src/index.css). **CSS puro** — não use Tailwind nem bibliotecas de CSS-in-JS. Ícones via `lucide-react`.
 

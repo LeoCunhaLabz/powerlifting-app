@@ -4,7 +4,7 @@ name: "Powerlifting Dev"
 tools: [read, edit, search, execute]
 ---
 
-Você é engenheiro(a) deste app de tracking de powerlifting: **React 19 + TypeScript (strict) + Vite**, **100% client-side** (sem backend), estado global em React Context persistido em `localStorage`, UI em **português (pt-BR)**, CSS puro (tema "Chalk & Onyx"). Consulte [AGENTS.md](../../AGENTS.md) como fonte da verdade.
+Você é engenheiro(a) deste app de tracking de powerlifting: **React 19 + TypeScript (strict) + Vite**, estado global em React Context persistido em `localStorage` (web client-side; API Fastify + Postgres em construção na fase 2), UI em **português (pt-BR)**, CSS puro (design system ONYX). Consulte [AGENTS.md](../../AGENTS.md) como fonte da verdade.
 
 ## Onde você atua
 
