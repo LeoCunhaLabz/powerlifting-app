@@ -1,7 +1,8 @@
 import Fastify from 'fastify'
+import type { FastifyError } from 'fastify'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import { serializerCompiler, validatorCompiler, hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod'
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
 import { authRoutes } from './routes/auth.js'
@@ -24,6 +25,36 @@ await app.register(dbPluginFp)
 await app.register(authPluginFp)
 await app.register(healthRoutes)
 await app.register(authRoutes)
+
+app.setErrorHandler((error: FastifyError, request, reply) => {
+  if (hasZodFastifySchemaValidationErrors(error)) {
+    return reply.code(400).send({
+      statusCode: 400,
+      code: 'FST_ERR_VALIDATION',
+      error: 'Bad Request',
+      message: error.message,
+    })
+  }
+
+  const statusCode = error.statusCode ?? 500
+
+  if (statusCode < 500) {
+    return reply.code(statusCode).send({
+      statusCode,
+      code: error.code,
+      error: error.name,
+      message: error.message,
+    })
+  }
+
+  request.log.error({ err: error }, 'Erro interno não tratado')
+
+  return reply.code(500).send({
+    statusCode: 500,
+    error: 'Internal Server Error',
+    message: 'Erro interno do servidor',
+  })
+})
 
 const shutdown = async () => {
   try {
