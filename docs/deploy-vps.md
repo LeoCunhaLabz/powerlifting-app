@@ -17,7 +17,7 @@ Internet → Traefik (TLS, gerenciado pelo Dokploy)
 
 - **Traefik** gerencia TLS (Let's Encrypt) e roteamento — configurado pelo Dokploy automaticamente.
 - **`dokploy-network`** é a rede Docker interna que conecta os três recursos sem expor portas ao host.
-- Os containers não expõem portas diretamente ao host; o Traefik roteía pelo nome do serviço.
+- Os containers não expõem portas diretamente ao host; o Traefik roteia pelo nome do serviço.
 
 ---
 

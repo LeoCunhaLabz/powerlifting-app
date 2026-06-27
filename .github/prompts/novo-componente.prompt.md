@@ -1,6 +1,6 @@
 ---
 agent: agent
-description: "Criar um componente React seguindo o design system Chalk & Onyx."
+description: "Criar um componente React seguindo o design system ONYX."
 ---
 
 # Novo componente

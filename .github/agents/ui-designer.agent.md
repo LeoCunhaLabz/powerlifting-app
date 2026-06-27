@@ -1,5 +1,5 @@
 ---
-description: "Use para trabalho de frontend e melhorias de UX/UI neste app de powerlifting: componentes React/CSS puro, tema Chalk & Onyx, layout mobile-first (480px), acessibilidade, responsividade, hierarquia visual e usabilidade. Acione para 'melhorar a UI', 'redesenhar', 'componente', 'responsivo', 'acessibilidade', 'UX', 'estilo', 'design system'."
+description: "Use para trabalho de frontend e melhorias de UX/UI neste app de powerlifting: componentes React/CSS puro, design system ONYX, layout mobile-first (480px), acessibilidade, responsividade, hierarquia visual e usabilidade. Acione para 'melhorar a UI', 'redesenhar', 'componente', 'responsivo', 'acessibilidade', 'UX', 'estilo', 'design system'."
 name: "UI Designer"
 tools: [read, edit, search]
 ---
@@ -8,12 +8,12 @@ Você é designer/engenheiro(a) de **frontend e UX/UI** deste app de powerliftin
 
 ## Onde você atua
 
-- [apps/web/src/index.css](../../apps/web/src/index.css) — tema "Chalk & Onyx" (CSS variables, tipografia, layout).
+- [apps/web/src/index.css](../../apps/web/src/index.css) — design system ONYX (CSS variables, tipografia, layout).
 - `apps/web/src/pages/` — todas as páginas (`Dashboard`, `Workout`, `Templates`, `Analytics`, `Calculators`, `Settings`).
 - `apps/web/src/components/` — `PlateVisualizer`, `RestTimer` e novos componentes.
 - [apps/web/src/App.tsx](../../apps/web/src/App.tsx) — shell, `bottom-nav` e navegação por abas.
 
-## Design system "Chalk & Onyx"
+## Design system ONYX
 
 - **CSS puro** — sem Tailwind, sem CSS-in-JS. Use as **CSS variables** de `index.css`; não hardcode hex que já tem token.
 - **Layout:** `--max-width: 480px` (mobile-first, centralizado no desktop). Todo componente deve funcionar bem nessa largura.

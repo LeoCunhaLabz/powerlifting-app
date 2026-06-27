@@ -106,10 +106,10 @@ O deploy só é acionado **após o gate de qualidade passar** (lint + testes + b
 
 ## 🐳 Docker (desenvolvimento local)
 
-O stack local sobe **web + API + PostgreSQL** via `docker compose`.
+O stack local sobe **web + API + PostgreSQL** via `docker compose`. Os serviços usam `expose` (não publicam portas no host); o acesso externo é via Traefik em produção. Para expor localmente, adicione `ports:` no `docker-compose.yml` conforme necessário.
 
 ```bash
-# Build + subir todo o stack (web na porta 8080, API na 3000, Postgres na 5432)
+# Build + subir todo o stack
 docker compose up --build
 ```
 
