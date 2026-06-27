@@ -175,9 +175,9 @@ const DEFAULT_STATE: AppState = {
 export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load State from LocalStorage
   const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem('powerlifting_app_state');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('powerlifting_app_state');
+      if (saved) {
         const parsed = JSON.parse(saved) as AppState;
         // Merge with built-in templates to make sure they are always present or updated
         const customTemplates = parsed.templates?.filter(t => !t.isBuiltIn) || [];
@@ -185,22 +185,22 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
         parsed.bodyweightLog = parsed.bodyweightLog || [];
         return parsed;
-      } catch (e) {
-        console.error('Failed to parse app state:', e);
       }
+    } catch (e) {
+      console.error('Failed to load app state from localStorage:', e);
     }
     return DEFAULT_STATE;
   });
 
   // Active Workout session state
   const [activeWorkout, setActiveWorkout] = useState<WorkoutSession | null>(() => {
-    const saved = localStorage.getItem('powerlifting_active_workout');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('powerlifting_active_workout');
+      if (saved) {
         return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse active workout:', e);
       }
+    } catch (e) {
+      console.error('Failed to load active workout from localStorage:', e);
     }
     return null;
   });
@@ -208,8 +208,13 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Rest Timer State
   const [restTimerDuration, setRestTimerDuration] = useState(120); // 2 minutes default
   const [restTimerEnd, setRestTimerEnd] = useState<number | null>(() => {
-    const saved = localStorage.getItem('powerlifting_rest_timer_end');
-    return saved ? parseInt(saved, 10) : null;
+    try {
+      const saved = localStorage.getItem('powerlifting_rest_timer_end');
+      return saved ? parseInt(saved, 10) : null;
+    } catch (e) {
+      console.error('Failed to load rest timer from localStorage:', e);
+    }
+    return null;
   });
 
   // Sinaliza falha ao persistir no localStorage (cota cheia, modo privado, indisponivel)
@@ -247,7 +252,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
       safeSetItem('powerlifting_active_workout', JSON.stringify(activeWorkout));
     } else {
-      localStorage.removeItem('powerlifting_active_workout');
+      try { localStorage.removeItem('powerlifting_active_workout'); } catch { /* SecurityError: falha silenciosa */ }
     }
   }, [activeWorkout]);
 
@@ -257,7 +262,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
       safeSetItem('powerlifting_rest_timer_end', restTimerEnd.toString());
     } else {
-      localStorage.removeItem('powerlifting_rest_timer_end');
+      try { localStorage.removeItem('powerlifting_rest_timer_end'); } catch { /* SecurityError: falha silenciosa */ }
     }
   }, [restTimerEnd]);
 
