@@ -140,6 +140,35 @@ describe('isValidImportedState — top-level inválido', () => {
   });
 });
 
+// ─── WorkoutSession inválido ─────────────────────────────────────────────────
+
+describe('isValidImportedState — WorkoutSession inválido', () => {
+  const withSession = (fields: Record<string, unknown>) => ({
+    ...validState,
+    history: [{ ...validSession, ...fields }],
+  });
+
+  it('rejeita date não-parseável ("nao-e-data")', () => {
+    expect(isValidImportedState(withSession({ date: 'nao-e-data' }))).toBe(false);
+  });
+
+  it('rejeita date vazia', () => {
+    expect(isValidImportedState(withSession({ date: '' }))).toBe(false);
+  });
+
+  it('rejeita duration negativa', () => {
+    expect(isValidImportedState(withSession({ duration: -1 }))).toBe(false);
+  });
+
+  it('aceita date ISO completo', () => {
+    expect(isValidImportedState(withSession({ date: '2024-01-15T10:30:00.000Z' }))).toBe(true);
+  });
+
+  it('aceita date YYYY-MM-DD', () => {
+    expect(isValidImportedState(withSession({ date: '2024-01-15' }))).toBe(true);
+  });
+});
+
 // ─── SetState inválido ────────────────────────────────────────────────────────
 
 describe('isValidImportedState — SetState inválido', () => {

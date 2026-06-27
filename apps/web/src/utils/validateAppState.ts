@@ -6,7 +6,6 @@
  */
 
 import type {
-  AppState,
   BodyweightEntry,
   ExerciseState,
   SetState,
@@ -76,7 +75,7 @@ function isValidWorkoutSession(v: unknown): v is WorkoutSession {
   if (!isObject(v)) return false;
   if (!isString(v.id) || v.id.trim() === '') return false;
   if (!isString(v.name)) return false;
-  if (!isString(v.date) || v.date.trim() === '') return false;
+  if (!isDateString(v.date)) return false;
   if (!isNumber(v.duration) || v.duration < 0) return false;
   if (!isArray(v.exercises)) return false;
   if (v.notes !== undefined && !isString(v.notes)) return false;
@@ -140,13 +139,28 @@ function isValidBodyweightEntry(v: unknown): v is BodyweightEntry {
 // ─── AppState ─────────────────────────────────────────────────────────────────
 
 /**
- * Valida se `parsed` tem a estrutura mínima esperada de um `AppState` exportado.
+ * Forma validada de um payload importado: `settings` pode ser parcial (campos
+ * ausentes são preenchidos pelo merge com DEFAULT_SETTINGS em importData) e
+ * `bodyweightLog` é opcional (normalizado para `[]` quando ausente).
+ *
+ * Intencionalmente diferente de `AppState` para refletir com precisão o que o
+ * guard garante antes da normalização.
+ */
+type ValidatedRawState = {
+  history: WorkoutSession[];
+  templates: WorkoutTemplate[];
+  settings: Partial<Settings>;
+  bodyweightLog?: BodyweightEntry[];
+};
+
+/**
+ * Valida se `parsed` tem a estrutura mínima esperada de um payload importado.
  *
  * - `settings` pode ter campos ausentes (serão preenchidos pelo merge com DEFAULT_SETTINGS).
  * - `bodyweightLog` é opcional; se presente cada entrada é validada.
  * - Templates built-in são injetados após a importação; aqui apenas os custom precisam ser válidos.
  */
-export function isValidImportedState(parsed: unknown): parsed is AppState {
+export function isValidImportedState(parsed: unknown): parsed is ValidatedRawState {
   if (!isObject(parsed)) return false;
 
   // Campos de topo obrigatórios
