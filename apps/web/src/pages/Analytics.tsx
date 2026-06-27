@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateE1RM, calculateDots, calculateWilks, getExerciseMuscles, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
 import type { WorkoutSession } from '@powerlifting/shared';
@@ -140,8 +140,9 @@ export const Analytics: React.FC = () => {
     return t >= from && t <= to;
   };
 
-  const sessions = history.filter((s) => inRange(s.date));
-  const chrono = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sessions = useMemo(() => history.filter((s) => inRange(s.date)), [history, from, to]);
+  const chrono = useMemo(() => [...sessions].sort((a, b) => a.date.localeCompare(b.date)), [sessions]);
   const n = chrono.length;
 
   // --- Resumo ---
@@ -278,28 +279,32 @@ export const Analytics: React.FC = () => {
   const hasMuscle = topMuscles.length > 0;
 
   // --- Tonelagem semanal ---
-  const weekMap: Record<number, number> = {};
-  sessions.forEach((s) => {
-    const k = weekStart(new Date(s.date).getTime());
-    weekMap[k] = (weekMap[k] || 0) + tonnageOf(s);
-  });
-  const weekBars = Object.keys(weekMap)
-    .map(Number)
-    .sort((a, b) => a - b)
-    .slice(-10)
-    .map((k) => weekMap[k]);
-  const maxWeekBar = weekBars.length ? Math.max(...weekBars, 1) : 1;
+  const { weekBars, maxWeekBar } = useMemo(() => {
+    const weekMap: Record<number, number> = {};
+    sessions.forEach((s) => {
+      const k = weekStart(new Date(s.date).getTime());
+      weekMap[k] = (weekMap[k] || 0) + tonnageOf(s);
+    });
+    const bars = Object.keys(weekMap)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .slice(-10)
+      .map((k) => weekMap[k]);
+    return { weekBars: bars, maxWeekBar: bars.length ? Math.max(...bars, 1) : 1 };
+  }, [sessions]);
 
   // --- Top exercícios por volume ---
-  const exVol: Record<string, number> = {};
-  sessions.forEach((s) =>
-    s.exercises.forEach((ex) => {
-      const v = ex.sets.reduce((a, set) => a + (set.completed ? set.weight * set.reps : 0), 0);
-      if (v) exVol[ex.name] = (exVol[ex.name] || 0) + v;
-    }),
-  );
-  const topEx = Object.entries(exVol).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const maxEx = topEx.length ? topEx[0][1] : 1;
+  const { topEx, maxEx } = useMemo(() => {
+    const exVol: Record<string, number> = {};
+    sessions.forEach((s) =>
+      s.exercises.forEach((ex) => {
+        const v = ex.sets.reduce((a, set) => a + (set.completed ? set.weight * set.reps : 0), 0);
+        if (v) exVol[ex.name] = (exVol[ex.name] || 0) + v;
+      }),
+    );
+    const top = Object.entries(exVol).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return { topEx: top, maxEx: top.length ? top[0][1] : 1 };
+  }, [sessions]);
 
   // --- RPE médio por semana ---
   const rpeWeek: Record<number, { sum: number; count: number }> = {};
