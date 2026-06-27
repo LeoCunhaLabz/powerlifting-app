@@ -7,11 +7,12 @@ Este guia agrega **todo o ciclo de vida de uma issue** e mostra **qual prompt us
 
 ## Visão geral
 
-Os 6 prompts em `.github/prompts/` se dividem em **dois grupos**:
+Os prompts em `.github/prompts/` se dividem em **três grupos**:
 
 | Grupo | Prompts | Para quê |
 |-------|---------|----------|
-| **Ciclo de vida da issue** | [`gerar-issues`](gerar-issues.prompt.md) → [`planejar-proxima-issue`](planejar-proxima-issue.prompt.md) → [`executar-issue`](executar-issue.prompt.md) | Descobrir, planejar e implementar trabalho rastreado por issue. |
+| **Ciclo de vida da issue** | [`gerar-issues`](gerar-issues.prompt.md) → [`planejar-proxima-issue`](planejar-proxima-issue.prompt.md) → [`executar-issue`](executar-issue.prompt.md) → [`finalizar-pr`](finalizar-pr.prompt.md) | Descobrir, planejar, implementar e **fechar** (review + merge) trabalho rastreado por issue. |
+| **Orquestrador** | [`resolver-issue`](resolver-issue.prompt.md) | Encadeia planejar → executar → finalizar **uma issue do começo ao fim**, parando só nos pontos de decisão. |
 | **Atalhos de scaffolding** | [`nova-pagina`](nova-pagina.prompt.md) · [`novo-calculo`](novo-calculo.prompt.md) · [`novo-componente`](novo-componente.prompt.md) | Gerar código no padrão da codebase **dentro** de uma execução. Não são etapas do fluxo; são ferramentas. |
 
 ## O ciclo de vida (passo a passo)
@@ -24,9 +25,12 @@ flowchart LR
     D -->|"você confirma o plano"| E["/executar-issue<br/>(modo agent)"]
     E -->|"branch + commits"| F["status:em-andamento"]
     F --> G["PR com Closes #N"]
-    G -->|"merge"| H["Issue fechada"]
+    G --> I["/finalizar-pr<br/>(modo agent)"]
+    I -->|"você aprova o merge"| H["Issue fechada"]
     B -. "depende de outra issue" .-> X["status:bloqueada"]
     X -. "dependência fecha" .-> C
+    C -. "end-to-end" .-> O["/resolver-issue<br/>(orquestra D→E→I)"]
+    O -.-> H
 ```
 
 1. **Descobrir / gerar backlog — [`/gerar-issues`](gerar-issues.prompt.md)** (modo Plan, não edita código)
@@ -40,7 +44,10 @@ flowchart LR
 4. **Executar — [`/executar-issue`](executar-issue.prompt.md)** (modo agent)
    Implementa o escopo aprovado: cria o branch `<type>/<N>-<resumo>`, commita, valida `npm run build` + `npm run lint` e prepara o PR com `Closes #N`. Marca a issue como **`status:em-andamento`**. Durante a execução, pode usar os atalhos de scaffolding.
 
-5. **PR e merge** — abre o PR usando o [template](../PULL_REQUEST_TEMPLATE.md); ao mergear, o `Closes #N` fecha a issue.
+5. **Finalizar — [`/finalizar-pr`](finalizar-pr.prompt.md)** (modo agent)
+   Fecha o PR: lê os **review comments do GitHub Copilot**, resolve os óbvios (pergunta nos duvidosos), revalida `build`/`lint`, faz **rebase** em `main` e resolve conflitos. **Pausa e espera seu "ok"** antes do **squash merge** + `--delete-branch`. O `Closes #N` fecha a issue.
+
+> **Atalho end-to-end — [`/resolver-issue`](resolver-issue.prompt.md)** (modo agent): encadeia **planejar → executar → finalizar** uma issue de uma vez, parando só em 3 pontos de decisão (confirmar plano · comments duvidosos · aprovar merge). Aceita um número ou `próxima` (pega a mais prioritária `status:aprovada`). Use quando quiser tocar a issue inteira sem disparar cada prompt na mão.
 
 ## Sistema de labels (a ordem de execução)
 
