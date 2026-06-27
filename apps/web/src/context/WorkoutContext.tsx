@@ -15,6 +15,7 @@ interface WorkoutContextType {
   state: AppState;
   activeWorkout: WorkoutSession | null;
   startWorkout: (templateId?: string) => void;
+  repeatWorkout: (session: WorkoutSession) => void;
   cancelWorkout: () => void;
   completeActiveWorkout: () => void;
   addExerciseToActiveWorkout: (name: string) => void;
@@ -356,6 +357,28 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setActiveWorkout(newSession);
   }, [state, getMaxE1RM]);
+
+  // Repetir um treino anterior: novo ID, nova data, mesmos exercicios/pesos, series resetadas
+  const repeatWorkout = useCallback((session: WorkoutSession) => {
+    const newSession: WorkoutSession = {
+      id: `session-${Date.now()}`,
+      name: session.name,
+      date: new Date().toISOString(),
+      duration: 0,
+      notes: '',
+      exercises: session.exercises.map((ex, exIdx) => ({
+        ...ex,
+        id: `ex-${exIdx}-${Date.now()}`,
+        sets: ex.sets.map((set, setIdx) => ({
+          ...set,
+          id: `set-${exIdx}-${setIdx}-${Date.now()}`,
+          completed: false,
+          isPr: undefined,
+        })),
+      })),
+    };
+    setActiveWorkout(newSession);
+  }, []);
 
   // Cancel active workout
   const cancelWorkout = useCallback(() => {
@@ -703,6 +726,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       state,
       activeWorkout,
       startWorkout,
+      repeatWorkout,
       cancelWorkout,
       completeActiveWorkout,
       addExerciseToActiveWorkout,
@@ -728,7 +752,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveError,
       dismissSaveError,
     }), [
-      state, activeWorkout, startWorkout, cancelWorkout, completeActiveWorkout,
+      state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
       removeSetFromExercise, updateSet, updateWorkoutNotes, saveTemplate, deleteTemplate,
       updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,

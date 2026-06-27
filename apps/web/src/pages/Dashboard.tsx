@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { calculateE1RM, calculateDots } from '../utils/powerlifting';
-import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X } from 'lucide-react';
+import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw } from 'lucide-react';
 
 interface DashboardProps {
   onStartWorkoutTab: () => void;
@@ -11,7 +11,7 @@ interface DashboardProps {
 const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
 
 export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
-  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, logBodyweight } = useWorkout();
+  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight } = useWorkout();
   const { history, settings, templates, bodyweightLog } = state;
 
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
@@ -258,7 +258,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
                 <button key={s.id} onClick={() => setSelectedSession(s)} style={styles.historyCard}>
                   <div style={styles.historyTop}>
                     <span style={styles.historyName}>{s.name}{hasPr && <span style={styles.prTag}>PR</span>}</span>
-                    <Eye size={15} color="var(--text-muted)" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); repeatWorkout(s); onStartWorkoutTab(); }}
+                        style={styles.repeatBtn}
+                        aria-label="Repetir treino"
+                        title="Repetir treino"
+                      >
+                        <RotateCcw size={13} />
+                      </button>
+                      <Eye size={15} color="var(--text-muted)" />
+                    </div>
                   </div>
                   <div style={styles.historyStats}>
                     <span style={styles.hStat}>{formatDate(s.date)}</span>
@@ -281,7 +291,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
                 <h3 style={styles.modalTitle}>{selectedSession.name}</h3>
                 <span style={styles.modalDate}>{new Date(selectedSession.date).toLocaleString('pt-BR')}</span>
               </div>
-              <button onClick={() => setSelectedSession(null)} style={styles.closeBtn}><X size={20} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => { repeatWorkout(selectedSession); setSelectedSession(null); onStartWorkoutTab(); }}
+                  style={styles.repeatModalBtn}
+                  aria-label="Repetir este treino"
+                >
+                  <RotateCcw size={14} /> Repetir
+                </button>
+                <button onClick={() => setSelectedSession(null)} style={styles.closeBtn} aria-label="Fechar"><X size={20} /></button>
+              </div>
             </div>
             <div style={styles.modalBody}>
               {selectedSession.exercises.map((ex) => (
@@ -369,6 +388,8 @@ const styles: Record<string, React.CSSProperties> = {
   modalTitle: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
   modalDate: { fontSize: '11px', color: 'var(--text-secondary)' },
   closeBtn: { color: 'var(--text-secondary)', padding: '4px' },
+  repeatBtn: { color: 'var(--accent)', padding: '4px', display: 'flex', alignItems: 'center' },
+  repeatModalBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '7px 12px', borderRadius: 'var(--radius-md)', fontSize: '12px', fontWeight: 800 },
   modalBody: { overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' },
   modalEx: { borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '10px' },
   modalExName: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' },
