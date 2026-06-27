@@ -252,7 +252,7 @@ export const Settings: React.FC = () => {
           )}
           {importStatus === 'error' && (
             <div style={styles.errorAlert}>
-              <AlertTriangle size={16} /> Erro ao importar. Formato de JSON inválido.
+              <AlertTriangle size={16} /> Backup inválido ou corrompido. Nenhuma alteração foi feita.
             </div>
           )}
         </div>

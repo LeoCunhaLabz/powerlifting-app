@@ -9,6 +9,7 @@ import type {
   BodyweightEntry 
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
+import { isValidImportedState } from '../utils/validateAppState';
 
 interface WorkoutContextType {
   state: AppState;
@@ -620,15 +621,19 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Import JSON string back into state
   const importData = (jsonData: string): boolean => {
     try {
-      const parsed = JSON.parse(jsonData);
-      if (parsed && typeof parsed === 'object' && parsed.history && parsed.templates && parsed.settings) {
-        const customTemplates = (parsed.templates as WorkoutTemplate[]).filter((t) => !t.isBuiltIn);
-        parsed.templates = [...BUILT_IN_TEMPLATES, ...customTemplates];
-        parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
-        parsed.bodyweightLog = parsed.bodyweightLog || [];
-        setState(parsed as AppState);
-        return true;
+      const parsed: unknown = JSON.parse(jsonData);
+      if (!isValidImportedState(parsed)) {
+        return false;
       }
+      const customTemplates = parsed.templates.filter((t) => !t.isBuiltIn);
+      const normalized: AppState = {
+        ...parsed,
+        templates: [...BUILT_IN_TEMPLATES, ...customTemplates],
+        settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+        bodyweightLog: parsed.bodyweightLog ?? [],
+      };
+      setState(normalized);
+      return true;
     } catch (e) {
       console.error('Import failed:', e);
     }
