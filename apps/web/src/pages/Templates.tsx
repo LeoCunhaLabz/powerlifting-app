@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { TemplateExercise } from '@powerlifting/shared';
-import { Plus, Trash2, Play, X, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle } from 'lucide-react';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -28,6 +28,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'mine' | 'builtin'>('mine');
   const [isCreating, setIsCreating] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Create form
   const [name, setName] = useState('');
@@ -139,7 +140,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                   </div>
                   <div style={styles.rowActions}>
                     {!tpl.isBuiltIn && (
-                      <button onClick={() => deleteTemplate(tpl.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
+                      <button onClick={() => setConfirmDeleteId(tpl.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
                     )}
                     <button onClick={() => handleStart(tpl.id)} style={styles.startBtn}><Play size={14} fill="var(--accent-ink)" stroke="none" /> Iniciar</button>
                   </div>
@@ -149,6 +150,21 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
           );
         })}
       </div>
+
+      {/* Confirm delete modal */}
+      {confirmDeleteId !== null && (
+        <div style={styles.overlay} onClick={() => setConfirmDeleteId(null)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12, alignSelf: 'center' }} />
+            <h3 style={{ ...styles.modalTitle, textAlign: 'center', marginBottom: 8 }}>Excluir rotina</h3>
+            <p style={styles.confirmDesc}>Esta rotina será excluída permanentemente.</p>
+            <div style={styles.confirmActions}>
+              <button onClick={() => setConfirmDeleteId(null)} style={styles.confirmBack}>Voltar</button>
+              <button onClick={() => { deleteTemplate(confirmDeleteId); setConfirmDeleteId(null); }} style={styles.confirmDiscard}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create overlay */}
       {isCreating && (
@@ -251,6 +267,12 @@ const styles: Record<string, React.CSSProperties> = {
   rowActions: { display: 'flex', justifyContent: 'flex-end', gap: '8px' },
   delBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'transparent', color: 'var(--error)', padding: '9px 14px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(229,84,75,0.2)' },
   startBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '9px 18px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800 },
+  modal: { backgroundColor: 'var(--bg-secondary)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', width: '100%', maxWidth: 'var(--max-width)', display: 'flex', flexDirection: 'column', padding: '20px', paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' },
+  modalTitle: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
+  confirmDesc: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.4, textAlign: 'center' },
+  confirmActions: { display: 'flex', gap: '12px', width: '100%' },
+  confirmBack: { flex: 1, height: '44px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' },
+  confirmDiscard: { flex: 1, height: '44px', backgroundColor: 'var(--error)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800, color: '#fff' },
   overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 1000, backdropFilter: 'blur(4px)' },
   overlayContent: { backgroundColor: 'var(--bg-secondary)', width: '100%', maxWidth: 'var(--max-width)', height: '94vh', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' },
   overlayHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', borderBottom: '1px solid var(--border-color)' },
