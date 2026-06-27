@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, timestamp, jsonb, index } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -17,7 +17,10 @@ export const sessions = pgTable('sessions', {
   refreshTokenHash: varchar('refresh_token_hash', { length: 255 }).notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('sessions_user_id_idx').on(table.userId),
+  index('sessions_expires_at_idx').on(table.expiresAt),
+])
 
 export const workouts = pgTable('workouts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -29,7 +32,9 @@ export const workouts = pgTable('workouts', {
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => [
+  index('workouts_user_id_idx').on(table.userId),
+])
 
 export const templates = pgTable('templates', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -39,7 +44,9 @@ export const templates = pgTable('templates', {
   data: jsonb('data').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('templates_user_id_idx').on(table.userId),
+])
 
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert

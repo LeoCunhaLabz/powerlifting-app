@@ -7,6 +7,8 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
 import { authRoutes } from './routes/auth.js'
+import { workoutRoutes } from './routes/workouts.js'
+import { templateRoutes } from './routes/templates.js'
 import { dbPluginFp } from './plugins/db.js'
 import { authPluginFp } from './plugins/auth.js'
 import { runMigrations } from './db/index.js'
@@ -27,6 +29,8 @@ await app.register(dbPluginFp)
 await app.register(authPluginFp)
 await app.register(healthRoutes)
 await app.register(authRoutes)
+await app.register(workoutRoutes)
+await app.register(templateRoutes)
 
 const defaultErrorHandler = app.errorHandler
 
