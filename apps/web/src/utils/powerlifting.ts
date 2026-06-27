@@ -94,37 +94,34 @@ export function calculateDots(bodyweight: number, total: number, isMale: boolean
 export function calculateIpfGl(bodyweight: number, total: number, isMale: boolean, isEquipped: boolean = false): number {
   if (!bodyweight || !total) return 0;
 
-  // IPF GL Parameters
-  // Rows: Male Raw, Male Equipped, Female Raw, Female Equipped
+  // IPF GL 2020 — coeficientes para Powerlifting (SBD).
+  // Fonte: OpenPowerlifting goodlift.rs (MIT-licensed)
+  // https://gitlab.com/openpowerlifting/opl-data/-/raw/main/crates/coefficients/src/goodlift.rs
   let a: number, b: number, c: number;
-  
+
   if (isMale) {
     if (isEquipped) {
-      a = 387.8745;
-      b = 0.00238;
-      c = 0.000056;
+      a = 1236.25115;
+      b = 1449.21864;
+      c = 0.01644;
     } else {
-      a = 290.6789;
-      b = 0.00361;
-      c = 0.000148;
+      a = 1199.72839;
+      b = 1025.18162;
+      c = 0.009210;
     }
   } else {
     if (isEquipped) {
-      a = 80.0000; // placeholder standard IPF GL female equipped constants
-      b = 0.00100;
-      c = 0.000044;
+      a = 758.63878;
+      b = 949.31382;
+      c = 0.02435;
     } else {
-      a = 209.8407;
-      b = 0.00707;
-      c = 0.000262;
+      a = 610.32796;
+      b = 1045.59282;
+      c = 0.03048;
     }
   }
 
-  // IPF GL Formula: points = total * 100 / (a - b * e^(-c * bodyweight))
-  // Wait, let's check the correct formula:
-  // IPF GL Points = 100 * total / (a - b * e^(-c * weight)) or similar:
-  // Actually, standard IPF GL formula:
-  // Points = total * coeff, where coeff = 100 / (a - b * e^(-c * bodyweight))
+  // GL Points = total × (100 / (a − b × e^(−c × bodyweight))
   const denominator = a - b * Math.exp(-c * bodyweight);
   if (denominator <= 0) return 0;
   const coeff = 100 / denominator;

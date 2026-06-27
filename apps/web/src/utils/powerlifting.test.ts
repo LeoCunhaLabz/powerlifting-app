@@ -123,16 +123,29 @@ describe('calculateIpfGl', () => {
     expect(calculateIpfGl(80, 0, true)).toBe(0)
   })
 
-  it('masculino raw: retorna pontuação positiva', () => {
-    expect(calculateIpfGl(80, 600, true, false)).toBeGreaterThan(0)
+  // Caso de referência oficial OPL — Dmitry Inzarkin, IPF World Open 2019 (masc. equipado)
+  // Fonte: OpenPowerlifting goodlift.rs — https://gitlab.com/openpowerlifting/opl-data
+  it('masc. equipado: caso de referência OPL (92.04 kg / 1035 kg → 112.85)', () => {
+    expect(calculateIpfGl(92.04, 1035, true, true)).toBe(112.85)
   })
 
-  it('masculino equipado: retorna pontuação positiva', () => {
-    expect(calculateIpfGl(80, 750, true, true)).toBeGreaterThan(0)
+  // Casos de referência calculados a partir dos coeficientes IPF GL 2020 oficiais
+  it('masc. raw: 90 kg corpo / 800 kg total → 106.35', () => {
+    expect(calculateIpfGl(90, 800, true, false)).toBe(106.35)
   })
 
-  it('feminino raw: retorna pontuação positiva', () => {
-    expect(calculateIpfGl(65, 400, false, false)).toBeGreaterThan(0)
+  it('fem. raw: 60 kg corpo / 400 kg total → 90.42', () => {
+    expect(calculateIpfGl(60, 400, false, false)).toBe(90.42)
+  })
+
+  it('fem. equipado: 84 kg corpo / 600 kg total → 94.36', () => {
+    expect(calculateIpfGl(84, 600, false, true)).toBe(94.36)
+  })
+
+  it('fórmula varia com peso corporal: mesmo total, atleta mais leve pontua mais', () => {
+    const leve  = calculateIpfGl(60,  800, true, false)
+    const pesado = calculateIpfGl(120, 800, true, false)
+    expect(leve).toBeGreaterThan(pesado)
   })
 
   it('arredonda para 0.01', () => {
