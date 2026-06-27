@@ -124,7 +124,7 @@ export const RestTimer: React.FC = () => {
           <div style={styles.expandedContent}>
             <div style={styles.header}>
               <span style={styles.title}>CRONÔMETRO DE DESCANSO</span>
-              <button onClick={() => setIsExpanded(false)} style={styles.iconBtn}>
+              <button onClick={() => setIsExpanded(false)} style={styles.iconBtn} aria-label="Recolher cronômetro">
                 <ChevronDown size={20} />
               </button>
             </div>
@@ -175,7 +175,7 @@ export const RestTimer: React.FC = () => {
               <button onClick={stopRestTimer} style={styles.smallActionBtn}>
                 Pular
               </button>
-              <button onClick={() => setIsExpanded(true)} style={styles.smallActionIcon}>
+              <button onClick={() => setIsExpanded(true)} style={styles.smallActionIcon} aria-label="Expandir cronômetro">
                 <ChevronUp size={16} />
               </button>
             </div>

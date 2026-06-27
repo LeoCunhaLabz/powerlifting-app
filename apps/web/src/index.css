@@ -212,6 +212,18 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+/* Foco visível global para navegação por teclado */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Remove outline redundante em inputs (já têm box-shadow de foco) */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+}
+
 input::placeholder, textarea::placeholder {
   color: var(--text-muted);
 }
