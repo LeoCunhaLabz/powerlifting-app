@@ -39,10 +39,41 @@ describe('calculateE1RM', () => {
     expect(calculateE1RM(100, 5)).toBeCloseTo(112.5, 0)
   })
 
-  it('ignora RPE fora do intervalo e usa Brzycki', () => {
-    const semRpe = calculateE1RM(100, 5)
-    const rpeInvalido = calculateE1RM(100, 5, 5) // abaixo de 6.5
-    expect(rpeInvalido).toBe(semRpe)
+  it('retorna 0 para RPE abaixo de 6.5 (fora da faixa suportada)', () => {
+    expect(calculateE1RM(100, 5, 5)).toBe(0)
+  })
+
+  it('retorna 0 para RPE acima de 10 (fora da faixa suportada)', () => {
+    expect(calculateE1RM(100, 5, 10.5)).toBe(0)
+  })
+
+  it('retorna 0 para RPE fornecido com reps fora da tabela (> 12) usa Brzycki', () => {
+    // RPE fornecido mas sem entrada na tabela → fallback para Brzycki (não quebra UX)
+    const comRpe   = calculateE1RM(100, 15, 8)
+    const semRpe   = calculateE1RM(100, 15)
+    expect(comRpe).toBe(semRpe)
+    expect(comRpe).toBeGreaterThan(0)
+  })
+
+  it('reps > 12 sem RPE usa Brzycki normalmente', () => {
+    // Brzycki: 100 / (1.0278 - 0.0278*15) = 100 / 0.6108 ≈ 163.7
+    expect(calculateE1RM(100, 15)).toBeGreaterThan(0)
+  })
+
+  it('retorna 0 para peso negativo', () => {
+    expect(calculateE1RM(-100, 5)).toBe(0)
+  })
+
+  it('retorna 0 para reps negativas', () => {
+    expect(calculateE1RM(100, -3)).toBe(0)
+  })
+
+  it('retorna 0 para peso NaN', () => {
+    expect(calculateE1RM(NaN, 5)).toBe(0)
+  })
+
+  it('retorna 0 para RPE NaN', () => {
+    expect(calculateE1RM(100, 5, NaN)).toBe(0)
   })
 
   it('arredonda para 0.1', () => {
@@ -60,6 +91,22 @@ describe('calculateWilks', () => {
 
   it('retorna 0 para total zero', () => {
     expect(calculateWilks(80, 0, true)).toBe(0)
+  })
+
+  it('retorna 0 para peso corporal negativo', () => {
+    expect(calculateWilks(-80, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total negativo', () => {
+    expect(calculateWilks(80, -600, true)).toBe(0)
+  })
+
+  it('retorna 0 para peso corporal NaN', () => {
+    expect(calculateWilks(NaN, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total NaN', () => {
+    expect(calculateWilks(80, NaN, true)).toBe(0)
   })
 
   it('masculino: 80kg corpo / 600kg total ≈ pontuação positiva', () => {
@@ -98,6 +145,22 @@ describe('calculateDots', () => {
     expect(calculateDots(80, 0, true)).toBe(0)
   })
 
+  it('retorna 0 para peso corporal negativo', () => {
+    expect(calculateDots(-80, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total negativo', () => {
+    expect(calculateDots(80, -600, true)).toBe(0)
+  })
+
+  it('retorna 0 para peso corporal NaN', () => {
+    expect(calculateDots(NaN, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total NaN', () => {
+    expect(calculateDots(80, NaN, true)).toBe(0)
+  })
+
   it('masculino: retorna pontuação positiva', () => {
     expect(calculateDots(80, 600, true)).toBeGreaterThan(0)
   })
@@ -121,6 +184,22 @@ describe('calculateIpfGl', () => {
 
   it('retorna 0 para total zero', () => {
     expect(calculateIpfGl(80, 0, true)).toBe(0)
+  })
+
+  it('retorna 0 para peso corporal negativo', () => {
+    expect(calculateIpfGl(-80, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total negativo', () => {
+    expect(calculateIpfGl(80, -600, true)).toBe(0)
+  })
+
+  it('retorna 0 para peso corporal NaN', () => {
+    expect(calculateIpfGl(NaN, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total NaN', () => {
+    expect(calculateIpfGl(80, NaN, true)).toBe(0)
   })
 
   // Caso de referência oficial OPL — Dmitry Inzarkin, IPF World Open 2019 (masc. equipado)
