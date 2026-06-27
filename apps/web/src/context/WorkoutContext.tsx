@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { 
   AppState, 
   WorkoutSession, 
@@ -220,7 +220,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Sinaliza falha ao persistir no localStorage (cota cheia, modo privado, indisponivel)
   const [saveError, setSaveError] = useState<string | null>(null);
-  const dismissSaveError = () => setSaveError(null);
+  const dismissSaveError = useCallback(() => setSaveError(null), []);
 
   // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
   // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
@@ -267,8 +267,18 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [restTimerEnd]);
 
+  // Rest Timer Functions — definidas antes das funcoes que as referenciam nos deps
+  const stopRestTimer = useCallback(() => {
+    setRestTimerEnd(null);
+  }, []);
+
+  const startRestTimer = useCallback((seconds: number) => {
+    const endTime = Date.now() + seconds * 1000;
+    setRestTimerEnd(endTime);
+  }, []);
+
   // Helper: Find absolute max e1RM for an exercise from history
-  const getMaxE1RM = (exerciseName: string): number => {
+  const getMaxE1RM = useCallback((exerciseName: string): number => {
     let max = 0;
     const lowerName = exerciseName.toLowerCase();
     
@@ -295,10 +305,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     return max;
-  };
+  }, [state]);
 
   // Start a new workout session
-  const startWorkout = (templateId?: string) => {
+  const startWorkout = useCallback((templateId?: string) => {
     let sessionName = 'Treino Avulso';
     let exercises: ExerciseState[] = [];
 
@@ -345,16 +355,16 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     setActiveWorkout(newSession);
-  };
+  }, [state, getMaxE1RM]);
 
   // Cancel active workout
-  const cancelWorkout = () => {
+  const cancelWorkout = useCallback(() => {
     setActiveWorkout(null);
     stopRestTimer();
-  };
+  }, [stopRestTimer]);
 
   // Complete and save active workout
-  const completeActiveWorkout = () => {
+  const completeActiveWorkout = useCallback(() => {
     if (!activeWorkout) return;
 
     // Filter out exercises with no completed sets, or sets that aren't marked completed
@@ -376,7 +386,6 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Determine duration
     const startTime = new Date(activeWorkout.date).getTime();
-    // eslint-disable-next-line react-hooks/purity
     const duration = Math.round((Date.now() - startTime) / 1000);
 
     const completedSession: WorkoutSession = {
@@ -431,10 +440,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setActiveWorkout(null);
     stopRestTimer();
-  };
+  }, [activeWorkout, state, stopRestTimer]);
 
   // Add exercise to active workout
-  const addExerciseToActiveWorkout = (name: string) => {
+  const addExerciseToActiveWorkout = useCallback((name: string) => {
     if (!activeWorkout) return;
 
     const newExercise: ExerciseState = {
@@ -458,10 +467,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         exercises: [...prev.exercises, newExercise]
       };
     });
-  };
+  }, [activeWorkout]);
 
   // Remove exercise from active workout
-  const removeExerciseFromActiveWorkout = (index: number) => {
+  const removeExerciseFromActiveWorkout = useCallback((index: number) => {
     if (!activeWorkout) return;
     setActiveWorkout(prev => {
       if (!prev) return null;
@@ -472,10 +481,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         exercises: newExercises
       };
     });
-  };
+  }, [activeWorkout]);
 
   // Add set to exercise in active workout
-  const addSetToExercise = (exerciseIndex: number) => {
+  const addSetToExercise = useCallback((exerciseIndex: number) => {
     if (!activeWorkout) return;
 
     setActiveWorkout(prev => {
@@ -501,10 +510,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         exercises: newExercises
       };
     });
-  };
+  }, [activeWorkout]);
 
   // Remove set from exercise in active workout
-  const removeSetFromExercise = (exerciseIndex: number, setIndex: number) => {
+  const removeSetFromExercise = useCallback((exerciseIndex: number, setIndex: number) => {
     if (!activeWorkout) return;
 
     setActiveWorkout(prev => {
@@ -517,10 +526,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         exercises: newExercises
       };
     });
-  };
+  }, [activeWorkout]);
 
   // Update specific set in active workout
-  const updateSet = (exerciseIndex: number, setIndex: number, fields: Partial<SetState>) => {
+  const updateSet = useCallback((exerciseIndex: number, setIndex: number, fields: Partial<SetState>) => {
     if (!activeWorkout) return;
 
     setActiveWorkout(prev => {
@@ -547,16 +556,16 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         exercises: newExercises
       };
     });
-  };
+  }, [activeWorkout, startRestTimer, restTimerDuration]);
 
   // Update notes of the active workout session
-  const updateWorkoutNotes = (notes: string) => {
+  const updateWorkoutNotes = useCallback((notes: string) => {
     if (!activeWorkout) return;
     setActiveWorkout(prev => prev ? { ...prev, notes } : null);
-  };
+  }, [activeWorkout]);
 
   // Save/Create a workout template
-  const saveTemplate = (templateData: Omit<WorkoutTemplate, 'id'> & { id?: string }) => {
+  const saveTemplate = useCallback((templateData: Omit<WorkoutTemplate, 'id'> & { id?: string }) => {
     setState(prev => {
       const existingIndex = templateData.id ? prev.templates.findIndex(t => t.id === templateData.id) : -1;
       const updatedTemplates = [...prev.templates];
@@ -580,18 +589,18 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         templates: updatedTemplates
       };
     });
-  };
+  }, []);
 
   // Delete a template
-  const deleteTemplate = (templateId: string) => {
+  const deleteTemplate = useCallback((templateId: string) => {
     setState(prev => ({
       ...prev,
       templates: prev.templates.filter(t => t.id !== templateId || t.isBuiltIn) // Cannot delete built-ins
     }));
-  };
+  }, []);
 
   // Update user configurations
-  const updateSettings = (newSettings: Partial<Settings>) => {
+  const updateSettings = useCallback((newSettings: Partial<Settings>) => {
     setState(prev => {
       const mergedSettings = { ...prev.settings, ...newSettings };
       
@@ -624,15 +633,15 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         settings: mergedSettings
       };
     });
-  };
+  }, []);
 
   // Export entire state to stringified JSON
-  const exportData = (): string => {
+  const exportData = useCallback((): string => {
     return JSON.stringify(state, null, 2);
-  };
+  }, [state]);
 
   // Import JSON string back into state
-  const importData = (jsonData: string): boolean => {
+  const importData = useCallback((jsonData: string): boolean => {
     try {
       const parsed: unknown = JSON.parse(jsonData);
       if (!isValidImportedState(parsed)) {
@@ -651,10 +660,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('Import failed:', e);
     }
     return false;
-  };
+  }, []);
 
   // Bodyweight log
-  const logBodyweight = (weight: number, date?: string) => {
+  const logBodyweight = useCallback((weight: number, date?: string) => {
     if (!weight || weight <= 0) return;
     const iso = date || new Date().toISOString();
     const dayKey = iso.slice(0, 10);
@@ -670,9 +679,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         settings: { ...prev.settings, bodyweight: latest ? latest.weight : prev.settings.bodyweight },
       };
     });
-  };
+  }, []);
 
-  const deleteBodyweightEntry = (date: string) => {
+  const deleteBodyweightEntry = useCallback((date: string) => {
     setState(prev => {
       const log = prev.bodyweightLog.filter(e => e.date !== date);
       const latest = log[log.length - 1];
@@ -682,23 +691,15 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         settings: { ...prev.settings, bodyweight: latest ? latest.weight : prev.settings.bodyweight },
       };
     });
-  };
+  }, []);
 
-  const getBodyweightAt = (date: string | number | Date): number =>
-    getEffectiveBodyweight(state.bodyweightLog, date, state.settings.bodyweight);
+  const getBodyweightAt = useCallback((date: string | number | Date): number =>
+    getEffectiveBodyweight(state.bodyweightLog, date, state.settings.bodyweight)
+  , [state.bodyweightLog, state.settings.bodyweight]);
 
-  // Rest Timer Functions
-  const startRestTimer = (seconds: number) => {
-    const endTime = Date.now() + seconds * 1000;
-    setRestTimerEnd(endTime);
-  };
-
-  const stopRestTimer = () => {
-    setRestTimerEnd(null);
-  };
-
+  // Rest Timer Functions (startRestTimer/stopRestTimer definidos acima)
   return (
-    <WorkoutContext.Provider value={{
+    <WorkoutContext.Provider value={useMemo(() => ({
       state,
       activeWorkout,
       startWorkout,
@@ -725,8 +726,15 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       deleteBodyweightEntry,
       getBodyweightAt,
       saveError,
-      dismissSaveError
-    }}>
+      dismissSaveError,
+    }), [
+      state, activeWorkout, startWorkout, cancelWorkout, completeActiveWorkout,
+      addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
+      removeSetFromExercise, updateSet, updateWorkoutNotes, saveTemplate, deleteTemplate,
+      updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
+      restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
+      getBodyweightAt, saveError, dismissSaveError,
+    ])}>
       {children}
     </WorkoutContext.Provider>
   );
