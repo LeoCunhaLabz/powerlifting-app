@@ -606,6 +606,19 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
 
+      // Bounds: barra e peso corporal devem ser > 0; anilhas: array nao-vazio com valores > 0.
+      // Revert para o valor anterior quando o novo valor for invalido.
+      if (newSettings.barWeight !== undefined && mergedSettings.barWeight <= 0) {
+        mergedSettings.barWeight = prev.settings.barWeight;
+      }
+      if (newSettings.bodyweight !== undefined && mergedSettings.bodyweight <= 0) {
+        mergedSettings.bodyweight = prev.settings.bodyweight;
+      }
+      if (newSettings.availablePlates !== undefined) {
+        const validPlates = mergedSettings.availablePlates.filter(p => p > 0);
+        mergedSettings.availablePlates = validPlates.length > 0 ? validPlates : prev.settings.availablePlates;
+      }
+
       return {
         ...prev,
         settings: mergedSettings
