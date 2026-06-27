@@ -121,7 +121,7 @@ export function calculateIpfGl(bodyweight: number, total: number, isMale: boolea
     }
   }
 
-  // GL Points = total × (100 / (a − b × e^(−c × bodyweight))
+  // GL Points = total * (100 / (a - b * e^(-c * bodyweight)))
   const denominator = a - b * Math.exp(-c * bodyweight);
   if (denominator <= 0) return 0;
   const coeff = 100 / denominator;
