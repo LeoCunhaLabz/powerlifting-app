@@ -24,20 +24,21 @@ const RPE_PERCENTAGES: Record<number, Record<number, number>> = {
  * Calculates Estimated One Rep Max (e1RM)
  */
 export function calculateE1RM(weight: number, reps: number, rpe?: number): number {
-  if (weight <= 0 || reps <= 0) return 0;
+  // !(x > 0) rejeita 0, negativos, NaN e -Infinity em uma única expressão
+  if (!(weight > 0) || !(reps > 0)) return 0;
 
-  // Se RPE foi fornecido, deve estar dentro da faixa suportada [6.5, 10]
+  // Se RPE foi fornecido, deve ser finito e dentro da faixa suportada [6.5, 10]
   if (rpe !== undefined) {
-    if (rpe < 6.5 || rpe > 10) return 0;
+    if (!Number.isFinite(rpe) || rpe < 6.5 || rpe > 10) return 0;
     const roundedRpe = Math.round(rpe * 2) / 2; // arredonda para o 0.5 mais próximo
     const repData = RPE_PERCENTAGES[reps];       // tabela cobre reps 1–12
     if (repData && repData[roundedRpe]) {
       return Math.round((weight / repData[roundedRpe]) * 10) / 10;
     }
-    return 0; // RPE fornecido mas sem entrada na tabela (reps > 12 ou RPE sem registro)
+    // reps fora da tabela (> 12): fallback para Brzycki para não quebrar a UX
   }
 
-  // Sem RPE: fallback Brzycki
+  // Sem RPE (ou com RPE mas reps fora da tabela): Brzycki
   if (reps === 1) return weight;
   return Math.round((weight / (1.0278 - 0.0278 * reps)) * 10) / 10;
 }
@@ -46,7 +47,7 @@ export function calculateE1RM(weight: number, reps: number, rpe?: number): numbe
  * Wilks Coefficient Formula (2020 Update / Classic)
  */
 export function calculateWilks(bodyweight: number, total: number, isMale: boolean): number {
-  if (bodyweight <= 0 || total <= 0) return 0;
+  if (!(bodyweight > 0) || !(total > 0)) return 0;
 
   // Classic Wilks Coefficients
   const a = isMale ? -216.0475144 : 594.31747775;
@@ -69,7 +70,7 @@ export function calculateWilks(bodyweight: number, total: number, isMale: boolea
  * DOTS Formula (standardized weight comparison)
  */
 export function calculateDots(bodyweight: number, total: number, isMale: boolean): number {
-  if (bodyweight <= 0 || total <= 0) return 0;
+  if (!(bodyweight > 0) || !(total > 0)) return 0;
 
   // DOTS Coefficients
   const a = isMale ? -0.000001093 : -0.0000010706;
@@ -91,7 +92,7 @@ export function calculateDots(bodyweight: number, total: number, isMale: boolean
  * IPF GL Points Formula
  */
 export function calculateIpfGl(bodyweight: number, total: number, isMale: boolean, isEquipped: boolean = false): number {
-  if (bodyweight <= 0 || total <= 0) return 0;
+  if (!(bodyweight > 0) || !(total > 0)) return 0;
 
   // IPF GL 2020 — coeficientes para Powerlifting (SBD).
   // Fonte: OpenPowerlifting goodlift.rs (MIT-licensed)
