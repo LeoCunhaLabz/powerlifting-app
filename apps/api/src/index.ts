@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import type { FastifyError } from 'fastify'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
@@ -24,6 +25,24 @@ await app.register(dbPluginFp)
 await app.register(authPluginFp)
 await app.register(healthRoutes)
 await app.register(authRoutes)
+
+const defaultErrorHandler = app.errorHandler
+
+app.setErrorHandler((error: FastifyError, request, reply) => {
+  const statusCode = error.statusCode ?? 500
+
+  if (statusCode < 500) {
+    return defaultErrorHandler(error, request, reply)
+  }
+
+  request.log.error({ err: error }, 'Erro interno não tratado')
+
+  return reply.code(500).send({
+    statusCode: 500,
+    error: 'Internal Server Error',
+    message: 'Erro interno do servidor',
+  })
+})
 
 const shutdown = async () => {
   try {
