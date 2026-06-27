@@ -171,7 +171,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
         <div style={styles.overlay}>
           <div style={styles.overlayContent}>
             <div style={styles.overlayHead}>
-              <button onClick={resetForm} style={styles.close}><X size={20} /></button>
+              <button onClick={resetForm} style={styles.close} aria-label="Fechar"><X size={20} /></button>
               <h2 style={styles.overlayTitle}>Criar rotina</h2>
               <button onClick={handleSave} disabled={!name.trim() || exercises.length === 0} style={{ ...styles.saveTop, opacity: !name.trim() || exercises.length === 0 ? 0.4 : 1 }}>Salvar</button>
             </div>

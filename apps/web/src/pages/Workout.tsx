@@ -190,7 +190,7 @@ export const Workout: React.FC = () => {
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHead}>
               <h3 style={styles.modalTitle}>Adicionar exercício</h3>
-              <button onClick={() => setShowAddExModal(false)} style={styles.close}><X size={20} /></button>
+              <button onClick={() => setShowAddExModal(false)} style={styles.close} aria-label="Fechar"><X size={20} /></button>
             </div>
             <input type="text" placeholder="Buscar ou digitar exercício..." value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)} style={styles.search} autoFocus />
@@ -244,7 +244,7 @@ export const Workout: React.FC = () => {
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHead}>
               <h3 style={styles.modalTitle}>Calculadora de anilhas</h3>
-              <button onClick={() => setPlateCalcWeight(null)} style={styles.close}><X size={20} /></button>
+              <button onClick={() => setPlateCalcWeight(null)} style={styles.close} aria-label="Fechar"><X size={20} /></button>
             </div>
             <div style={styles.plateAdjust}>
               <button onClick={() => setPlateCalcWeight((p) => Math.max(settings.barWeight, (p || 0) - 2.5))} style={styles.adjBtn}>−2.5</button>
