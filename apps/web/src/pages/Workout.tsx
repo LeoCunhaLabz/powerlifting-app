@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X } from 'lucide-react';
+import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
 
 const EXERCISE_OPTIONS = [
@@ -13,7 +13,7 @@ const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D
 
 export const Workout: React.FC = () => {
   const {
-    activeWorkout, startWorkout, cancelWorkout, completeActiveWorkout,
+    activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
     addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
     removeSetFromExercise, updateSet, updateWorkoutNotes, state, getMaxE1RM,
   } = useWorkout();
@@ -52,6 +52,11 @@ export const Workout: React.FC = () => {
         <button onClick={() => startWorkout()} style={styles.startBtn}>
           <Play size={16} fill="var(--accent-ink)" stroke="none" /> Iniciar treino avulso
         </button>
+        {history.length > 0 && (
+          <button onClick={() => repeatWorkout(history[0])} style={styles.repeatLastBtn}>
+            <RotateCcw size={15} /> Repetir último treino
+          </button>
+        )}
       </div>
     );
   }
@@ -269,6 +274,7 @@ const styles: Record<string, React.CSSProperties> = {
   emptyTitle: { fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' },
   emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
   startBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '12px 24px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
+  repeatLastBtn: { marginTop: '10px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px 22px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '7px' },
   appbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
   titleWrap: { display: 'flex', flexDirection: 'column', gap: '6px' },
   title: { fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)' },
