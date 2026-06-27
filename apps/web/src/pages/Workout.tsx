@@ -25,6 +25,7 @@ export const Workout: React.FC = () => {
   const [plateCalcWeight, setPlateCalcWeight] = useState<number | null>(null);
   const [plateCalcTarget, setPlateCalcTarget] = useState({ exIdx: 0, setIdx: 0 });
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [confirmRemoveExIdx, setConfirmRemoveExIdx] = useState<number | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [elapsed, setElapsed] = useState('00:00');
 
@@ -121,7 +122,7 @@ export const Workout: React.FC = () => {
                 <div style={styles.exName}>{ex.name}</div>
                 <div style={styles.exSub}>e1RM {getMaxE1RM(ex.name)} {u}</div>
               </div>
-              <button onClick={() => removeExerciseFromActiveWorkout(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
+              <button onClick={() => setConfirmRemoveExIdx(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
             </div>
 
             <div style={styles.colHead}>
@@ -202,6 +203,21 @@ export const Workout: React.FC = () => {
               {EXERCISE_OPTIONS.filter((o) => o.toLowerCase().includes(searchQuery.toLowerCase())).map((name) => (
                 <button key={name} onClick={() => addExercise(name)} style={styles.suggestion}>{name}</button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove exercise modal */}
+      {confirmRemoveExIdx !== null && (
+        <div style={styles.overlay} onClick={() => setConfirmRemoveExIdx(null)}>
+          <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12 }} />
+            <h3 style={styles.modalTitle}>Remover exercício</h3>
+            <p style={styles.confirmDesc}>O exercício e todas as suas séries serão removidos do treino.</p>
+            <div style={styles.confirmActions}>
+              <button onClick={() => setConfirmRemoveExIdx(null)} style={styles.confirmBack}>Voltar</button>
+              <button onClick={() => { removeExerciseFromActiveWorkout(confirmRemoveExIdx); setConfirmRemoveExIdx(null); }} style={styles.confirmDiscard}>Remover</button>
             </div>
           </div>
         </div>
