@@ -25,7 +25,7 @@ Fonte da verdade das convenções: [AGENTS.md](../../AGENTS.md) e [.github/copil
 
 1. **Branch dedicado** a partir de `main`: `<type>/<N>-<resumo>`. Confirme comigo antes se houver mudanças não commitadas.
 2. **Implementar** conforme o plano, em commits coerentes.
-3. **Validar:** rode `npm run build` (type-check incluso) e `npm run lint` — **sem novos erros**. Não há testes.
+- **Validar:** rode `npm run build` (type-check incluso), `npm run lint` e `npm run test` — **sem novos erros**.
 4. **Manter docs em sincronia** no mesmo PR se a entrega mudar estrutura/comandos/caminhos: `AGENTS.md`, `.github/copilot-instructions.md`, `.github/{agents,prompts,skills}`.
 5. **PR:** use `.github/PULL_REQUEST_TEMPLATE.md`, com `Closes #N`. **Só empurre após meu ok.**
 

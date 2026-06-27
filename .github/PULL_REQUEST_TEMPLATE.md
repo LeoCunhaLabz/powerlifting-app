@@ -27,9 +27,10 @@ Closes #
 - [ ] Escopo mínimo: apenas o necessário para a issue (sem refatorações fora do pedido)
 - [ ] `npm run build` passa (na raiz)
 - [ ] `npm run lint` sem **novos** erros (erros pré-existentes ficam para PR separado)
+- [ ] `npm run test` passa (Vitest — se a issue tocar em `apps/web/src/utils/`)
 - [ ] Sem dependências novas desnecessárias
 - [ ] Textos de UI em **pt-BR**
-- [ ] Documentação em sincronia (`AGENTS.md`, `.github/copilot-instructions.md`, `.github/{agents,prompts,skills}`) quando estrutura/comandos/caminhos mudarem
+- [ ] **Documentação em sincronia** (`AGENTS.md`, `.github/copilot-instructions.md`, `.github/{agents,prompts,skills}`, `docs/deploy-vps.md`) quando estrutura/comandos/caminhos/infra mudarem — **obrigatório na mesma PR**
 
 ## Notas adicionais
 

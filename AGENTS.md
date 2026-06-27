@@ -108,7 +108,7 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 - Retorne `0` para entradas inválidas/zeradas em vez de lançar erro.
 - Mantenha as tabelas/constantes (ex.: `RPE_PERCENTAGES`, `DEFAULT_PLATES_KG/LBS`) co-localizadas no arquivo.
 
-### Estilo / design system "Chalk & Onyx"
+### Estilo / design system ONYX
 
 - **CSS puro** em [apps/web/src/index.css](apps/web/src/index.css). Não introduza Tailwind, CSS-in-JS libs ou outros frameworks.
 - Use as **CSS variables** existentes (cores, raios, transições). Não hardcode hex que já tenha token.
@@ -122,6 +122,7 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 
 - [ ] `npm run lint` sem **novos** erros (se houver erros pré-existentes, trate em PR separado).
 - [ ] `npm run build` passa (type-check incluso).
+- [ ] `npm run test` passa (Vitest — funções puras em `apps/web/src/utils/`).
 - [ ] Sem imports/variáveis não utilizados.
 - [ ] Textos de UI em pt-BR.
 - [ ] Nenhuma dependência nova desnecessária.
@@ -136,7 +137,7 @@ A codebase evolui por **issues**, uma de cada vez. Para cada issue:
 2. **Um PR por issue**, com escopo focado. Evite misturar mudanças não relacionadas.
 3. **Vincule a issue** no corpo do PR com `Closes #N`.
 4. Use o template em `.github/PULL_REQUEST_TEMPLATE.md`.
-5. **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize no **mesmo PR** o `AGENTS.md`, o `.github/copilot-instructions.md` e os arquivos em `.github/{agents,prompts,skills}` afetados. Documentação desatualizada é tratada como bug.
+5. **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize no **mesmo PR** o `AGENTS.md`, o `.github/copilot-instructions.md` e os arquivos em `.github/{agents,prompts,skills}` afetados. Documentação desatualizada é tratada como bug. Para informações de produção/VPS, consulte [docs/deploy-vps.md](docs/deploy-vps.md).
 6. Antes de finalizar, rode `npm run build` e `npm run lint` (sem novos erros) e marque o checklist do PR.
 
 > Dependências entre issues importam: respeite a ordem lógica (ex.: monorepo → API → banco → auth → docker → sync) para evitar conflitos e retrabalho.

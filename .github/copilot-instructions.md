@@ -25,7 +25,7 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 - **Navegação por abas** em [apps/web/src/App.tsx](../apps/web/src/App.tsx) (sem React Router). Nova página = componente em `apps/web/src/pages/` + valor no tipo `Tab` + `case` em `renderActiveTab()` + botão na `bottom-nav`.
 - **Estado** em [apps/web/src/context/WorkoutContext.tsx](../apps/web/src/context/WorkoutContext.tsx); tipos de domínio em [packages/shared/src/workout.ts](../packages/shared/src/workout.ts), importados via `@powerlifting/shared`.
 - **Cálculos puros** em [apps/web/src/utils/powerlifting.ts](../apps/web/src/utils/powerlifting.ts) (e1RM arredonda 0,1; pontuações 0,01; retornam `0` para entrada inválida).
-- **Estilo:** CSS puro com as variables de [apps/web/src/index.css](../apps/web/src/index.css) (tema "Chalk & Onyx", `--max-width: 480px`). Sem Tailwind/CSS-in-JS. Ícones via `lucide-react`.
+- **Estilo:** CSS puro com as variables de [apps/web/src/index.css](../apps/web/src/index.css) (design system ONYX, `--max-width: 480px`). Sem Tailwind/CSS-in-JS. Ícones via `lucide-react`.
 
 ## Validação
 
