@@ -28,7 +28,14 @@ Coeficiente Wilks clássico. `coeff = 500 / denominador`, onde o denominador é 
 
 `coeff = 100 / (a - b * e^(-c * bodyweight))`; constantes `a, b, c` variam por gênero **e** por modalidade (raw vs. equipado). `pontuação = total * coeff`, arredondada para **0,01**.
 
-> ⚠️ **Limitação:** as constantes para **feminino equipado** são valores *placeholder* (não oficialmente verificados). Os resultados para esse caso específico devem ser tratados como aproximações até que os parâmetros corretos sejam confirmados e atualizados em `apps/web/src/utils/powerlifting.ts`.
+Coeficientes IPF GL 2020 para Powerlifting (SBD) — fonte: [OpenPowerlifting goodlift.rs](https://gitlab.com/openpowerlifting/opl-data/-/raw/main/crates/coefficients/src/goodlift.rs):
+
+| Categoria | a | b | c |
+|---|---|---|---|
+| Masculino Raw | 1199.72839 | 1025.18162 | 0.009210 |
+| Masculino Equipado | 1236.25115 | 1449.21864 | 0.01644 |
+| Feminino Raw | 610.32796 | 1045.59282 | 0.03048 |
+| Feminino Equipado | 758.63878 | 949.31382 | 0.02435 |
 
 > `total` = soma de Agachamento + Supino + Terra (1RMs). `bodyweight` e `total` na mesma unidade.
 
