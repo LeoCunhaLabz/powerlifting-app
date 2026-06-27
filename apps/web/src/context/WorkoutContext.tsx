@@ -6,10 +6,12 @@ import type {
   Settings, 
   ExerciseState, 
   SetState,
-  BodyweightEntry 
+  BodyweightEntry,
+  SyncStatus,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 import { isValidImportedState } from '../utils/validateAppState';
+import { useSyncManager } from '../hooks/useSyncManager';
 
 interface WorkoutContextType {
   state: AppState;
@@ -40,6 +42,7 @@ interface WorkoutContextType {
   getBodyweightAt: (date: string | number | Date) => number;
   saveError: string | null;
   dismissSaveError: () => void;
+  syncStatus: SyncStatus;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -222,6 +225,39 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Sinaliza falha ao persistir no localStorage (cota cheia, modo privado, indisponivel)
   const [saveError, setSaveError] = useState<string | null>(null);
   const dismissSaveError = useCallback(() => setSaveError(null), []);
+
+  // --- Sync Manager ---
+  const onSyncComplete = useCallback(
+    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[] }) => {
+      const now = new Date().toISOString();
+      setState(prev => ({
+        ...prev,
+        history: prev.history.map(s => {
+          const matched = result.workouts.find(w => w.id === s.id);
+          return matched ? { ...s, syncedAt: now } : s;
+        }),
+        templates: prev.templates.map(t => {
+          const matched = result.templates.find(w => w.id === t.id);
+          return matched ? { ...t, syncedAt: now } : t;
+        }),
+      }));
+    },
+    [],
+  );
+
+  const { syncStatus, triggerSync } = useSyncManager({ onSyncComplete });
+
+  // Detecta itens sem syncedAt e dispara sync automaticamente
+  useEffect(() => {
+    const hasPending =
+      state.history.some(s => !s.syncedAt) ||
+      state.templates.some(t => !t.isBuiltIn && !t.syncedAt);
+    if (hasPending) {
+      triggerSync({ workouts: state.history, templates: state.templates });
+    }
+  // triggerSync é estável (useCallback com deps [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.history, state.templates]);
 
   // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
   // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
@@ -598,7 +634,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         name: templateData.name,
         description: templateData.description,
         exercises: templateData.exercises,
-        isBuiltIn: false
+        isBuiltIn: false,
+        updatedAt: new Date().toISOString(),
+        // syncedAt intencionalmente omitido — marca como pendente de sync
       };
 
       if (existingIndex > -1) {
@@ -751,13 +789,14 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       getBodyweightAt,
       saveError,
       dismissSaveError,
+      syncStatus,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
       removeSetFromExercise, updateSet, updateWorkoutNotes, saveTemplate, deleteTemplate,
       updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
-      getBodyweightAt, saveError, dismissSaveError,
+      getBodyweightAt, saveError, dismissSaveError, syncStatus,
     ])}>
       {children}
     </WorkoutContext.Provider>

@@ -8,4 +8,5 @@ export type {
   ThemeName,
   BodyweightEntry,
   AppState,
+  SyncStatus,
 } from './workout';

@@ -8,7 +8,7 @@ import SettingsPage from './pages/Settings';
 import Analytics from './pages/Analytics';
 import More, { type MoreTab } from './pages/More';
 import RestTimer from './components/RestTimer';
-import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X } from 'lucide-react';
+import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff } from 'lucide-react';
 
 type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more';
 
@@ -21,7 +21,28 @@ const MORE_LABELS: Record<MoreTab, string> = {
 
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
-  const { activeWorkout, saveError, dismissSaveError } = useWorkout();
+  const { activeWorkout, saveError, dismissSaveError, syncStatus } = useWorkout();
+
+  const syncIndicator = (() => {
+    switch (syncStatus) {
+      case 'syncing':  return { icon: <CloudUpload size={12} />, label: 'Sincronizando…', color: 'var(--accent)' };
+      case 'error':   return { icon: <CloudOff size={12} />, label: 'Erro ao sincronizar', color: 'var(--danger, #e05252)' };
+      case 'offline': return { icon: <Cloud size={12} />, label: 'Offline', color: 'var(--text-muted)' };
+      default:        return null; // idle — não mostra nada
+    }
+  })();
+
+  // Mostra o badge de syncências bem-sucedidas por 3 segundos
+  const [showSynced, setShowSynced] = React.useState(false);
+  const prevSync = React.useRef(syncStatus);
+  React.useEffect(() => {
+    if (prevSync.current === 'syncing' && syncStatus === 'idle') {
+      setShowSynced(true);
+      const t = setTimeout(() => setShowSynced(false), 3000);
+      return () => clearTimeout(t);
+    }
+    prevSync.current = syncStatus;
+  }, [syncStatus]);
 
   const isMoreChild = currentTab === 'calculators' || currentTab === 'settings';
   const moreActive = MORE_TABS.includes(currentTab);
@@ -71,6 +92,16 @@ const AppContent: React.FC = () => {
           >
             <X size={16} />
           </button>
+        </div>
+      )}
+
+      {/* Indicador de status de sync (acima da nav) */}
+      {(syncIndicator || showSynced) && (
+        <div style={styles.syncBadge} aria-live="polite">
+          {showSynced && !syncIndicator
+            ? <><CloudCheck size={12} style={{ color: 'var(--success, #4caf50)' }} /><span style={{ color: 'var(--success, #4caf50)' }}>Sincronizado</span></>
+            : syncIndicator && <>{syncIndicator.icon}<span style={{ color: syncIndicator.color }}>{syncIndicator.label}</span></>
+          }
         </div>
       )}
 
@@ -232,6 +263,22 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px',
     color: 'var(--text-secondary)',
     background: 'none',
+  },
+  syncBadge: {
+    position: 'absolute',
+    bottom: 'calc(70px + env(safe-area-inset-bottom, 0px) + 8px)',
+    right: '16px',
+    zIndex: 94,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '4px 10px',
+    borderRadius: 'var(--radius-full, 999px)',
+    backgroundColor: 'var(--bg-tertiary)',
+    border: '1px solid var(--border-subtle)',
+    fontSize: '11px',
+    fontWeight: 600,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
 };
 

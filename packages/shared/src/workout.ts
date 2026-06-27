@@ -23,6 +23,7 @@ export interface WorkoutSession {
   duration: number; // in seconds
   exercises: ExerciseState[];
   notes?: string;
+  syncedAt?: string; // ISO — quando este registro foi sincronizado com o servidor pela última vez
 }
 
 export interface TemplateExercise {
@@ -41,6 +42,8 @@ export interface WorkoutTemplate {
   description: string;
   exercises: TemplateExercise[];
   isBuiltIn?: boolean;
+  updatedAt?: string; // ISO — última modificação local (para last-write-wins)
+  syncedAt?: string;  // ISO — quando foi sincronizado com o servidor
 }
 
 /** Tema de acento da interface. 'brass' é o padrão (cor original do app). */
@@ -60,6 +63,9 @@ export interface BodyweightEntry {
   date: string;   // ISO (YYYY-MM-DD ou ISO completo)
   weight: number; // na unidade corrente (Settings.units)
 }
+
+/** Status da sincronização com o servidor. */
+export type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
 
 export interface AppState {
   history: WorkoutSession[];
