@@ -187,7 +187,7 @@ export const Settings: React.FC = () => {
           <input
             type="number"
             value={settings.barWeight}
-            onChange={(e) => updateSettings({ barWeight: Math.max(0, Number(e.target.value)) })}
+            onChange={(e) => updateSettings({ barWeight: Math.max(1, Number(e.target.value)) })}
             style={styles.numberInput}
           />
         </div>
