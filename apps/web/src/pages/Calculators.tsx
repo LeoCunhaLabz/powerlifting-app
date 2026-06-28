@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import PlateVisualizer from '../components/PlateVisualizer';
-import { calculateWilks, calculateDots, calculateIpfGl } from '../utils/powerlifting';
+import { calculateWilks, calculateDots, calculateIpfGl, calculateE1RM, calculateE1RMBrzycki, calculateE1RMEpley } from '../utils/powerlifting';
 
 export const Calculators: React.FC = () => {
   const { state } = useWorkout();
   const { settings } = state;
 
-  const [activeTab, setActiveTab] = useState<'plates' | 'score'>('plates');
+  const [activeTab, setActiveTab] = useState<'plates' | 'score' | '1rm'>('plates');
 
   // Plate Calculator local state
   const [targetWeight, setTargetWeight] = useState(100);
   const [barWeight, setBarWeight] = useState(settings.barWeight);
+
+  // 1RM Calculator local state
+  const [rmWeight, setRmWeight] = useState<number | ''>('');
+  const [rmReps, setRmReps] = useState<number | ''>('');
+  const [rmRpe, setRmRpe] = useState<number | ''>('');
 
   // Score Calculator local state
   const [isMale, setIsMale] = useState(settings.gender === 'male');
@@ -24,6 +29,14 @@ export const Calculators: React.FC = () => {
   const handleAdjustWeight = (amount: number) => {
     setTargetWeight((prev) => Math.max(barWeight, prev + amount));
   };
+
+  // 1RM results
+  const rmW = Number(rmWeight) || 0;
+  const rmR = Number(rmReps) || 0;
+  const rmRpeVal = rmRpe !== '' ? Number(rmRpe) : undefined;
+  const rmRPE = rmW > 0 && rmR > 0 && rmRpeVal !== undefined ? calculateE1RM(rmW, rmR, rmRpeVal) : null;
+  const rmBrzycki = rmW > 0 && rmR > 0 ? calculateE1RMBrzycki(rmW, rmR) : null;
+  const rmEpley = rmW > 0 && rmR > 0 ? calculateE1RMEpley(rmW, rmR) : null;
 
   // Calculate scores
   const totalLifted = (Number(squat) || 0) + (Number(bench) || 0) + (Number(deadlift) || 0);
@@ -45,7 +58,7 @@ export const Calculators: React.FC = () => {
             color: activeTab === 'plates' ? 'var(--accent-ink)' : 'var(--text-secondary)',
           }}
         >
-          Carregamento de Barra
+          Anilhas
         </button>
         <button
           onClick={() => setActiveTab('score')}
@@ -55,7 +68,17 @@ export const Calculators: React.FC = () => {
             color: activeTab === 'score' ? 'var(--accent-ink)' : 'var(--text-secondary)',
           }}
         >
-          Coeficiente de Força
+          Coeficiente
+        </button>
+        <button
+          onClick={() => setActiveTab('1rm')}
+          style={{
+            ...styles.tabBtn,
+            backgroundColor: activeTab === '1rm' ? 'var(--accent)' : 'transparent', borderRadius: '9px',
+            color: activeTab === '1rm' ? 'var(--accent-ink)' : 'var(--text-secondary)',
+          }}
+        >
+          1RM
         </button>
       </div>
 
@@ -113,6 +136,69 @@ export const Calculators: React.FC = () => {
                 availablePlates={settings.availablePlates}
                 units={settings.units}
               />
+            </div>
+          </div>
+        ) : activeTab === '1rm' ? (
+          <div style={styles.rmSection}>
+            <div style={styles.gridTwoCols}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>PESO ({settings.units.toUpperCase()})</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={rmWeight}
+                  onChange={(e) => setRmWeight(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                  style={styles.liftInput}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>REPS</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={rmReps}
+                  onChange={(e) => setRmReps(e.target.value === '' ? '' : Math.max(1, Math.min(30, Number(e.target.value))))}
+                  style={styles.liftInput}
+                />
+              </div>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>RPE (OPCIONAL, 6.5–10)</label>
+              <input
+                type="number"
+                placeholder="ex.: 8.5"
+                value={rmRpe}
+                min={6.5}
+                max={10}
+                step={0.5}
+                onChange={(e) => setRmRpe(e.target.value === '' ? '' : Number(e.target.value))}
+                style={styles.fullInput}
+              />
+            </div>
+            <div style={styles.resultsCard}>
+              {rmBrzycki !== null ? (
+                <>
+                  {rmRPE !== null && rmRPE > 0 && (
+                    <div style={styles.scoreRow}>
+                      <span style={styles.scoreLabel}>RTS RPE TABLE:</span>
+                      <span style={styles.scoreVal}>{rmRPE} {settings.units}</span>
+                    </div>
+                  )}
+                  <div style={styles.scoreRow}>
+                    <span style={styles.scoreLabel}>BRZYCKI:</span>
+                    <span style={styles.scoreVal}>{rmBrzycki} {settings.units}</span>
+                  </div>
+                  <div style={styles.scoreRow}>
+                    <span style={styles.scoreLabel}>EPLEY:</span>
+                    <span style={styles.scoreVal}>{rmEpley} {settings.units}</span>
+                  </div>
+                </>
+              ) : (
+                <span style={styles.scoreLabel}>Preencha peso e reps para calcular.</span>
+              )}
+              <div style={styles.disclaimer}>
+                * RTS RPE Table requer RPE e reps entre 1–12. Brzycki e Epley são fórmulas de repetições máximas; resultados podem variar entre métodos.
+              </div>
             </div>
           </div>
         ) : (
@@ -344,6 +430,11 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-color)',
     padding: '16px',
     marginTop: '12px',
+  },
+  rmSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
   },
   scoreSection: {
     display: 'flex',

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   calculateE1RM,
+  calculateE1RMBrzycki,
+  calculateE1RMEpley,
   calculateWilks,
   calculateDots,
   calculateIpfGl,
@@ -79,6 +81,56 @@ describe('calculateE1RM', () => {
   it('arredonda para 0.1', () => {
     // 95 / 0.89 = 106.741... → arredonda para 106.7
     expect(calculateE1RM(95, 3, 9)).toBe(106.7)
+  })
+})
+
+// ─── calculateE1RMBrzycki ─────────────────────────────────────────────────────
+
+describe('calculateE1RMBrzycki', () => {
+  it('retorna 0 para peso zero', () => {
+    expect(calculateE1RMBrzycki(0, 5)).toBe(0)
+  })
+
+  it('retorna 0 para reps zero', () => {
+    expect(calculateE1RMBrzycki(100, 0)).toBe(0)
+  })
+
+  it('retorna o próprio peso para 1 rep', () => {
+    expect(calculateE1RMBrzycki(200, 1)).toBe(200)
+  })
+
+  it('100kg x5 ≈ 112.5', () => {
+    expect(calculateE1RMBrzycki(100, 5)).toBeCloseTo(112.5, 0)
+  })
+
+  it('arredonda para 0.1', () => {
+    // 95kg x3 Brzycki: 95 / (1.0278 - 0.0278*3) = 95 / 0.9444 ≈ 100.6
+    expect(calculateE1RMBrzycki(95, 3)).toBeCloseTo(100.6, 0)
+  })
+})
+
+// ─── calculateE1RMEpley ───────────────────────────────────────────────────────
+
+describe('calculateE1RMEpley', () => {
+  it('retorna 0 para peso zero', () => {
+    expect(calculateE1RMEpley(0, 5)).toBe(0)
+  })
+
+  it('retorna 0 para reps zero', () => {
+    expect(calculateE1RMEpley(100, 0)).toBe(0)
+  })
+
+  it('retorna o próprio peso para 1 rep', () => {
+    expect(calculateE1RMEpley(200, 1)).toBe(200)
+  })
+
+  it('100kg x5 Epley = 100 * (1 + 5/30) ≈ 116.7', () => {
+    expect(calculateE1RMEpley(100, 5)).toBeCloseTo(116.7, 0)
+  })
+
+  it('arredonda para 0.1', () => {
+    // 100kg x10 Epley: 100 * (1 + 10/30) = 133.333... → 133.3
+    expect(calculateE1RMEpley(100, 10)).toBe(133.3)
   })
 })
 
