@@ -12,6 +12,45 @@ import type {
   WeekOverride,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
+
+/** Recalculates isPr flags for all sessions chronologically. */
+function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
+  const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date));
+  const result: WorkoutSession[] = [];
+  for (const session of sorted) {
+    const prev = result;
+    const updatedExercises = session.exercises.map((ex) => {
+      const lowerName = ex.name.toLowerCase();
+      let historicalMax = 0;
+      prev.forEach((ps) =>
+        ps.exercises.forEach((pe) => {
+          if (pe.name.toLowerCase() === lowerName) {
+            pe.sets.forEach((ps2) => {
+              if (ps2.completed) {
+                const e = calculateE1RM(ps2.weight, ps2.reps, ps2.rpe);
+                if (e > historicalMax) historicalMax = e;
+              }
+            });
+          }
+        })
+      );
+      let sessionMax = 0;
+      let prIdx = -1;
+      ex.sets.forEach((s, i) => {
+        if (!s.completed) return;
+        const e = calculateE1RM(s.weight, s.reps, s.rpe);
+        if (e > sessionMax) { sessionMax = e; prIdx = i; }
+      });
+      const updatedSets = ex.sets.map((s, i) => ({
+        ...s,
+        isPr: i === prIdx && sessionMax > historicalMax ? true : undefined,
+      }));
+      return { ...ex, sets: updatedSets };
+    });
+    result.push({ ...session, exercises: updatedExercises });
+  }
+  return result;
+}
 import { isValidImportedState } from '../utils/validateAppState';
 import { useSyncManager } from '../hooks/useSyncManager';
 
@@ -57,6 +96,8 @@ interface WorkoutContextType {
   /** Retorna o próximo template a treinar com base no programa ativo + histórico.
    *  Fallback: primeiro template customizado, depois primeiro built-in. */
   getNextTemplate: () => WorkoutTemplate | undefined;
+  /** Atualiza uma sessão do histórico (correção de dados) e recalcula PRs. */
+  updateHistorySession: (session: WorkoutSession) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -833,6 +874,15 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   }, []);
 
+  const updateHistorySession = useCallback((updatedSession: WorkoutSession) => {
+    setState(prev => {
+      const newHistory = prev.history.map(s =>
+        s.id === updatedSession.id ? updatedSession : s
+      );
+      return { ...prev, history: recalculatePRs(newHistory) };
+    });
+  }, []);
+
   // Update user configurations
   const updateSettings = useCallback((newSettings: Partial<Settings>) => {
     setState(prev => {
@@ -1046,6 +1096,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveProgram,
       deleteProgram,
       getNextTemplate,
+      updateHistorySession,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -1054,6 +1105,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
+      updateHistorySession,
     ])}>
       {children}
     </WorkoutContext.Provider>
