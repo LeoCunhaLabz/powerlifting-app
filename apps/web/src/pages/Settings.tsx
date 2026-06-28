@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check, LogOut } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
 import type { ThemeName } from '@powerlifting/shared';
 
@@ -12,6 +13,7 @@ const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = 
 
 export const Settings: React.FC = () => {
   const { state, updateSettings, exportData, importData } = useWorkout();
+  const { user, logout } = useAuth();
   const { settings } = state;
 
   const [importText, setImportText] = useState('');
@@ -258,6 +260,23 @@ export const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* Conta */}
+      <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Conta</h2>
+        {user && (
+          <div style={styles.accountRow}>
+            <div style={styles.accountInfo}>
+              <div style={styles.settingLabel}>{user.name}</div>
+              <div style={styles.settingDesc}>{user.email}</div>
+            </div>
+            <button onClick={() => logout()} style={styles.logoutBtn}>
+              <LogOut size={15} />
+              Sair
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Perigo / Reset */}
       <div style={styles.section}>
         <h2 style={{ ...styles.sectionTitle, color: 'var(--error)' }}>Perigo</h2>
@@ -472,6 +491,33 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'rgba(229, 84, 75, 0.1)',
     color: 'var(--error)',
     border: '1px solid rgba(229, 84, 75, 0.2)',
+  },
+  accountRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+  },
+  accountInfo: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '3px',
+    flex: 1,
+    minWidth: 0,
+  },
+  logoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '9px 14px',
+    background: 'var(--bg-tertiary)',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--text-secondary)',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    flexShrink: 0,
   },
   textarea: {
     width: '100%',
