@@ -501,8 +501,10 @@ export const Analytics: React.FC = () => {
           <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" preserveAspectRatio="none">
             <polyline points={linePoints(bwSeries, 300, 80, 8)} stroke="#cfcfd4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
+        ) : bwSeries.length === 1 ? (
+          <div style={styles.emptySmall}>{bwSeries[0]} {u} — registre mais pesos para ver a evolução.</div>
         ) : (
-          <div style={styles.empty}>Registre seu peso (no Início) para acompanhar a evolução.</div>
+          <div style={styles.empty}>Registre seu peso no Início ou Configurações para acompanhar a evolução.</div>
         )}
       </div>
 
@@ -628,8 +630,10 @@ export const Analytics: React.FC = () => {
             <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none">
               <polyline points={linePoints(rpeWeekVals, 140, 60, 8)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+          ) : rpeWeekVals.length === 1 ? (
+            <div style={styles.emptySmall}>Média: <strong>{rpeWeekVals[0]}</strong> — registre mais treinos com RPE.</div>
           ) : (
-            <div style={styles.emptySmall}>Sem RPE suficiente.</div>
+            <div style={styles.emptySmall}>Registre séries com RPE para ver a média semanal.</div>
           )}
         </div>
         <div style={styles.card}>
@@ -639,8 +643,10 @@ export const Analytics: React.FC = () => {
             <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none">
               <polyline points={linePoints(relTrend, 140, 60, 8)} stroke="#9ec5ff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+          ) : relTrend.length === 1 ? (
+            <div style={styles.emptySmall}>Atual: <strong>{relTrend[0]}×</strong> — registre mais treinos para ver a tendência.</div>
           ) : (
-            <div style={styles.emptySmall}>Sem dados suficientes.</div>
+            <div style={styles.emptySmall}>Registre treinos com os 3 levantamentos para ver a força relativa.</div>
           )}
         </div>
       </div>
