@@ -25,12 +25,10 @@ export const Auth: React.FC = () => {
       } else {
         if (name.trim().length < 1) {
           setError('Informe seu nome.');
-          setLoading(false);
           return;
         }
         if (password.length < 8) {
           setError('A senha deve ter ao menos 8 caracteres.');
-          setLoading(false);
           return;
         }
         await register(name.trim(), email.trim().toLowerCase(), password);

@@ -35,7 +35,14 @@ async function handleResponse<T>(res: Response): Promise<T> {
     }
     throw new AuthApiError(message, res.status);
   }
-  return res.json() as Promise<T>;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new AuthApiError(
+      'Resposta inesperada do servidor. Verifique VITE_API_URL.',
+      res.status,
+    );
+  }
 }
 
 export async function register(name: string, email: string, password: string): Promise<AuthResponse> {

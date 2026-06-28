@@ -96,7 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(async () => {
     const savedRefresh = getSavedRefreshToken();
     if (savedRefresh) {
-      await apiLogout(savedRefresh);
+      try {
+        await apiLogout(savedRefresh);
+      } catch {
+        // falha de rede/server no logout remoto — limpa localmente de qualquer forma
+      }
     }
     clearTokens();
     setAccessToken(null);
