@@ -347,8 +347,8 @@ input::placeholder, textarea::placeholder {
   height: calc(70px + env(safe-area-inset-bottom, 0px));
   background-color: rgba(10, 10, 10, 0.95);
   border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   align-items: flex-start;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 100;

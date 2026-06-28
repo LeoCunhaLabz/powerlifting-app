@@ -11,7 +11,7 @@ import Calendar from './pages/Calendar';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
-import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff } from 'lucide-react';
+import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
 
 type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar';
 
@@ -163,7 +163,9 @@ const AppContent: React.FC = () => {
           aria-label="Treinar"
         >
           <span style={styles.fabCircle}>
-            <Plus size={26} strokeWidth={3} color="var(--accent-ink)" />
+            {activeWorkout
+              ? <Dumbbell size={24} color="var(--accent-ink)" />
+              : <Plus size={26} strokeWidth={3} color="var(--accent-ink)" />}
             {activeWorkout && <span style={styles.fabActiveDot} />}
           </span>
           <span style={styles.fabLabel}>Treinar</span>
