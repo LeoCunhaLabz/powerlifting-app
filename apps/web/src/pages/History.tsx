@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
-import { Clock, TrendingUp, Award, X, RotateCcw } from 'lucide-react';
+import { Clock, TrendingUp, Award, X, RotateCcw, Pencil, Check } from 'lucide-react';
 
 interface HistoryProps {
   onRepeat: (session: WorkoutSession) => void;
@@ -20,12 +20,67 @@ const monthLabel = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
 export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
-  const { state } = useWorkout();
+  const { state, updateHistorySession } = useWorkout();
   const { history, settings } = state;
   const u = settings.units;
 
   const [selected, setSelected] = useState<WorkoutSession | null>(null);
   const [search, setSearch] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editDraft, setEditDraft] = useState<WorkoutSession | null>(null);
+
+  const openModal = (s: WorkoutSession) => { setSelected(s); setEditMode(false); setEditDraft(null); };
+  const closeModal = () => { setSelected(null); setEditMode(false); setEditDraft(null); };
+
+  const startEdit = () => {
+    if (!selected) return;
+    setEditDraft(JSON.parse(JSON.stringify(selected)) as WorkoutSession);
+    setEditMode(true);
+  };
+
+  const cancelEdit = () => { setEditMode(false); setEditDraft(null); };
+
+  const saveEdit = () => {
+    if (!editDraft) return;
+    updateHistorySession(editDraft);
+    setSelected(editDraft);
+    setEditMode(false);
+    setEditDraft(null);
+  };
+
+  type NumericSetField = 'weight' | 'reps' | 'rpe';
+  const updateDraftSet = (exIdx: number, setIdx: number, field: NumericSetField, raw: string) => {
+    if (!editDraft) return;
+    const val = field === 'rpe' ? parseFloat(raw) : parseFloat(raw);
+    setEditDraft(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.map((ex, ei) => {
+        if (ei !== exIdx) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((s, si) =>
+            si !== setIdx ? s : { ...s, [field]: isNaN(val) ? s[field] : val }
+          ),
+        };
+      });
+      return { ...prev, exercises };
+    });
+  };
+
+  const updateDraftSetType = (exIdx: number, setIdx: number, type: 'W' | 'N' | 'D') => {
+    if (!editDraft) return;
+    setEditDraft(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.map((ex, ei) => {
+        if (ei !== exIdx) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((s, si) => si !== setIdx ? s : { ...s, type }),
+        };
+      });
+      return { ...prev, exercises };
+    });
+  };
 
   const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -73,7 +128,7 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
             {group.sessions.map((s) => {
               const hasPr = s.exercises.some((ex) => ex.sets.some((set) => set.isPr));
               return (
-                <button key={s.id} onClick={() => setSelected(s)} style={styles.card}>
+                <button key={s.id} onClick={() => openModal(s)} style={styles.card}>
                   <div style={styles.cardTop}>
                     <span style={styles.name}>
                       {s.name}
@@ -95,7 +150,7 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
 
       {/* Session detail modal */}
       {selected && (
-        <div style={styles.overlay} onClick={() => setSelected(null)}>
+        <div style={styles.overlay} onClick={closeModal}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHead}>
               <div>
@@ -103,16 +158,29 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
                 <span style={styles.modalDate}>{new Date(selected.date).toLocaleString('pt-BR')}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  onClick={() => { onRepeat(selected); setSelected(null); }}
-                  style={styles.repeatBtn}
-                  aria-label="Repetir este treino"
-                >
-                  <RotateCcw size={14} /> Repetir
-                </button>
-                <button onClick={() => setSelected(null)} style={styles.closeBtn} aria-label="Fechar">
-                  <X size={20} />
-                </button>
+                {!editMode && (
+                  <button
+                    onClick={() => { onRepeat(selected); closeModal(); }}
+                    style={styles.repeatBtn}
+                    aria-label="Repetir este treino"
+                  >
+                    <RotateCcw size={14} /> Repetir
+                  </button>
+                )}
+                {!editMode ? (
+                  <button onClick={startEdit} style={styles.editBtn} aria-label="Editar sessão">
+                    <Pencil size={14} />
+                  </button>
+                ) : (
+                  <button onClick={cancelEdit} style={styles.editBtn} aria-label="Cancelar edição">
+                    <X size={16} />
+                  </button>
+                )}
+                {!editMode && (
+                  <button onClick={closeModal} style={styles.closeBtn} aria-label="Fechar">
+                    <X size={20} />
+                  </button>
+                )}
               </div>
             </div>
             <div style={styles.modalStats}>
@@ -123,25 +191,91 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
               )}
             </div>
             <div style={styles.modalBody}>
-              {selected.exercises.map((ex) => (
-                <div key={ex.id} style={styles.exBlock}>
-                  <div style={styles.exName}>{ex.name}</div>
-                  {ex.sets.map((set, i) => (
-                    <div key={set.id} style={styles.setRow}>
-                      <span style={styles.setNum}>
-                        {i + 1}{set.isPr && <span style={styles.prBadge}>PR</span>}
-                      </span>
-                      <span>
-                        {set.weight} {u} × {set.reps}
-                        {set.rpe ? ` · RPE ${set.rpe}` : ''}
-                      </span>
-                      {!set.completed && <span style={styles.skipped}>não concluída</span>}
+              {!editMode ? (
+                // Read-only view
+                <>
+                  {selected.exercises.map((ex) => (
+                    <div key={ex.id} style={styles.exBlock}>
+                      <div style={styles.exName}>{ex.name}</div>
+                      {ex.sets.map((set, i) => (
+                        <div key={set.id} style={styles.setRow}>
+                          <span style={styles.setNum}>
+                            {i + 1}{set.isPr && <span style={styles.prBadge}>PR</span>}
+                          </span>
+                          <span>
+                            {set.weight} {u} × {set.reps}
+                            {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                            {set.type !== 'N' ? ` · ${set.type === 'W' ? 'Aquec.' : 'Drop'}` : ''}
+                          </span>
+                          {!set.completed && <span style={styles.skipped}>não conclufda</span>}
+                        </div>
+                      ))}
                     </div>
                   ))}
-                </div>
-              ))}
-              {selected.notes && (
-                <div style={styles.notes}>{selected.notes}</div>
+                  {selected.notes && (
+                    <div style={styles.notes}>{selected.notes}</div>
+                  )}
+                </>
+              ) : (
+                // Edit mode
+                <>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>EDITANDO &mdash; corrija os valores e salve</p>
+                  {(editDraft?.exercises ?? []).map((ex, exIdx) => (
+                    <div key={ex.id} style={styles.exBlock}>
+                      <div style={styles.exName}>{ex.name}</div>
+                      <div style={styles.editHeader}>
+                        <span style={{ flex: '0 0 22px' }}>#</span>
+                        <span style={{ flex: 1 }}>Tipo</span>
+                        <span style={{ flex: 1 }}>{u}</span>
+                        <span style={{ flex: 1 }}>Reps</span>
+                        <span style={{ flex: 1 }}>RPE</span>
+                      </div>
+                      {ex.sets.map((set, setIdx) => (
+                        <div key={set.id} style={styles.editRow}>
+                          <span style={{ flex: '0 0 22px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>{setIdx + 1}</span>
+                          <select
+                            value={set.type}
+                            onChange={(e) => updateDraftSetType(exIdx, setIdx, e.target.value as 'W' | 'N' | 'D')}
+                            style={styles.editSelect}
+                          >
+                            <option value="N">N</option>
+                            <option value="W">W</option>
+                            <option value="D">D</option>
+                          </select>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            defaultValue={set.weight}
+                            onBlur={(e) => updateDraftSet(exIdx, setIdx, 'weight', e.target.value)}
+                            style={styles.editInput}
+                          />
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            defaultValue={set.reps}
+                            onBlur={(e) => updateDraftSet(exIdx, setIdx, 'reps', e.target.value)}
+                            style={styles.editInput}
+                          />
+                          <input
+                            type="number"
+                            min={5}
+                            max={10}
+                            step={0.5}
+                            defaultValue={set.rpe ?? ''}
+                            placeholder="-"
+                            onBlur={(e) => updateDraftSet(exIdx, setIdx, 'rpe', e.target.value)}
+                            style={styles.editInput}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <button onClick={saveEdit} style={styles.saveBtn}>
+                    <Check size={15} /> Salvar alterações
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -179,7 +313,13 @@ const styles: Record<string, React.CSSProperties> = {
   skipped: { fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' },
   notes: { fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0', borderTop: '1px solid var(--border-color)', marginTop: 4 },
   repeatBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '7px 12px', borderRadius: 'var(--radius-sm)' },
+  editBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   closeBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  editHeader: { display: 'flex', gap: 6, alignItems: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4, paddingBottom: 4, borderBottom: '1px solid var(--border-color)' },
+  editRow: { display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 },
+  editInput: { flex: 1, height: 34, textAlign: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 13, padding: '0 4px' },
+  editSelect: { flex: 1, height: 34, textAlign: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12, padding: '0 2px' },
+  saveBtn: { width: '100%', height: 42, marginTop: 12, backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },
 };
 
 export default History;
