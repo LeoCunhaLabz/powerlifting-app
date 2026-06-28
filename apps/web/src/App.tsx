@@ -8,24 +8,26 @@ import Calculators from './pages/Calculators';
 import SettingsPage from './pages/Settings';
 import Analytics from './pages/Analytics';
 import Calendar from './pages/Calendar';
+import History from './pages/History';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
 
-type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar';
+type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history';
 
 // Abas que vivem dentro do hub "Mais" (Análises voltou para a barra inferior)
-const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar'];
+const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar', 'history'];
 const MORE_LABELS: Record<MoreTab, string> = {
   calculators: 'Calculadoras',
   settings: 'Configurações',
   calendar: 'Calendário',
+  history: 'Histórico',
 };
 
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
-  const { activeWorkout, saveError, dismissSaveError, syncStatus } = useWorkout();
+  const { activeWorkout, saveError, dismissSaveError, syncStatus, repeatWorkout } = useWorkout();
 
   const syncIndicator = (() => {
     switch (syncStatus) {
@@ -48,7 +50,7 @@ const AppContent: React.FC = () => {
     prevSync.current = syncStatus;
   }, [syncStatus]);
 
-  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar';
+  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar' || currentTab === 'history';
   const moreActive = MORE_TABS.includes(currentTab);
 
   const renderActiveTab = () => {
@@ -69,6 +71,8 @@ const AppContent: React.FC = () => {
         return <SettingsPage />;
       case 'calendar':
         return <Calendar onStartWorkoutTab={() => setCurrentTab('workout')} />;
+      case 'history':
+        return <History onRepeat={(s) => { repeatWorkout(s); setCurrentTab('workout'); }} />;
       default:
         return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} />;
     }
