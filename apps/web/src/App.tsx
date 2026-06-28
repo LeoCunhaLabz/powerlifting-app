@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { WorkoutProvider, useWorkout } from './context/WorkoutContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
 import Workout from './pages/Workout';
 import Templates from './pages/Templates';
@@ -7,6 +8,7 @@ import Calculators from './pages/Calculators';
 import SettingsPage from './pages/Settings';
 import Analytics from './pages/Analytics';
 import More, { type MoreTab } from './pages/More';
+import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff } from 'lucide-react';
 
@@ -167,11 +169,33 @@ const AppContent: React.FC = () => {
   );
 };
 
-export const App: React.FC = () => {
+const AuthGate: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+        <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Carregando…</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Auth />;
+  }
+
   return (
     <WorkoutProvider>
       <AppContent />
     </WorkoutProvider>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   );
 };
 

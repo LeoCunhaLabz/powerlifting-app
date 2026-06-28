@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Calculator, Settings as SettingsIcon, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut } from 'lucide-react';
 import { calculateDots } from '../utils/powerlifting';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
@@ -19,12 +20,19 @@ interface MoreItem {
 
 export const More: React.FC<MoreProps> = ({ onNavigate }) => {
   const { state, getMaxE1RM, getBodyweightAt } = useWorkout();
+  const { user, logout } = useAuth();
   const { settings } = state;
 
   const bestTotal =
     getMaxE1RM('Agachamento') + getMaxE1RM('Supino Reto') + getMaxE1RM('Levantamento Terra');
   const bw = getBodyweightAt(new Date().toISOString());
   const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const avatarLetter = user?.name?.charAt(0).toUpperCase() ?? 'A';
 
   const items: MoreItem[] = [
     {
@@ -47,13 +55,17 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
 
       {/* Resumo do atleta */}
       <div style={styles.summary}>
-        <span style={styles.avatar}>A</span>
+        <span style={styles.avatar}>{avatarLetter}</span>
         <div style={styles.summaryInfo}>
-          <div style={styles.summaryName}>Atleta · {bw} {settings.units}</div>
+          <div style={styles.summaryName}>{user?.name ?? 'Atleta'} · {bw} {settings.units}</div>
           <div style={styles.summaryStats}>
-            Total {Math.round(bestTotal)} {settings.units} · {dots} DOTS
+            {user?.email && <span style={styles.summaryEmail}>{user.email}</span>}
+            <span>Total {Math.round(bestTotal)} {settings.units} · {dots} DOTS</span>
           </div>
         </div>
+        <button onClick={handleLogout} style={styles.logoutBtn} aria-label="Sair">
+          <LogOut size={18} />
+        </button>
       </div>
 
       {/* Tiles */}
@@ -130,6 +142,26 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     color: 'var(--text-secondary)',
     fontWeight: 600,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '1px',
+  },
+  summaryEmail: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+  },
+  logoutBtn: {
+    marginLeft: 'auto',
+    flexShrink: 0,
+    background: 'none',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   grid: {
     display: 'grid',
