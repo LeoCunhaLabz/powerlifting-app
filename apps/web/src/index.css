@@ -338,10 +338,12 @@ input::placeholder, textarea::placeholder {
 }
 
 .bottom-nav {
-  position: absolute;
+  position: fixed;
   bottom: 0;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
+  max-width: var(--max-width);
   height: calc(70px + env(safe-area-inset-bottom, 0px));
   background-color: rgba(10, 10, 10, 0.95);
   border-top: 1px solid var(--border-color);
