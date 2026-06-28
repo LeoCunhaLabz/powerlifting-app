@@ -137,6 +137,7 @@ export const Analytics: React.FC = () => {
   const [topExExpanded, setTopExExpanded] = useState(false);
   const [prFilter, setPrFilter] = useState<'sbd' | 'all'>('all');
   const [prExpanded, setPrExpanded] = useState(false);
+  const [heatmapHoverIdx, setHeatmapHoverIdx] = useState<number | null>(null);
 
   const u = settings.units;
   const isMale = settings.gender === 'male';
@@ -365,17 +366,26 @@ export const Analytics: React.FC = () => {
 
   // --- Heatmap de frequência (últimas 5 semanas) ---
   const dayCounts: Record<string, number> = {};
+  const dayWorkouts: Record<string, string[]> = {};
   history.forEach((s) => {
     const key = new Date(s.date).toDateString();
     dayCounts[key] = (dayCounts[key] || 0) + 1;
+    if (!dayWorkouts[key]) dayWorkouts[key] = [];
+    dayWorkouts[key].push(s.name);
   });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const heatCells: number[] = [];
+  const heatDates: Date[] = [];
+  const heatDayNames: string[] = [];
   for (let i = 34; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     heatCells.push(dayCounts[d.toDateString()] || 0);
+    heatDates.push(new Date(d));
+    const dayOfWeek = d.getDay();
+    const daysOfWeek = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+    heatDayNames.push(daysOfWeek[dayOfWeek]);
   }
   const heatStyle = (c: number): React.CSSProperties => {
     if (c <= 0) return { backgroundColor: 'var(--bg-tertiary)' };
@@ -819,10 +829,55 @@ export const Analytics: React.FC = () => {
           <span style={styles.cardTitle}>Frequência de treino</span>
           <span style={styles.cardMeta}>últimas 5 semanas</span>
         </div>
-        <div style={styles.heatGrid}>
-          {heatCells.map((c, idx) => (
-            <span key={idx} style={{ ...styles.heatCell, ...heatStyle(c) }} />
-          ))}
+        <div style={styles.heatmapWrapper}>
+          {/* Row of day labels */}
+          <div style={styles.daysLabelsContainer}>
+            {Array.from({ length: 5 }).map((_, weekIdx) =>
+              Array.from({ length: 7 }).map((_, dayIdx) => {
+                const cellIdx = weekIdx * 7 + dayIdx;
+                return (
+                  <span key={`label-${cellIdx}`} style={styles.dayLabel}>
+                    {heatDayNames[cellIdx]}
+                  </span>
+                );
+              }),
+            )}
+          </div>
+          {/* Heatmap grid with cells */}
+          <div style={styles.heatGrid}>
+            {heatCells.map((c, idx) => {
+              const isHovered = heatmapHoverIdx === idx;
+              return (
+                <span
+                  key={idx}
+                  style={{
+                    ...styles.heatCell,
+                    ...heatStyle(c),
+                    ...(isHovered && styles.heatCellHover),
+                  }}
+                  onMouseEnter={() => setHeatmapHoverIdx(idx)}
+                  onMouseLeave={() => setHeatmapHoverIdx(null)}
+                  onTouchStart={() => setHeatmapHoverIdx(idx)}
+                  onTouchEnd={() => setHeatmapHoverIdx(null)}
+                />
+              );
+            })}
+          </div>
+          {/* Tooltip */}
+          {heatmapHoverIdx !== null && (
+            <div style={styles.heatmapTooltip}>
+              <div style={styles.tooltipContent}>
+                <div style={styles.heatmapTooltipDate}>{heatDates[heatmapHoverIdx].toLocaleDateString('pt-BR')}</div>
+                <div style={styles.heatmapTooltipWorkouts}>
+                  {dayWorkouts[heatDates[heatmapHoverIdx].toDateString()]?.length ? (
+                    dayWorkouts[heatDates[heatmapHoverIdx].toDateString()].join(', ')
+                  ) : (
+                    <span style={styles.heatmapTooltipNoWorkout}>Sem treino</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -934,6 +989,15 @@ const styles: Record<string, React.CSSProperties> = {
   rpeCount: { width: '30px', fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'right' },
   heatGrid: { display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '5px' },
   heatCell: { width: '100%', aspectRatio: '1', borderRadius: '3px' },
+  heatCellHover: { filter: 'brightness(1.15)', cursor: 'pointer' },
+  heatmapWrapper: { position: 'relative' },
+  daysLabelsContainer: { display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '5px', marginBottom: '8px' },
+  dayLabel: { textAlign: 'center', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  heatmapTooltip: { position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', whiteSpace: 'nowrap', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' },
+  tooltipContent: { display: 'flex', flexDirection: 'column', gap: '2px' },
+  heatmapTooltipDate: { fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' },
+  heatmapTooltipWorkouts: { fontSize: '12px', color: 'var(--text-secondary)' },
+  heatmapTooltipNoWorkout: { fontSize: '12px', fontStyle: 'italic', color: 'var(--text-muted)' },
   timeline: { display: 'flex', flexDirection: 'column' },
   tlRow: { display: 'flex', gap: '12px' },
   tlMarker: { display: 'flex', flexDirection: 'column', alignItems: 'center' },

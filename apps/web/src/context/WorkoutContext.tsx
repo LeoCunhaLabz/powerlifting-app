@@ -583,11 +583,18 @@ function mergePullResult(
   return { ...prev, history: mergedHistory, templates: mergedTemplates };
 }
 
-export const WorkoutProvider: React.FC<{ children: React.ReactNode; demoEmail?: string | null }> = ({ children, demoEmail }) => {
+export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScopeId?: string | null; demoEmail?: string | null }> = ({ children, storageScopeId, demoEmail }) => {
+  const storageScope = storageScopeId?.trim() ? storageScopeId.trim() : 'global';
+  const storageKeys = {
+    state: `powerlifting_app_state_${storageScope}`,
+    activeWorkout: `powerlifting_active_workout_${storageScope}`,
+    restTimerEnd: `powerlifting_rest_timer_end_${storageScope}`,
+  };
+
   // Load State from LocalStorage
   const [state, setState] = useState<AppState>(() => {
     try {
-      const saved = localStorage.getItem('powerlifting_app_state');
+      const saved = localStorage.getItem(storageKeys.state);
       if (saved) {
         const parsed = JSON.parse(saved) as AppState;
         // Merge with built-in templates to make sure they are always present or updated
@@ -607,7 +614,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; demoEmail?: 
   // Active Workout session state
   const [activeWorkout, setActiveWorkout] = useState<WorkoutSession | null>(() => {
     try {
-      const saved = localStorage.getItem('powerlifting_active_workout');
+      const saved = localStorage.getItem(storageKeys.activeWorkout);
       if (saved) {
         return JSON.parse(saved);
       }
@@ -621,7 +628,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; demoEmail?: 
   const [restTimerDuration, setRestTimerDuration] = useState(120); // 2 minutes default
   const [restTimerEnd, setRestTimerEnd] = useState<number | null>(() => {
     try {
-      const saved = localStorage.getItem('powerlifting_rest_timer_end');
+      const saved = localStorage.getItem(storageKeys.restTimerEnd);
       return saved ? parseInt(saved, 10) : null;
     } catch (e) {
       console.error('Failed to load rest timer from localStorage:', e);
@@ -713,8 +720,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; demoEmail?: 
   // Sync state to local storage on change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
-    safeSetItem('powerlifting_app_state', JSON.stringify(state));
-  }, [state]);
+    safeSetItem(storageKeys.state, JSON.stringify(state));
+  }, [state, storageKeys.state]);
 
   // Aplica o tema de acento no documento (lido pelo CSS via [data-theme])
   useEffect(() => {
@@ -725,21 +732,21 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; demoEmail?: 
   useEffect(() => {
     if (activeWorkout) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
-      safeSetItem('powerlifting_active_workout', JSON.stringify(activeWorkout));
+      safeSetItem(storageKeys.activeWorkout, JSON.stringify(activeWorkout));
     } else {
-      try { localStorage.removeItem('powerlifting_active_workout'); } catch { /* SecurityError: falha silenciosa */ }
+      try { localStorage.removeItem(storageKeys.activeWorkout); } catch { /* SecurityError: falha silenciosa */ }
     }
-  }, [activeWorkout]);
+  }, [activeWorkout, storageKeys.activeWorkout]);
 
   // Sync rest timer target time to local storage
   useEffect(() => {
     if (restTimerEnd !== null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
-      safeSetItem('powerlifting_rest_timer_end', restTimerEnd.toString());
+      safeSetItem(storageKeys.restTimerEnd, restTimerEnd.toString());
     } else {
-      try { localStorage.removeItem('powerlifting_rest_timer_end'); } catch { /* SecurityError: falha silenciosa */ }
+      try { localStorage.removeItem(storageKeys.restTimerEnd); } catch { /* SecurityError: falha silenciosa */ }
     }
-  }, [restTimerEnd]);
+  }, [restTimerEnd, storageKeys.restTimerEnd]);
 
   // Rest Timer Functions — definidas antes das funcoes que as referenciam nos deps
   const stopRestTimer = useCallback(() => {
