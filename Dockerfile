@@ -8,7 +8,7 @@ COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci
 
 COPY . .
-ARG VITE_API_URL=""
+ARG VITE_API_URL="https://api-treino.cunhalabs.tech"
 RUN VITE_API_URL="${VITE_API_URL}" npm run build
 
 # Production stage
