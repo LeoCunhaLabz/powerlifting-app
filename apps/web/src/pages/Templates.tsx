@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { TemplateExercise, WorkoutTemplate, Program, WeekOverride } from '@powerlifting/shared';
-import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown, Archive, ArchiveX } from 'lucide-react';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -22,7 +22,7 @@ const schemeSummary = (ex: TemplateExercise[]): string => {
 };
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
-  const { state, saveTemplate, deleteTemplate, startWorkout, saveProgram, deleteProgram } = useWorkout();
+  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram } = useWorkout();
   const { templates } = state;
   const programs = state.programs;
 
@@ -34,6 +34,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Create/Edit template form
   const [name, setName] = useState('');
@@ -57,7 +58,9 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [selectedOverrideWeek, setSelectedOverrideWeek] = useState(0);
   const [confirmDeleteProgId, setConfirmDeleteProgId] = useState<string | null>(null);
 
-  const filtered = templates.filter((t) => (filter === 'builtin' ? t.isBuiltIn : !t.isBuiltIn));
+  const filtered = templates.filter((t) => (
+    filter === 'builtin' ? t.isBuiltIn : (!t.isBuiltIn && (showArchived ? t.archived : !t.archived))
+  ));
 
   const handleStart = (id: string) => {
     startWorkout(id);
@@ -216,16 +219,26 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       </div>
 
       {mainView === 'rotinas' && (<>
-        {/* Sub-filter: Minhas / Embutidas */}
-        <div style={styles.segmented}>
-          <button onClick={() => setFilter('mine')} style={filter === 'mine' ? styles.segOn : styles.segOff}>Minhas</button>
-          <button onClick={() => setFilter('builtin')} style={filter === 'builtin' ? styles.segOn : styles.segOff}>Embutidas</button>
+        {/* Sub-filter: Minhas / Embutidas + Arquivadas */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ ...styles.segmented, flex: 1, marginBottom: 0 }}>
+            <button onClick={() => { setFilter('mine'); setShowArchived(false); }} style={filter === 'mine' && !showArchived ? styles.segOn : styles.segOff}>Minhas</button>
+            <button onClick={() => { setFilter('builtin'); setShowArchived(false); }} style={filter === 'builtin' ? styles.segOn : styles.segOff}>Embutidas</button>
+          </div>
+          {filter === 'mine' && (
+            <button
+              onClick={() => setShowArchived((x) => !x)}
+              style={{ ...styles.segOff, padding: '6px 10px', fontSize: 12, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: showArchived ? 'var(--accent-soft)' : 'transparent', color: showArchived ? 'var(--accent)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <Archive size={13} />{showArchived ? 'Ativas' : 'Arquivadas'}
+            </button>
+          )}
         </div>
 
-      <div style={styles.list}>
+          <div style={styles.list}>
         {filtered.length === 0 && (
           <div style={styles.empty}>
-            {filter === 'mine' ? 'Você ainda não criou rotinas. Toque em “Nova” para montar a sua.' : 'Nenhuma rotina embutida.'}
+            {showArchived ? 'Nenhuma rotina arquivada.' : filter === 'mine' ? 'Você ainda não criou rotinas. Toque em "Nova" para montar a sua.' : 'Nenhuma rotina embutida.'}
           </div>
         )}
         {filtered.map((tpl) => {
@@ -258,14 +271,17 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                   <div style={styles.rowActions}>
                     {!tpl.isBuiltIn && (
                       <>
-                        <button onClick={() => startEdit(tpl)} style={styles.editBtn}><Pencil size={14} /> Editar</button>
+                        {!tpl.archived && <button onClick={() => startEdit(tpl)} style={styles.editBtn}><Pencil size={14} /> Editar</button>}
+                        {!tpl.archived
+                          ? <button onClick={() => archiveTemplate(tpl.id)} style={styles.editBtn}><Archive size={14} /> Arquivar</button>
+                          : <button onClick={() => unarchiveTemplate(tpl.id)} style={styles.editBtn}><ArchiveX size={14} /> Desarquivar</button>}
                         <button onClick={() => setConfirmDeleteId(tpl.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
                       </>
                     )}
                     {tpl.isBuiltIn && (
                       <button onClick={() => startEdit(tpl, true)} style={styles.editBtn}><Copy size={14} /> Duplicar</button>
                     )}
-                    <button onClick={() => handleStart(tpl.id)} style={styles.startBtn}><Play size={14} fill="var(--accent-ink)" stroke="none" /> Iniciar</button>
+                    {!tpl.archived && <button onClick={() => handleStart(tpl.id)} style={styles.startBtn}><Play size={14} fill="var(--accent-ink)" stroke="none" /> Iniciar</button>}
                   </div>
                 </div>
               )}

@@ -31,6 +31,8 @@ interface WorkoutContextType {
   updateExerciseNotes: (exerciseIndex: number, notes: string) => void;
   saveTemplate: (template: Omit<WorkoutTemplate, 'id'> & { id?: string }) => void;
   deleteTemplate: (templateId: string) => void;
+  archiveTemplate: (templateId: string) => void;
+  unarchiveTemplate: (templateId: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   getMaxE1RM: (exerciseName: string) => number;
   exportData: () => string;
@@ -816,6 +818,21 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   }, []);
 
+  // Archive / unarchive a template
+  const archiveTemplate = useCallback((templateId: string) => {
+    setState(prev => ({
+      ...prev,
+      templates: prev.templates.map(t => t.id === templateId ? { ...t, archived: true } : t),
+    }));
+  }, []);
+
+  const unarchiveTemplate = useCallback((templateId: string) => {
+    setState(prev => ({
+      ...prev,
+      templates: prev.templates.map(t => t.id === templateId ? { ...t, archived: false } : t),
+    }));
+  }, []);
+
   // Update user configurations
   const updateSettings = useCallback((newSettings: Partial<Settings>) => {
     setState(prev => {
@@ -974,7 +991,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (first) return first;
     }
     // Fallback: primeiro template customizado, depois qualquer template
-    return state.templates.find(t => !t.isBuiltIn) ?? state.templates[0];
+    return state.templates.find(t => !t.isBuiltIn && !t.archived) ?? state.templates.find(t => !t.archived);
   }, [state.programs, state.history, state.templates]);
 
   // Rest Timer Functions (startRestTimer/stopRestTimer definidos acima)
@@ -995,6 +1012,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateExerciseNotes,
       saveTemplate,
       deleteTemplate,
+      archiveTemplate,
+      unarchiveTemplate,
       updateSettings,
       getMaxE1RM,
       exportData,
@@ -1021,7 +1040,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
-      saveProgram, deleteProgram, getNextTemplate,
+      saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
     ])}>
       {children}
     </WorkoutContext.Provider>
