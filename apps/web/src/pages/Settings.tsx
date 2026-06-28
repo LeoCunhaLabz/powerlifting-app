@@ -12,7 +12,7 @@ const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = 
 ];
 
 export const Settings: React.FC = () => {
-  const { state, updateSettings, exportData, importData } = useWorkout();
+  const { state, updateSettings, exportData, importData, logBodyweight } = useWorkout();
   const { user, logout } = useAuth();
   const { settings } = state;
 
@@ -157,6 +157,7 @@ export const Settings: React.FC = () => {
             type="number"
             value={settings.bodyweight}
             onChange={(e) => updateSettings({ bodyweight: Math.max(1, Number(e.target.value)) })}
+            onBlur={(e) => { const v = Math.max(1, Number(e.target.value)); if (v > 0) logBodyweight(v); }}
             style={styles.numberInput}
           />
         </div>
