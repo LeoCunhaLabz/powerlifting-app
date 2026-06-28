@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import { OAuth2Client } from 'google-auth-library'
 import { users, sessions } from '../db/schema.js'
 import { env } from '../env.js'
 import {
@@ -140,7 +141,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         .where(eq(users.email, normalizedEmail))
         .limit(1)
 
-      const valid = user ? await verifyPassword(password, user.passwordHash) : false
+      const valid = user?.passwordHash
+        ? await verifyPassword(password, user.passwordHash)
+        : false
       if (!user || !valid) {
         return reply.code(401).send({ message: 'Credenciais inválidas' })
       }
@@ -246,6 +249,87 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       return reply.send(user)
+    },
+  )
+
+  // ---------------------------------------------------------------------------
+  // POST /auth/google — verifica id_token do Google, cria/vincula usuário
+  // ---------------------------------------------------------------------------
+  app.post(
+    '/auth/google',
+    {
+      config: authRateLimit,
+      schema: {
+        body: z.object({ credential: z.string().min(1) }),
+        response: {
+          200: authResponseSchema,
+          400: messageSchema,
+          503: messageSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!env.GOOGLE_CLIENT_ID) {
+        return reply.code(503).send({ message: 'Login com Google não está configurado neste servidor.' })
+      }
+
+      const client = new OAuth2Client(env.GOOGLE_CLIENT_ID)
+      let payload: { email?: string; name?: string; sub?: string; email_verified?: boolean } | undefined
+      try {
+        const ticket = await client.verifyIdToken({
+          idToken: request.body.credential,
+          audience: env.GOOGLE_CLIENT_ID,
+        })
+        payload = ticket.getPayload()
+      } catch {
+        return reply.code(400).send({ message: 'Credencial do Google inválida ou expirada.' })
+      }
+
+      if (!payload?.email || !payload.sub || payload.email_verified !== true) {
+        return reply.code(400).send({ message: 'Credencial do Google inválida.' })
+      }
+
+      const email = payload.email.trim().toLowerCase()
+      const name = payload.name ?? email.split('@')[0]
+
+      // Busca usuário existente pelo e-mail
+      let [user] = await app.db
+        .select({ id: users.id, email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1)
+
+      // Cria novo usuário (passwordHash = null para contas Google)
+      if (!user) {
+        try {
+          const inserted = await app.db
+            .insert(users)
+            .values({ name, email, passwordHash: null })
+            .returning({ id: users.id, email: users.email, name: users.name })
+          user = inserted[0]
+        } catch (error: unknown) {
+          // Corrida de concorrência: outro request criou o usuário antes (unique violation)
+          if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+            const [existing] = await app.db
+              .select({ id: users.id, email: users.email, name: users.name })
+              .from(users)
+              .where(eq(users.email, email))
+              .limit(1)
+            user = existing
+          } else {
+            throw error
+          }
+        }
+      }
+
+      if (!user) {
+        return reply.code(400).send({ message: 'Não foi possível criar a conta.' })
+      }
+
+      const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
+      const refreshToken = await issueRefreshToken(app, user.id)
+
+      return reply.send({ accessToken, refreshToken, user })
     },
   )
 }

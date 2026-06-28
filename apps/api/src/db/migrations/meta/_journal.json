@@ -15,6 +15,13 @@
       "when": 1782595828713,
       "tag": "0001_opposite_morbius",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782613600517,
+      "tag": "0002_gorgeous_bug",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { pgTable, uuid, varchar, timestamp, jsonb, index } from 'drizzle-orm/pg-
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }),
   name: varchar('name', { length: 255 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

@@ -49,6 +49,7 @@ O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zo
 - `JWT_SECRET` — segredo HS256 (mín. 32 caracteres), **obrigatório**.
 - `JWT_EXPIRES_IN` — expiração do access token (default `15m`).
 - `REFRESH_TOKEN_EXPIRES_IN` — expiração do refresh token (default `7d`).
+- `GOOGLE_CLIENT_ID` — Client ID do projeto no Google Cloud Console; **opcional** — se omitido, o endpoint `POST /auth/google` retorna 503 e o botão Google não aparece no frontend (`VITE_GOOGLE_CLIENT_ID` também deve ser definido no web).
 
 Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout` e `GET /auth/me` (protegida via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. Nunca exponha `password_hash` em responses ou logs.
 

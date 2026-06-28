@@ -16,6 +16,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET deve ter ao menos 32 caracteres'),
   JWT_EXPIRES_IN: durationEnvSchema.default('15m'),
   REFRESH_TOKEN_EXPIRES_IN: durationEnvSchema.default('7d'),
+  /** Client ID do Google OAuth (console.cloud.google.com). Obrigatório para login com Google. */
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)
