@@ -58,13 +58,25 @@ export const Auth: React.FC = () => {
       });
     };
 
-    // Se o script já carregou, inicializa direto; caso contrário aguarda o load
-    if (typeof google !== 'undefined') {
-      init();
+    // Lazy-load do script GSI apenas quando VITE_GOOGLE_CLIENT_ID estiver definido
+    const existing = document.querySelector('script[src*="accounts.google.com/gsi"]');
+    if (existing) {
+      // Script já injetado (hot reload / segunda montagem)
+      if (typeof google !== 'undefined') {
+        init();
+      } else {
+        existing.addEventListener('load', init);
+        return () => existing.removeEventListener('load', init);
+      }
     } else {
-      const script = document.querySelector('script[src*="accounts.google.com/gsi"]');
-      script?.addEventListener('load', init);
-      return () => script?.removeEventListener('load', init);
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.addEventListener('load', init);
+      document.head.appendChild(script);
+      return () => {
+        script.removeEventListener('load', init);
+      };
     }
   }, [loginWithGoogle]);
 

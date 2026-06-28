@@ -144,10 +144,6 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       const valid = user?.passwordHash
         ? await verifyPassword(password, user.passwordHash)
         : false
-      // Conta só-Google (sem senha) → mensagem específica para melhor UX
-      if (user && !user.passwordHash) {
-        return reply.code(401).send({ message: 'Esta conta usa login com Google. Use o botão "Entrar com Google".' })
-      }
       if (!user || !valid) {
         return reply.code(401).send({ message: 'Credenciais inválidas' })
       }
@@ -278,7 +274,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       const client = new OAuth2Client(env.GOOGLE_CLIENT_ID)
-      let payload: { email?: string; name?: string; sub?: string } | undefined
+      let payload: { email?: string; name?: string; sub?: string; email_verified?: boolean } | undefined
       try {
         const ticket = await client.verifyIdToken({
           idToken: request.body.credential,
@@ -289,7 +285,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         return reply.code(400).send({ message: 'Credencial do Google inválida ou expirada.' })
       }
 
-      if (!payload?.email || !payload.sub) {
+      if (!payload?.email || !payload.sub || payload.email_verified !== true) {
         return reply.code(400).send({ message: 'Credencial do Google inválida.' })
       }
 
@@ -305,11 +301,25 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
 
       // Cria novo usuário (passwordHash = null para contas Google)
       if (!user) {
-        const inserted = await app.db
-          .insert(users)
-          .values({ name, email, passwordHash: null })
-          .returning({ id: users.id, email: users.email, name: users.name })
-        user = inserted[0]
+        try {
+          const inserted = await app.db
+            .insert(users)
+            .values({ name, email, passwordHash: null })
+            .returning({ id: users.id, email: users.email, name: users.name })
+          user = inserted[0]
+        } catch (error: unknown) {
+          // Corrida de concorrência: outro request criou o usuário antes (unique violation)
+          if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+            const [existing] = await app.db
+              .select({ id: users.id, email: users.email, name: users.name })
+              .from(users)
+              .where(eq(users.email, email))
+              .limit(1)
+            user = existing
+          } else {
+            throw error
+          }
+        }
       }
 
       if (!user) {
