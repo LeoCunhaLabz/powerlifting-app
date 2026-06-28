@@ -329,6 +329,23 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                     }
                     style={{ ...styles.inp, width: '100%', marginBottom: 6, boxSizing: 'border-box' }}
                   />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>DESCANSO (s)</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="padrão global"
+                      value={ex.restSeconds ?? ''}
+                      min={0}
+                      step={15}
+                      onChange={(e) =>
+                        setExercises(prev => prev.map((x, i) =>
+                          i === exIdx ? { ...x, restSeconds: e.target.value ? Math.max(0, Number(e.target.value)) : undefined } : x
+                        ))
+                      }
+                      style={{ ...styles.inp, width: 100 }}
+                    />
+                  </div>
                   <div style={styles.setHead}>
                     <span>SÉRIE</span><span style={styles.cC}>TIPO</span><span style={styles.cC}>REPS</span><span style={styles.cC}>{prescription === 'percent' ? '%1RM' : 'RPE'}</span><span></span>
                   </div>

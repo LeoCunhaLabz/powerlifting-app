@@ -15,6 +15,7 @@ export interface ExerciseState {
   name: string;
   sets: SetState[];
   notes?: string;
+  restSeconds?: number;
 }
 
 export interface WorkoutSession {
@@ -31,6 +32,7 @@ export interface WorkoutSession {
 export interface TemplateExercise {
   name: string;
   notes?: string;
+  restSeconds?: number;
   sets: {
     reps: number;
     rpe?: number;
