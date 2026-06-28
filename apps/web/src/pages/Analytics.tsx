@@ -138,6 +138,7 @@ export const Analytics: React.FC = () => {
   const [prFilter, setPrFilter] = useState<'sbd' | 'all'>('all');
   const [prExpanded, setPrExpanded] = useState(false);
   const [heatmapHoverIdx, setHeatmapHoverIdx] = useState<number | null>(null);
+  const heatmapDayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
   const u = settings.units;
   const isMale = settings.gender === 'male';
@@ -377,15 +378,11 @@ export const Analytics: React.FC = () => {
   today.setHours(0, 0, 0, 0);
   const heatCells: number[] = [];
   const heatDates: Date[] = [];
-  const heatDayNames: string[] = [];
   for (let i = 34; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     heatCells.push(dayCounts[d.toDateString()] || 0);
     heatDates.push(new Date(d));
-    const dayOfWeek = d.getDay();
-    const daysOfWeek = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-    heatDayNames.push(daysOfWeek[dayOfWeek]);
   }
   const heatStyle = (c: number): React.CSSProperties => {
     if (c <= 0) return { backgroundColor: 'var(--bg-tertiary)' };
@@ -832,16 +829,9 @@ export const Analytics: React.FC = () => {
         <div style={styles.heatmapWrapper}>
           {/* Row of day labels */}
           <div style={styles.daysLabelsContainer}>
-            {Array.from({ length: 5 }).map((_, weekIdx) =>
-              Array.from({ length: 7 }).map((_, dayIdx) => {
-                const cellIdx = weekIdx * 7 + dayIdx;
-                return (
-                  <span key={`label-${cellIdx}`} style={styles.dayLabel}>
-                    {heatDayNames[cellIdx]}
-                  </span>
-                );
-              }),
-            )}
+            {heatmapDayLabels.map((label, idx) => (
+              <span key={`label-${idx}`} style={styles.dayLabel}>{label}</span>
+            ))}
           </div>
           {/* Heatmap grid with cells */}
           <div style={styles.heatGrid}>
