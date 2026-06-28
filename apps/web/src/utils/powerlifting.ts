@@ -144,6 +144,79 @@ export function calculateDots(bodyweight: number, total: number, isMale: boolean
   return Math.round((total * coeff) * 100) / 100;
 }
 
+export type StrengthLevel = 'Iniciante' | 'Intermediário' | 'Avançado' | 'Elite';
+
+export interface StrengthComparisonResult {
+  level: StrengthLevel;
+  percentileApprox: number;
+  topPercentApprox: number;
+  bodyweightClass: string;
+  note: string;
+}
+
+interface ComparisonBand {
+  minDots: number;
+  level: StrengthLevel;
+  percentileApprox: number;
+}
+
+interface DotsReferenceClass {
+  maxBodyweight: number;
+  classLabel: string;
+  bands: ComparisonBand[];
+}
+
+// Referência estática por sexo/classe de peso (estimativa aproximada a partir dos rankings de DOTS do OpenPowerlifting).
+// Fonte: https://www.openpowerlifting.org/rankings
+const DOTS_REFERENCE_MALE: DotsReferenceClass[] = [
+  { maxBodyweight: 59, classLabel: 'até 59 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 66, classLabel: 'até 66 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 74, classLabel: 'até 74 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 83, classLabel: 'até 83 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 93, classLabel: 'até 93 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 105, classLabel: 'até 105 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 120, classLabel: 'até 120 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: Number.POSITIVE_INFINITY, classLabel: '+120 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 300, level: 'Intermediário', percentileApprox: 50 }, { minDots: 380, level: 'Avançado', percentileApprox: 75 }, { minDots: 460, level: 'Elite', percentileApprox: 92 }] },
+];
+
+const DOTS_REFERENCE_FEMALE: DotsReferenceClass[] = [
+  { maxBodyweight: 47, classLabel: 'até 47 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 52, classLabel: 'até 52 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 57, classLabel: 'até 57 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 63, classLabel: 'até 63 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 69, classLabel: 'até 69 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 76, classLabel: 'até 76 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: 84, classLabel: 'até 84 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+  { maxBodyweight: Number.POSITIVE_INFINITY, classLabel: '+84 kg', bands: [{ minDots: 0, level: 'Iniciante', percentileApprox: 25 }, { minDots: 250, level: 'Intermediário', percentileApprox: 50 }, { minDots: 320, level: 'Avançado', percentileApprox: 75 }, { minDots: 400, level: 'Elite', percentileApprox: 92 }] },
+];
+
+/**
+ * Classificação aproximada por DOTS usando referência estática local.
+ */
+export function getStrengthComparison(dots: number, bodyweight: number, isMale: boolean): StrengthComparisonResult {
+  const reference = isMale ? DOTS_REFERENCE_MALE : DOTS_REFERENCE_FEMALE;
+  const refClass = reference.find((c) => bodyweight <= c.maxBodyweight) ?? reference[reference.length - 1];
+
+  if (!(dots > 0) || !(bodyweight > 0)) {
+    return {
+      level: 'Iniciante',
+      percentileApprox: 0,
+      topPercentApprox: 100,
+      bodyweightClass: refClass.classLabel,
+      note: 'Estimativa indisponível: faltam dados válidos de DOTS/peso corporal.',
+    };
+  }
+
+  const band = [...refClass.bands].reverse().find((b) => dots >= b.minDots) ?? refClass.bands[0];
+  return {
+    level: band.level,
+    percentileApprox: band.percentileApprox,
+    topPercentApprox: Math.max(1, 100 - band.percentileApprox),
+    bodyweightClass: refClass.classLabel,
+    note: 'Estimativa aproximada baseada em referência estática (OpenPowerlifting).',
+  };
+}
+
 /**
  * IPF GL Points Formula
  */
