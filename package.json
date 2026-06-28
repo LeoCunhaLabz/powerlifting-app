@@ -13,6 +13,7 @@
     "preview": "npm run preview -w @powerlifting/web",
     "lint": "npm run lint -w @powerlifting/web",
     "test": "npm run test -w @powerlifting/web",
+    "test:api": "npm run test -w @powerlifting/api",
     "generate-pwa-assets": "npm run generate-pwa-assets -w @powerlifting/web",
     "dev:api": "npm run dev -w @powerlifting/api",
     "build:api": "npm run build -w @powerlifting/api",

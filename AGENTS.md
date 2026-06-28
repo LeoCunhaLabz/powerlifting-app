@@ -33,14 +33,16 @@ npm run dev         # dev server do apps/web com HMR
 npm run build       # build do apps/web (tsc -b + vite build)
 npm run preview     # servir o build de produção do apps/web
 npm run lint        # ESLint do apps/web (flat config)
+npm run test        # testes do apps/web (Vitest)
 npm run dev:api     # dev server do apps/api com hot-reload (tsx watch)
 npm run build:api   # compila apps/api (tsc → dist/)
 npm run start:api   # inicia o servidor compilado do apps/api
 npm run lint:api    # ESLint do apps/api (flat config)
+npm run test:api    # testes do apps/api (Node test runner via tsx)
 ```
 
 > Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web` ou `-w @powerlifting/api`.
-> Não há testes configurados. Não invente comandos de teste; valide com `npm run lint` e `npm run build`.
+> Há testes no web e na API. Em mudanças de backend, rode também `npm run test:api`.
 
 ### Variáveis de ambiente da API
 
@@ -124,6 +126,7 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 - [ ] `npm run lint` sem **novos** erros (se houver erros pré-existentes, trate em PR separado).
 - [ ] `npm run build` passa (type-check incluso).
 - [ ] `npm run test` passa (Vitest — funções puras em `apps/web/src/utils/`).
+- [ ] `npm run test:api` passa (Node test runner para rotas/utilitários da API).
 - [ ] Sem imports/variáveis não utilizados.
 - [ ] Textos de UI em pt-BR.
 - [ ] Nenhuma dependência nova desnecessária.
