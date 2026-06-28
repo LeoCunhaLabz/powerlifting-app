@@ -44,6 +44,24 @@ export function calculateE1RM(weight: number, reps: number, rpe?: number): numbe
 }
 
 /**
+ * Brzycki e1RM: weight / (1.0278 - 0.0278 * reps)
+ */
+export function calculateE1RMBrzycki(weight: number, reps: number): number {
+  if (!(weight > 0) || !(reps > 0)) return 0;
+  if (reps === 1) return weight;
+  return Math.round((weight / (1.0278 - 0.0278 * reps)) * 10) / 10;
+}
+
+/**
+ * Epley e1RM: weight * (1 + reps / 30)
+ */
+export function calculateE1RMEpley(weight: number, reps: number): number {
+  if (!(weight > 0) || !(reps > 0)) return 0;
+  if (reps === 1) return weight;
+  return Math.round((weight * (1 + reps / 30)) * 10) / 10;
+}
+
+/**
  * Wilks Coefficient Formula (2020 Update / Classic)
  */
 export function calculateWilks(bodyweight: number, total: number, isMale: boolean): number {
