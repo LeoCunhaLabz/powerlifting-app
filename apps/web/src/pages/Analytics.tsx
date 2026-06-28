@@ -135,6 +135,8 @@ export const Analytics: React.FC = () => {
   const [activeTooltip, setActiveTooltip] = useState<{ chartId: string; label: string; date: string } | null>(null);
   const [topExMetric, setTopExMetric] = useState<'volume' | 'series'>('volume');
   const [topExExpanded, setTopExExpanded] = useState(false);
+  const [prFilter, setPrFilter] = useState<'sbd' | 'all'>('all');
+  const [prExpanded, setPrExpanded] = useState(false);
 
   const u = settings.units;
   const isMale = settings.gender === 'male';
@@ -393,7 +395,8 @@ export const Analytics: React.FC = () => {
     ),
   );
   prs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const topPrs = prs.slice(0, 5);
+  const prsSBD = prs.filter((pr) => LIFTS.some((l) => l.match(pr.name.toLowerCase())));
+  const prsFiltered = prFilter === 'sbd' ? prsSBD : prs;
 
   const periods: { id: Period; label: string }[] = [
     { id: '4w', label: '4 sem' },
@@ -825,30 +828,43 @@ export const Analytics: React.FC = () => {
 
       {/* PR timeline */}
       <div style={styles.card}>
-        <div style={styles.cardHeadIcon}>
-          <Award size={16} />
-          <span style={styles.cardTitle}>Linha do tempo de PRs</span>
-        </div>
-        {topPrs.length ? (
-          <div style={styles.timeline}>
-            {topPrs.map((pr, idx) => (
-              <div key={idx} style={styles.tlRow}>
-                <div style={styles.tlMarker}>
-                  <span style={{ ...styles.tlDot, ...(idx === 0 ? styles.tlDotActive : {}) }} />
-                  {idx < topPrs.length - 1 && <span style={styles.tlLine} />}
-                </div>
-                <div style={styles.tlBody}>
-                  <div style={styles.tlInfo}>
-                    <span style={styles.tlName}>{pr.name} · {pr.weight} {u}</span>
-                    <span style={styles.tlSub}>e1RM {Math.round(pr.e1rm)} {u}</span>
-                  </div>
-                  <span style={styles.tlDate}>{relativeDate(pr.date)}</span>
-                </div>
-              </div>
-            ))}
+        <div style={{ ...styles.cardHead }}>
+          <div style={styles.cardHeadIcon}>
+            <Award size={16} />
+            <span style={styles.cardTitle}>Linha do tempo de PRs</span>
           </div>
+          <div style={styles.segmented}>
+            <button onClick={() => setPrFilter('all')} style={prFilter === 'all' ? styles.segOn : styles.segOff}>Todos</button>
+            <button onClick={() => setPrFilter('sbd')} style={prFilter === 'sbd' ? styles.segOn : styles.segOff}>SBD</button>
+          </div>
+        </div>
+        {prsFiltered.length ? (
+          <>
+            <div style={styles.timeline}>
+              {(prExpanded ? prsFiltered : prsFiltered.slice(0, 5)).map((pr, idx, arr) => (
+                <div key={idx} style={styles.tlRow}>
+                  <div style={styles.tlMarker}>
+                    <span style={{ ...styles.tlDot, ...(idx === 0 ? styles.tlDotActive : {}) }} />
+                    {idx < arr.length - 1 && <span style={styles.tlLine} />}
+                  </div>
+                  <div style={styles.tlBody}>
+                    <div style={styles.tlInfo}>
+                      <span style={styles.tlName}>{pr.name} · {pr.weight} {u}</span>
+                      <span style={styles.tlSub}>e1RM {Math.round(pr.e1rm)} {u}</span>
+                    </div>
+                    <span style={styles.tlDate}>{relativeDate(pr.date)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {prsFiltered.length > 5 && (
+              <button onClick={() => setPrExpanded((x) => !x)} style={styles.verMaisBtn}>
+                {prExpanded ? 'Ver menos ↑' : `Ver mais (${prsFiltered.length - 5} PRs) ↓`}
+              </button>
+            )}
+          </>
         ) : (
-          <div style={styles.empty}>Nenhum recorde no período. Continue progredindo!</div>
+          <div style={styles.empty}>{prFilter === 'sbd' ? 'Nenhum PR de SBD no período.' : 'Nenhum recorde no período. Continue progredindo!'}</div>
         )}
       </div>
     </div>
