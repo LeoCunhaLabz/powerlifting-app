@@ -35,7 +35,12 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2200);
+  };
   // Create/Edit template form
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -124,6 +129,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       })),
     }));
     saveTemplate({ id: editingId ?? undefined, name, description, exercises: cleaned });
+    showToast(editingId ? 'Rotina atualizada' : 'Rotina salva');
     resetForm();
   };
 
@@ -595,6 +601,13 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               })()}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--accent-border)', color: 'var(--accent)', padding: '10px 20px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, zIndex: 200, whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+          {toast}
         </div>
       )}
     </div>
