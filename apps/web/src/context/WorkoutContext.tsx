@@ -469,6 +469,25 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           };
         });
 
+        // Fallback: exercícios sem %1RM — pré-preenche com o peso da última sessão
+        exercises = exercises.map((ex) => {
+          const hasWeightFromPct = ex.sets.some(s => s.weight > 0);
+          if (hasWeightFromPct) return ex;
+          const lastSession = [...state.history]
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .find(s => s.exercises.some(e => e.name.toLowerCase() === ex.name.toLowerCase()));
+          if (!lastSession) return ex;
+          const prevEx = lastSession.exercises.find(e => e.name.toLowerCase() === ex.name.toLowerCase());
+          if (!prevEx) return ex;
+          return {
+            ...ex,
+            sets: ex.sets.map((set, setIdx) => {
+              const prevSet = prevEx.sets[setIdx] ?? prevEx.sets[prevEx.sets.length - 1];
+              return prevSet?.weight > 0 ? { ...set, weight: prevSet.weight } : set;
+            }),
+          };
+        });
+
         // Aplicar sobrescritas de periodização semanal (se o programa ativo tiver overrides)
         const activeProgram = state.programs.find(p => p.isActive);
         if (activeProgram?.weekOverrides?.length && activeProgram.templateIds.includes(templateId)) {

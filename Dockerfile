@@ -8,7 +8,8 @@ COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci
 
 COPY . .
-RUN npm run build
+ARG VITE_API_URL=""
+RUN VITE_API_URL="${VITE_API_URL}" npm run build
 
 # Production stage
 FROM nginx:1.27-alpine

@@ -125,7 +125,15 @@ export const Workout: React.FC = () => {
             <div style={styles.exHead}>
               <div>
                 <div style={styles.exName}>{ex.name}</div>
-                <div style={styles.exSub}>e1RM {getMaxE1RM(ex.name)} {u}</div>
+                <div style={styles.exSub}>{(() => {
+                  const e1rm = getMaxE1RM(ex.name);
+                  const ws = ex.sets.find(s => s.type !== 'W');
+                  const target = ws?.percentage && e1rm > 0
+                    ? Math.round(e1rm * ws.percentage / 100 / 2.5) * 2.5
+                    : null;
+                  if (target) return `Alvo: ${target} ${u} · e1RM: ${e1rm} ${u}`;
+                  return `e1RM: ${e1rm || '—'} ${u}`;
+                })()}</div>
               </div>
               <button onClick={() => setConfirmRemoveExIdx(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
             </div>
