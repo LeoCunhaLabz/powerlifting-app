@@ -180,7 +180,7 @@ const AppContent: React.FC = () => {
 };
 
 const AuthGate: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -195,7 +195,7 @@ const AuthGate: React.FC = () => {
   }
 
   return (
-    <WorkoutProvider>
+    <WorkoutProvider demoEmail={user?.email ?? null}>
       <AppContent />
     </WorkoutProvider>
   );
