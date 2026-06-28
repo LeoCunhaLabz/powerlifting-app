@@ -508,30 +508,12 @@ function createDemoState(baseDate = new Date()): AppState {
   };
 }
 
-function isDefaultSettings(settings: Settings): boolean {
-  const samePlates =
-    settings.availablePlates.length === DEFAULT_SETTINGS.availablePlates.length &&
-    settings.availablePlates.every((plate, index) => plate === DEFAULT_SETTINGS.availablePlates[index]);
-
-  return (
-    settings.units === DEFAULT_SETTINGS.units &&
-    settings.barWeight === DEFAULT_SETTINGS.barWeight &&
-    settings.bodyweight === DEFAULT_SETTINGS.bodyweight &&
-    settings.gender === DEFAULT_SETTINGS.gender &&
-    settings.isEquipped === DEFAULT_SETTINGS.isEquipped &&
-    settings.theme === DEFAULT_SETTINGS.theme &&
-    samePlates &&
-    settings.customPlates.length === 0
-  );
-}
-
 function hasMeaningfulUserData(state: AppState): boolean {
   return (
     state.history.length > 0 ||
     state.templates.some((template) => !template.isBuiltIn) ||
     state.bodyweightLog.length > 0 ||
-    state.programs.length > 0 ||
-    !isDefaultSettings(state.settings)
+    state.programs.length > 0
   );
 }
 
