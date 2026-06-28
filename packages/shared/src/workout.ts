@@ -23,6 +23,7 @@ export interface WorkoutSession {
   duration: number; // in seconds
   exercises: ExerciseState[];
   notes?: string;
+  templateId?: string; // ID do template usado para iniciar este treino
   syncedAt?: string; // ISO — quando este registro foi sincronizado com o servidor pela última vez
 }
 
@@ -67,9 +68,26 @@ export interface BodyweightEntry {
 /** Status da sincronização com o servidor. */
 export type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
 
+/**
+ * Representa um programa de treino: uma sequência ordenada de rotinas/templates
+ * que define o ciclo de treinos do atleta.
+ */
+export interface Program {
+  id: string;
+  name: string;
+  description?: string;
+  /** IDs dos templates na ordem em que devem ser executados (ciclo). */
+  templateIds: string[];
+  /** Se este é o programa ativo — apenas um programa pode estar ativo por vez. */
+  isActive: boolean;
+  createdAt: string; // ISO
+  updatedAt?: string; // ISO
+}
+
 export interface AppState {
   history: WorkoutSession[];
   templates: WorkoutTemplate[];
   settings: Settings;
   bodyweightLog: BodyweightEntry[];
+  programs: Program[];
 }

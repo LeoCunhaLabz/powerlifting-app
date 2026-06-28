@@ -8,6 +8,7 @@ import type {
   SetState,
   BodyweightEntry,
   SyncStatus,
+  Program,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 import { isValidImportedState } from '../utils/validateAppState';
@@ -45,6 +46,13 @@ interface WorkoutContextType {
   syncStatus: SyncStatus;
   /** Baixa dados do servidor e faz merge com o estado local (útil para refresh manual). */
   pullFromServer: () => Promise<void>;
+  /** Cria ou atualiza um programa. */
+  saveProgram: (program: Omit<Program, 'id' | 'createdAt'> & { id?: string }) => void;
+  /** Remove um programa pelo id. */
+  deleteProgram: (programId: string) => void;
+  /** Retorna o próximo template a treinar com base no programa ativo + histórico.
+   *  Fallback: primeiro template customizado, depois primeiro built-in. */
+  getNextTemplate: () => WorkoutTemplate | undefined;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -176,7 +184,8 @@ const DEFAULT_STATE: AppState = {
   history: [],
   templates: BUILT_IN_TEMPLATES,
   settings: DEFAULT_SETTINGS,
-  bodyweightLog: []
+  bodyweightLog: [],
+  programs: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -234,6 +243,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         parsed.templates = [...BUILT_IN_TEMPLATES, ...customTemplates];
         parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
         parsed.bodyweightLog = parsed.bodyweightLog || [];
+        parsed.programs = (parsed as AppState).programs || [];
         return parsed;
       }
     } catch (e) {
@@ -455,7 +465,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       date: new Date().toISOString(),
       duration: 0,
       exercises,
-      notes: ''
+      notes: '',
+      templateId: templateId,
     };
 
     setActiveWorkout(newSession);
@@ -781,6 +792,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         templates: [...BUILT_IN_TEMPLATES, ...customTemplates],
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         bodyweightLog: parsed.bodyweightLog ?? [],
+        programs: (parsed as AppState).programs ?? [],
       };
       setState(normalized);
       return true;
@@ -825,6 +837,64 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     getEffectiveBodyweight(state.bodyweightLog, date, state.settings.bodyweight)
   , [state.bodyweightLog, state.settings.bodyweight]);
 
+  // ---- Programs ----
+
+  const saveProgram = useCallback((programData: Omit<Program, 'id' | 'createdAt'> & { id?: string }) => {
+    setState(prev => {
+      const existingIndex = programData.id ? prev.programs.findIndex(p => p.id === programData.id) : -1;
+      const updatedPrograms = [...prev.programs];
+      // Se o novo programa for marcado como ativo, desativa os demais
+      const deactivated = programData.isActive
+        ? updatedPrograms.map(p => ({ ...p, isActive: false }))
+        : [...updatedPrograms];
+      const program: Program = {
+        id: programData.id || `program-${Date.now()}`,
+        name: programData.name,
+        description: programData.description,
+        templateIds: programData.templateIds,
+        isActive: programData.isActive,
+        createdAt: existingIndex > -1 ? prev.programs[existingIndex].createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (existingIndex > -1) {
+        deactivated[existingIndex] = program;
+      } else {
+        deactivated.push(program);
+      }
+      return { ...prev, programs: deactivated };
+    });
+  }, []);
+
+  const deleteProgram = useCallback((programId: string) => {
+    setState(prev => ({
+      ...prev,
+      programs: prev.programs.filter(p => p.id !== programId),
+    }));
+  }, []);
+
+  /** Próximo template baseado no programa ativo + histórico de sessões. */
+  const getNextTemplate = useCallback((): WorkoutTemplate | undefined => {
+    const activeProgram = state.programs.find(p => p.isActive);
+    if (activeProgram && activeProgram.templateIds.length > 0) {
+      const { templateIds } = activeProgram;
+      // Encontra o índice do último template executado que pertence ao programa
+      const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
+      const lastMatch = sorted.find(s => s.templateId && templateIds.includes(s.templateId));
+      if (lastMatch && lastMatch.templateId) {
+        const lastIdx = templateIds.indexOf(lastMatch.templateId);
+        const nextIdx = (lastIdx + 1) % templateIds.length;
+        const nextId = templateIds[nextIdx];
+        const next = state.templates.find(t => t.id === nextId);
+        if (next) return next;
+      }
+      // Nenhum treino do programa ainda — retorna o primeiro da sequência
+      const first = state.templates.find(t => t.id === templateIds[0]);
+      if (first) return first;
+    }
+    // Fallback: primeiro template customizado, depois qualquer template
+    return state.templates.find(t => !t.isBuiltIn) ?? state.templates[0];
+  }, [state.programs, state.history, state.templates]);
+
   // Rest Timer Functions (startRestTimer/stopRestTimer definidos acima)
   return (
     <WorkoutContext.Provider value={useMemo(() => ({
@@ -858,6 +928,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       dismissSaveError,
       syncStatus,
       pullFromServer,
+      saveProgram,
+      deleteProgram,
+      getNextTemplate,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -865,6 +938,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
+      saveProgram, deleteProgram, getNextTemplate,
     ])}>
       {children}
     </WorkoutContext.Provider>

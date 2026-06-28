@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import type { TemplateExercise, WorkoutTemplate } from '@powerlifting/shared';
-import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy } from 'lucide-react';
+import type { TemplateExercise, WorkoutTemplate, Program } from '@powerlifting/shared';
+import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -22,8 +22,12 @@ const schemeSummary = (ex: TemplateExercise[]): string => {
 };
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
-  const { state, saveTemplate, deleteTemplate, startWorkout } = useWorkout();
+  const { state, saveTemplate, deleteTemplate, startWorkout, saveProgram, deleteProgram } = useWorkout();
   const { templates } = state;
+  const programs = state.programs;
+
+  // Top-level view: rotinas vs programas
+  const [mainView, setMainView] = useState<'rotinas' | 'programas'>('rotinas');
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'mine' | 'builtin'>('mine');
@@ -31,13 +35,22 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  // Create form
+  // Create/Edit template form
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [prescription, setPrescription] = useState<Prescription>('percent');
   const [exercises, setExercises] = useState<TemplateExercise[]>([]);
   const [searchExercise, setSearchExercise] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Program form state
+  const [isProgramForm, setIsProgramForm] = useState(false);
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
+  const [progName, setProgName] = useState('');
+  const [progDesc, setProgDesc] = useState('');
+  const [progTemplateIds, setProgTemplateIds] = useState<string[]>([]);
+  const [progActive, setProgActive] = useState(false);
+  const [confirmDeleteProgId, setConfirmDeleteProgId] = useState<string | null>(null);
 
   const filtered = templates.filter((t) => (filter === 'builtin' ? t.isBuiltIn : !t.isBuiltIn));
 
@@ -106,18 +119,65 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     resetForm();
   };
 
+  // ---- Program form helpers ----
+  const resetProgramForm = () => {
+    setProgName(''); setProgDesc(''); setProgTemplateIds([]); setProgActive(false);
+    setEditingProgramId(null); setIsProgramForm(false);
+  };
+
+  const startEditProgram = (prog: Program) => {
+    setProgName(prog.name);
+    setProgDesc(prog.description ?? '');
+    setProgTemplateIds([...prog.templateIds]);
+    setProgActive(prog.isActive);
+    setEditingProgramId(prog.id);
+    setIsProgramForm(true);
+  };
+
+  const handleSaveProgram = () => {
+    if (!progName.trim() || progTemplateIds.length === 0) return;
+    saveProgram({ id: editingProgramId ?? undefined, name: progName, description: progDesc, templateIds: progTemplateIds, isActive: progActive });
+    resetProgramForm();
+  };
+
+  const toggleProgTemplate = (id: string) => {
+    setProgTemplateIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const moveProgTemplate = (idx: number, dir: -1 | 1) => {
+    setProgTemplateIds(prev => {
+      const next = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.headerRow}>
-        <h1 style={styles.pageTitle}>ROTINAS</h1>
-        <button onClick={() => setIsCreating(true)} style={styles.newBtn}><Plus size={15} /> Nova</button>
+        <h1 style={styles.pageTitle}>{mainView === 'rotinas' ? 'ROTINAS' : 'PROGRAMAS'}</h1>
+        {mainView === 'rotinas'
+          ? <button onClick={() => setIsCreating(true)} style={styles.newBtn}><Plus size={15} /> Nova</button>
+          : <button onClick={() => setIsProgramForm(true)} style={styles.newBtn}><Plus size={15} /> Novo</button>
+        }
       </div>
 
-      {/* Segmented filter */}
+      {/* Main view toggle */}
       <div style={styles.segmented}>
-        <button onClick={() => setFilter('mine')} style={filter === 'mine' ? styles.segOn : styles.segOff}>Minhas</button>
-        <button onClick={() => setFilter('builtin')} style={filter === 'builtin' ? styles.segOn : styles.segOff}>Embutidas</button>
+        <button onClick={() => setMainView('rotinas')} style={mainView === 'rotinas' ? styles.segOn : styles.segOff}>Rotinas</button>
+        <button onClick={() => setMainView('programas')} style={mainView === 'programas' ? styles.segOn : styles.segOff}><ListOrdered size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />Programas</button>
       </div>
+
+      {mainView === 'rotinas' && (<>
+        {/* Sub-filter: Minhas / Embutidas */}
+        <div style={styles.segmented}>
+          <button onClick={() => setFilter('mine')} style={filter === 'mine' ? styles.segOn : styles.segOff}>Minhas</button>
+          <button onClick={() => setFilter('builtin')} style={filter === 'builtin' ? styles.segOn : styles.segOff}>Embutidas</button>
+        </div>
 
       <div style={styles.list}>
         {filtered.length === 0 && (
@@ -257,6 +317,119 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
           </div>
         </div>
       )}
+      </>)}
+
+      {/* ---- PROGRAMS VIEW ---- */}
+      {mainView === 'programas' && (
+        <div style={styles.list}>
+          {programs.length === 0 && (
+            <div style={styles.empty}>Nenhum programa ainda. Toque em "Novo" para criar um.</div>
+          )}
+          {programs.map((prog) => (
+            <div key={prog.id} style={{ ...styles.row, borderColor: prog.isActive ? 'var(--accent-border)' : undefined }}>
+              <div style={styles.rowHead}>
+                <span style={{ ...styles.avatar, backgroundColor: prog.isActive ? 'var(--accent)' : 'var(--bg-tertiary)', color: prog.isActive ? 'var(--accent-ink)' : 'var(--text-secondary)' }}>
+                  {prog.isActive ? <CheckCircle2 size={20} /> : <ListOrdered size={20} />}
+                </span>
+                <span style={styles.rowTexts}>
+                  <span style={styles.rowName}>{prog.name}{prog.isActive && <span style={styles.activeBadge}> ativo</span>}</span>
+                  <span style={styles.rowSub}>{prog.templateIds.length} rotina{prog.templateIds.length !== 1 ? 's' : ''} na sequência</span>
+                </span>
+              </div>
+              {prog.description && <div style={{ ...styles.desc, paddingLeft: 14, paddingRight: 14 }}>{prog.description}</div>}
+              <div style={styles.progSequence}>
+                {prog.templateIds.map((tid, idx) => {
+                  const tpl = templates.find(t => t.id === tid);
+                  return (
+                    <div key={tid} style={styles.progSeqItem}>
+                      <span style={styles.progSeqNum}>{idx + 1}</span>
+                      <span style={styles.progSeqName}>{tpl?.name ?? '(rotina removida)'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ ...styles.rowActions, padding: '10px 14px' }}>
+                {!prog.isActive && (
+                  <button onClick={() => saveProgram({ ...prog, isActive: true })} style={styles.activateBtn}>Ativar</button>
+                )}
+                {prog.isActive && (
+                  <button onClick={() => saveProgram({ ...prog, isActive: false })} style={styles.editBtn}>Desativar</button>
+                )}
+                <button onClick={() => startEditProgram(prog)} style={styles.editBtn}><Pencil size={14} /> Editar</button>
+                <button onClick={() => setConfirmDeleteProgId(prog.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Confirm delete program */}
+      {confirmDeleteProgId !== null && (
+        <div style={styles.overlay} onClick={() => setConfirmDeleteProgId(null)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12, alignSelf: 'center' }} />
+            <h3 style={{ ...styles.modalTitle, textAlign: 'center', marginBottom: 8 }}>Excluir programa</h3>
+            <p style={styles.confirmDesc}>Este programa será excluído permanentemente.</p>
+            <div style={styles.confirmActions}>
+              <button onClick={() => setConfirmDeleteProgId(null)} style={styles.confirmBack}>Voltar</button>
+              <button onClick={() => { deleteProgram(confirmDeleteProgId); setConfirmDeleteProgId(null); }} style={styles.confirmDiscard}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Program create/edit overlay */}
+      {isProgramForm && (
+        <div style={styles.overlay}>
+          <div style={styles.overlayContent}>
+            <div style={styles.overlayHead}>
+              <button onClick={resetProgramForm} style={styles.close} aria-label="Fechar"><X size={20} /></button>
+              <h2 style={styles.overlayTitle}>{editingProgramId ? 'Editar programa' : 'Criar programa'}</h2>
+              <button onClick={handleSaveProgram} disabled={!progName.trim() || progTemplateIds.length === 0} style={{ ...styles.saveTop, opacity: !progName.trim() || progTemplateIds.length === 0 ? 0.4 : 1 }}>Salvar</button>
+            </div>
+            <div style={styles.form}>
+              <input type="text" value={progName} onChange={(e) => setProgName(e.target.value)} placeholder="Nome do programa" style={styles.nameInput} />
+              <textarea value={progDesc} onChange={(e) => setProgDesc(e.target.value)} placeholder="Descrição (opcional)" style={styles.descInput} />
+
+              <div style={styles.progActiveRow}>
+                <span style={styles.prescLabel}>Programa ativo</span>
+                <button onClick={() => setProgActive(v => !v)} style={{ ...styles.toggleBtn, backgroundColor: progActive ? 'var(--accent)' : 'var(--bg-tertiary)', borderColor: progActive ? 'var(--accent-border)' : 'var(--border-color)' }}>
+                  <span style={{ ...styles.toggleKnob, transform: progActive ? 'translateX(20px)' : 'translateX(2px)' }} />
+                </button>
+              </div>
+
+              <div style={styles.prescLabel}>Sequência de rotinas</div>
+              {/* Ordered list with reorder controls */}
+              {progTemplateIds.length > 0 && (
+                <div style={styles.progOrderList}>
+                  {progTemplateIds.map((tid, idx) => {
+                    const tpl = templates.find(t => t.id === tid);
+                    return (
+                      <div key={tid} style={styles.progOrderItem}>
+                        <span style={styles.progSeqNum}>{idx + 1}</span>
+                        <span style={{ ...styles.progSeqName, flex: 1 }}>{tpl?.name ?? tid}</span>
+                        <button onClick={() => moveProgTemplate(idx, -1)} disabled={idx === 0} style={styles.reorderBtn}><ArrowUp size={14} /></button>
+                        <button onClick={() => moveProgTemplate(idx, 1)} disabled={idx === progTemplateIds.length - 1} style={styles.reorderBtn}><ArrowDown size={14} /></button>
+                        <button onClick={() => toggleProgTemplate(tid)} style={styles.removeExText}>✕</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={styles.prescLabel}>Adicionar rotinas</div>
+              {templates.filter(t => !t.isBuiltIn && !progTemplateIds.includes(t.id)).map(tpl => (
+                <button key={tpl.id} onClick={() => toggleProgTemplate(tpl.id)} style={styles.addTplBtn}>
+                  <Plus size={13} /> {tpl.name}
+                </button>
+              ))}
+              {templates.filter(t => !t.isBuiltIn).length === 0 && (
+                <div style={{ ...styles.empty, padding: '12px', border: 'none', fontSize: '12px' }}>Crie rotinas customizadas primeiro.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -322,6 +495,19 @@ const styles: Record<string, React.CSSProperties> = {
   addCustom: { width: '100%', height: '38px', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, marginTop: '8px' },
   suggestions: { position: 'absolute', bottom: '50px', left: 0, width: '100%', maxHeight: '180px', overflowY: 'auto', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' },
   suggestion: { display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: '13px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', background: 'none' },
+  activeBadge: { fontSize: '10px', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: '999px', padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' },
+  activateBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '9px 18px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800 },
+  progSequence: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 14px 4px' },
+  progSeqItem: { display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0', borderBottom: '1px solid var(--border-color)' },
+  progSeqNum: { width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 } as React.CSSProperties,
+  progSeqName: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' },
+  progActiveRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' },
+  toggleBtn: { width: '44px', height: '24px', borderRadius: '999px', border: '1px solid', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0, cursor: 'pointer' } as React.CSSProperties,
+  toggleKnob: { position: 'absolute', top: '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#fff', transition: 'transform 0.2s' } as React.CSSProperties,
+  progOrderList: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  progOrderItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
+  reorderBtn: { color: 'var(--text-muted)', padding: '2px', display: 'flex', alignItems: 'center' },
+  addTplBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', width: '100%', padding: '11px 14px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 },
 };
 
 export default Templates;

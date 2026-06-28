@@ -48,6 +48,7 @@ const validState: AppState = {
   templates: [validTemplate],
   settings: validSettings,
   bodyweightLog: [],
+  programs: [],
 };
 
 // ─── casos válidos ────────────────────────────────────────────────────────────
