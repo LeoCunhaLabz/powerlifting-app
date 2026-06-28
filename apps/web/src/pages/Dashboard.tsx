@@ -15,6 +15,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const { history, settings, bodyweightLog } = state;
 
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
+  const [confirmRepeat, setConfirmRepeat] = useState<WorkoutSession | null>(null);
   const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [weightInput, setWeightInput] = useState('');
@@ -260,7 +261,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
                     <span style={styles.historyName}>{s.name}{hasPr && <span style={styles.prTag}>PR</span>}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); repeatWorkout(s); onStartWorkoutTab(); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmRepeat(s); }}
                         style={styles.repeatBtn}
                         aria-label="Repetir treino"
                         title="Repetir treino"
@@ -293,7 +294,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button
-                  onClick={() => { repeatWorkout(selectedSession); setSelectedSession(null); onStartWorkoutTab(); }}
+                  onClick={() => { setConfirmRepeat(selectedSession); }}
                   style={styles.repeatModalBtn}
                   aria-label="Repetir este treino"
                 >
@@ -314,6 +315,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
                   ))}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm repeat modal */}
+      {confirmRepeat && (
+        <div style={styles.modalOverlay} onClick={() => setConfirmRepeat(null)}>
+          <div style={{ ...styles.modalContent, padding: '24px', alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <RotateCcw size={36} color="var(--accent)" style={{ marginBottom: 12 }} />
+            <h3 style={styles.modalTitle}>Repetir treino?</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 20px', lineHeight: 1.4 }}>
+              {activeWorkout
+                ? 'Há um treino em andamento. Iniciar este treino irá descartar o progresso atual.'
+                : `Iniciar um novo treino baseado em "${confirmRepeat.name}".`}
+            </p>
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button onClick={() => setConfirmRepeat(null)} style={styles.closeBtn}>Cancelar</button>
+              <button
+                onClick={() => { repeatWorkout(confirmRepeat); setConfirmRepeat(null); setSelectedSession(null); onStartWorkoutTab(); }}
+                style={{ flex: 1, height: 44, backgroundColor: activeWorkout ? 'var(--error)' : 'var(--accent)', color: activeWorkout ? '#fff' : 'var(--accent-ink)', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800 }}
+              >
+                {activeWorkout ? 'Descartar e iniciar' : 'Iniciar'}
+              </button>
             </div>
           </div>
         </div>
