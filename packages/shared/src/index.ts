@@ -9,4 +9,5 @@ export type {
   BodyweightEntry,
   AppState,
   SyncStatus,
+  Program,
 } from './workout';

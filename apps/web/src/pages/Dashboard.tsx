@@ -11,8 +11,8 @@ interface DashboardProps {
 const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
 
 export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
-  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight } = useWorkout();
-  const { history, settings, templates, bodyweightLog } = state;
+  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight, getNextTemplate } = useWorkout();
+  const { history, settings, bodyweightLog } = state;
 
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
@@ -113,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   };
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)} min`;
 
-  const suggestedTemplate = templates[0];
+  const suggestedTemplate = getNextTemplate();
 
   const handleResume = () => {
     if (!activeWorkout && suggestedTemplate) startWorkout(suggestedTemplate.id);
