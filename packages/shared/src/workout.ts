@@ -47,6 +47,7 @@ export interface WorkoutTemplate {
   description: string;
   exercises: TemplateExercise[];
   isBuiltIn?: boolean;
+  archived?: boolean;
   updatedAt?: string; // ISO — última modificação local (para last-write-wins)
   syncedAt?: string;  // ISO — quando foi sincronizado com o servidor
 }
