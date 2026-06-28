@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import type { TemplateExercise } from '@powerlifting/shared';
-import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle } from 'lucide-react';
+import type { TemplateExercise, WorkoutTemplate } from '@powerlifting/shared';
+import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy } from 'lucide-react';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -28,6 +28,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'mine' | 'builtin'>('mine');
   const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Create form
@@ -75,8 +76,21 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const removeEx = (exIdx: number) => setExercises((prev) => prev.filter((_, i) => i !== exIdx));
 
   const resetForm = () => {
-    setName(''); setDescription(''); setExercises([]); setPrescription('percent'); setIsCreating(false);
+    setName(''); setDescription(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
   };
+
+  const startEdit = (tpl: WorkoutTemplate, duplicate = false) => {
+    const detectedPresc: Prescription =
+      tpl.exercises[0]?.sets[0]?.rpe !== undefined ? 'rpe' : 'percent';
+    setName(duplicate ? `${tpl.name} (cópia)` : tpl.name);
+    setDescription(tpl.description);
+    setPrescription(detectedPresc);
+    setExercises(tpl.exercises.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })));
+    setEditingId(duplicate ? null : tpl.id);
+    setIsCreating(true);
+    setExpandedId(null);
+  };
+
   const handleSave = () => {
     if (!name.trim() || exercises.length === 0) return;
     // Garante apenas um critério por série (%1RM OU RPE)
@@ -88,7 +102,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
         rpe: prescription === 'rpe' ? s.rpe : undefined,
       })),
     }));
-    saveTemplate({ name, description, exercises: cleaned });
+    saveTemplate({ id: editingId ?? undefined, name, description, exercises: cleaned });
     resetForm();
   };
 
@@ -140,7 +154,13 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                   </div>
                   <div style={styles.rowActions}>
                     {!tpl.isBuiltIn && (
-                      <button onClick={() => setConfirmDeleteId(tpl.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
+                      <>
+                        <button onClick={() => startEdit(tpl)} style={styles.editBtn}><Pencil size={14} /> Editar</button>
+                        <button onClick={() => setConfirmDeleteId(tpl.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
+                      </>
+                    )}
+                    {tpl.isBuiltIn && (
+                      <button onClick={() => startEdit(tpl, true)} style={styles.editBtn}><Copy size={14} /> Duplicar</button>
                     )}
                     <button onClick={() => handleStart(tpl.id)} style={styles.startBtn}><Play size={14} fill="var(--accent-ink)" stroke="none" /> Iniciar</button>
                   </div>
@@ -172,7 +192,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
           <div style={styles.overlayContent}>
             <div style={styles.overlayHead}>
               <button onClick={resetForm} style={styles.close} aria-label="Fechar"><X size={20} /></button>
-              <h2 style={styles.overlayTitle}>Criar rotina</h2>
+              <h2 style={styles.overlayTitle}>{editingId ? 'Editar rotina' : 'Criar rotina'}</h2>
               <button onClick={handleSave} disabled={!name.trim() || exercises.length === 0} style={{ ...styles.saveTop, opacity: !name.trim() || exercises.length === 0 ? 0.4 : 1 }}>Salvar</button>
             </div>
 
@@ -265,6 +285,7 @@ const styles: Record<string, React.CSSProperties> = {
   exSumName: { fontWeight: 700, color: 'var(--text-primary)' },
   exSumSets: { color: 'var(--text-muted)', fontSize: '11px' },
   rowActions: { display: 'flex', justifyContent: 'flex-end', gap: '8px' },
+  editBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '9px 14px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, border: '1px solid var(--border-color)' },
   delBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'transparent', color: 'var(--error)', padding: '9px 14px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(229,84,75,0.2)' },
   startBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '9px 18px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800 },
   modal: { backgroundColor: 'var(--bg-secondary)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', width: '100%', maxWidth: 'var(--max-width)', display: 'flex', flexDirection: 'column', padding: '20px', paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' },
