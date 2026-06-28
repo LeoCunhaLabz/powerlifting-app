@@ -990,8 +990,21 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const first = state.templates.find(t => t.id === templateIds[0]);
       if (first) return first;
     }
-    // Fallback: primeiro template customizado, depois qualquer template
-    return state.templates.find(t => !t.isBuiltIn && !t.archived) ?? state.templates.find(t => !t.archived);
+    // Fallback sem programa: rotaciona entre templates customizados por histórico
+    const myTemplates = state.templates.filter(t => !t.isBuiltIn && !t.archived);
+    if (myTemplates.length === 0) return state.templates.find(t => !t.archived);
+    if (myTemplates.length === 1) return myTemplates[0];
+
+    // Encontra o último treino que usou um desses templates
+    const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
+    const lastMatch = sorted.find(s => s.templateId && myTemplates.some(t => t.id === s.templateId));
+    if (lastMatch && lastMatch.templateId) {
+      const lastIdx = myTemplates.findIndex(t => t.id === lastMatch.templateId);
+      if (lastIdx >= 0) {
+        return myTemplates[(lastIdx + 1) % myTemplates.length];
+      }
+    }
+    return myTemplates[0];
   }, [state.programs, state.history, state.templates]);
 
   // Rest Timer Functions (startRestTimer/stopRestTimer definidos acima)
