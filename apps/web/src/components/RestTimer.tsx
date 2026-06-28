@@ -142,9 +142,20 @@ export const RestTimer: React.FC = () => {
                 >
                   -30s
                 </button>
-                <span style={styles.stepperVal}>{formatTime(restTimerDuration)}</span>
+                <input
+                  key={restTimerDuration}
+                  type="number"
+                  defaultValue={restTimerDuration}
+                  onBlur={(e) => {
+                    const v = Math.max(30, Math.min(600, Number(e.target.value) || restTimerDuration));
+                    setRestTimerDuration(v);
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                  style={{ ...styles.stepperVal, width: 52, textAlign: 'center', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-primary)', fontSize: 14, fontWeight: 700, padding: '2px 4px' }}
+                  aria-label="Duração em segundos"
+                />
                 <button 
-                  onClick={() => setRestTimerDuration(restTimerDuration + 30)}
+                  onClick={() => setRestTimerDuration(Math.min(600, restTimerDuration + 30))}
                   style={styles.stepperBtn}
                 >
                   +30s
@@ -154,7 +165,7 @@ export const RestTimer: React.FC = () => {
 
             <div style={styles.controlsRow}>
               <button onClick={handleAdd30Sec} style={{ ...styles.btn, ...styles.btnAdd }}>
-                <Plus size={16} /> +30s
+                <Plus size={16} /> +30s ao descanso
               </button>
               <button onClick={stopRestTimer} style={{ ...styles.btn, ...styles.btnSkip }}>
                 Pular Descanso
@@ -169,8 +180,8 @@ export const RestTimer: React.FC = () => {
             </div>
             
             <div style={styles.right} onClick={(e) => e.stopPropagation()}>
-              <button onClick={handleAdd30Sec} style={styles.smallActionBtn}>
-                <Plus size={14} /> 30s
+              <button onClick={handleAdd30Sec} style={styles.smallActionBtn} title="Adicionar 30s ao descanso">
+                +30s
               </button>
               <button onClick={stopRestTimer} style={styles.smallActionBtn}>
                 Pular
