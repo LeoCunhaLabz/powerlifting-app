@@ -2,7 +2,7 @@ import React from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
 import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, History as HistoryIcon } from 'lucide-react';
-import { calculateDots } from '../utils/powerlifting';
+import { calculateDots, getStrengthComparison } from '../utils/powerlifting';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
 export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history';
@@ -27,6 +27,7 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
     getMaxE1RM('Agachamento') + getMaxE1RM('Supino Reto') + getMaxE1RM('Levantamento Terra');
   const bw = getBodyweightAt(new Date().toISOString());
   const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
+  const comparison = getStrengthComparison(dots, bw, settings.gender === 'male');
 
   const handleLogout = () => {
     logout();
@@ -78,6 +79,16 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
         <button onClick={handleLogout} style={styles.logoutBtn} aria-label="Sair">
           <LogOut size={18} />
         </button>
+      </div>
+
+      <div style={styles.comparisonCard}>
+        <div style={styles.comparisonHead}>
+          <span style={styles.comparisonTitle}>Comparação estimada</span>
+          <span style={styles.comparisonClass}>{comparison.bodyweightClass}</span>
+        </div>
+        <div style={styles.comparisonLevel}>{comparison.level}</div>
+        <div style={styles.comparisonPercentile}>Top {comparison.topPercentApprox}% aproximado</div>
+        <div style={styles.comparisonNote}>{comparison.note}</div>
       </div>
 
       {/* Tiles */}
@@ -174,6 +185,49 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  comparisonCard: {
+    backgroundColor: 'var(--bg-secondary)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '14px 16px',
+    marginBottom: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  comparisonHead: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  comparisonTitle: {
+    fontSize: '12px',
+    fontWeight: 800,
+    color: 'var(--text-secondary)',
+    letterSpacing: '0.03em',
+    textTransform: 'uppercase',
+  },
+  comparisonClass: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+  },
+  comparisonLevel: {
+    fontSize: '22px',
+    fontWeight: 800,
+    fontFamily: 'var(--font-display)',
+    color: 'var(--text-primary)',
+  },
+  comparisonPercentile: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: 'var(--accent)',
+  },
+  comparisonNote: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+    lineHeight: 1.4,
   },
   grid: {
     display: 'grid',
