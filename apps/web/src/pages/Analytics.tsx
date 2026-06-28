@@ -57,6 +57,18 @@ const linePoints = (vals: number[], w: number, h: number, pad = 8): string => {
     .join(' ');
 };
 
+const lineCoords = (vals: number[], w: number, h: number, pad = 8): { x: number; y: number }[] => {
+  if (vals.length === 0) return [];
+  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  return vals.map((v, i) => ({
+    x: vals.length === 1 ? w / 2 : (i / (vals.length - 1)) * w,
+    y: h - pad - ((v - min) / span) * (h - pad * 2),
+  }));
+};
+
+const fmtDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' });
+
 // ---- Mapa muscular (silhueta estilizada anatômica) ----
 const ARM_L = 'M35 72 C30 74 30 92 33 110 C39 115 45 112 45 104 C45 88 43 74 35 72 Z';
 const ARM_R = 'M125 72 C130 74 130 92 127 110 C121 115 115 112 115 104 C115 88 117 74 125 72 Z';
@@ -120,6 +132,7 @@ export const Analytics: React.FC = () => {
   const [customEnd, setCustomEnd] = useState('');
   const [muscleView, setMuscleView] = useState<'front' | 'back'>('front');
   const [muscleMetric, setMuscleMetric] = useState<'tonnage' | 'sets'>('tonnage');
+  const [activeTooltip, setActiveTooltip] = useState<{ chartId: string; label: string; date: string } | null>(null);
 
   const u = settings.units;
   const isMale = settings.gender === 'male';
@@ -204,9 +217,10 @@ export const Analytics: React.FC = () => {
   const wilks = sbdTotal ? calculateWilks(bwNow, sbdTotal, isMale) : 0;
 
   // --- Tendência do total estimado (SBD) por sessão (running best) ---
-  const totalTrend: number[] = (() => {
+  const { totalTrend, totalTrendDates } = (() => {
     const best: Record<string, number> = {};
-    const out: number[] = [];
+    const vals: number[] = [];
+    const dates: string[] = [];
     chrono.forEach((s) => {
       s.exercises.forEach((ex) => {
         const ln = ex.name.toLowerCase();
@@ -220,15 +234,16 @@ export const Analytics: React.FC = () => {
         });
       });
       const t = LIFTS.reduce((a, l) => a + (best[l.label] || 0), 0);
-      if (t > 0) out.push(Math.round(t));
+      if (t > 0) { vals.push(Math.round(t)); dates.push(s.date); }
     });
-    return out;
+    return { totalTrend: vals, totalTrendDates: dates };
   })();
 
   // --- e1RM relativo ao peso corporal ---
-  const relTrend: number[] = (() => {
+  const { relTrend, relTrendDates } = (() => {
     const best: Record<string, number> = {};
-    const out: number[] = [];
+    const vals: number[] = [];
+    const dates: string[] = [];
     chrono.forEach((s) => {
       s.exercises.forEach((ex) => {
         const ln = ex.name.toLowerCase();
@@ -243,16 +258,16 @@ export const Analytics: React.FC = () => {
       });
       const t = LIFTS.reduce((a, l) => a + (best[l.label] || 0), 0);
       const w = getBodyweightAt(s.date);
-      if (t > 0 && w > 0) out.push(Math.round((t / w) * 100) / 100);
+      if (t > 0 && w > 0) { vals.push(Math.round((t / w) * 100) / 100); dates.push(s.date); }
     });
-    return out;
+    return { relTrend: vals, relTrendDates: dates };
   })();
 
   // --- Peso corporal no período ---
-  const bwSeries = bodyweightLog
+  const bwEntries = bodyweightLog
     .filter((e) => inRange(e.date))
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((e) => e.weight);
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const bwSeries = bwEntries.map((e) => e.weight);
   const bwDelta = bwSeries.length >= 2 ? Math.round((bwSeries[bwSeries.length - 1] - bwSeries[0]) * 10) / 10 : 0;
 
   // --- Volume por músculo ---
@@ -320,11 +335,11 @@ export const Analytics: React.FC = () => {
       }),
     );
   });
-  const rpeWeekVals = Object.keys(rpeWeek)
+  const rpeWeekKeys = Object.keys(rpeWeek)
     .map(Number)
     .sort((a, b) => a - b)
-    .slice(-8)
-    .map((k) => Math.round((rpeWeek[k].sum / rpeWeek[k].count) * 10) / 10);
+    .slice(-8);
+  const rpeWeekVals = rpeWeekKeys.map((k) => Math.round((rpeWeek[k].sum / rpeWeek[k].count) * 10) / 10);
 
   // --- Distribuição de RPE ---
   const rpeCounts: Record<number, number> = { 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
@@ -445,9 +460,28 @@ export const Analytics: React.FC = () => {
           <span style={styles.cardMeta}>{Math.round(sbdTotal)} {u}</span>
         </div>
         {totalTrend.length >= 2 ? (
-          <svg width="100%" height="90" viewBox="0 0 300 90" fill="none" preserveAspectRatio="none">
-            <polyline points={linePoints(totalTrend, 300, 90, 10)} stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <>
+            <svg width="100%" height="90" viewBox="0 0 300 90" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+              <polyline points={linePoints(totalTrend, 300, 90, 10)} stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              {lineCoords(totalTrend, 300, 90, 10).map((pt, i) => {
+                const isActive = activeTooltip?.chartId === 'sbd' && activeTooltip.date === totalTrendDates[i];
+                return (
+                  <g key={i}>
+                    <circle cx={pt.x} cy={pt.y} r="3.5" fill={isActive ? 'var(--accent)' : 'transparent'} stroke="var(--accent)" strokeWidth={isActive ? 0 : 0} style={{ pointerEvents: 'none' }} />
+                    <circle cx={pt.x} cy={pt.y} r="8" fill="transparent" style={{ cursor: 'pointer' }}
+                      onClick={(e) => { e.stopPropagation(); setActiveTooltip(isActive ? null : { chartId: 'sbd', label: `${totalTrend[i]} ${u}`, date: totalTrendDates[i] }); }}
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+            {activeTooltip?.chartId === 'sbd' && (
+              <div style={styles.tooltipBar}>
+                <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+              </div>
+            )}
+          </>
         ) : (
           <div style={styles.empty}>Complete treinos com os 3 levantamentos para ver a tendência.</div>
         )}
@@ -467,22 +501,38 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
         {hasLine ? (
-          <svg viewBox={`0 0 ${vbW} ${vbH}`} style={styles.svg}>
-            {[0.5, 1].map((f, idx) => {
-              const y = padT + chartH - f * chartH;
-              return <line key={idx} x1={padL} y1={y} x2={vbW - padR} y2={y} stroke="var(--border-color)" strokeWidth="1" />;
-            })}
-            {series.map((s, idx) =>
-              s.pts.length >= 2 ? (
-                <path key={idx} d={pathOf(s.pts)} fill="none" style={{ stroke: s.color }} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              ) : null,
+          <>
+            <svg viewBox={`0 0 ${vbW} ${vbH}`} style={styles.svg} onClick={() => setActiveTooltip(null)}>
+              {[0.5, 1].map((f, idx) => {
+                const y = padT + chartH - f * chartH;
+                return <line key={idx} x1={padL} y1={y} x2={vbW - padR} y2={y} stroke="var(--border-color)" strokeWidth="1" />;
+              })}
+              {series.map((s, idx) =>
+                s.pts.length >= 2 ? (
+                  <path key={idx} d={pathOf(s.pts)} fill="none" style={{ stroke: s.color }} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                ) : null,
+              )}
+              {series.map((s, sIdx) =>
+                s.pts.map((p, pIdx) => {
+                  const isActive = activeTooltip?.chartId === `e1rm-${sIdx}` && activeTooltip.date === chrono[p.i]?.date;
+                  return (
+                    <g key={`${sIdx}-${pIdx}`}>
+                      <circle cx={xFor(p.i)} cy={yFor(p.v)} r="3.5" style={{ fill: s.color }} opacity={isActive ? 1 : (pIdx === s.pts.length - 1 ? 1 : 0.35)} />
+                      <circle cx={xFor(p.i)} cy={yFor(p.v)} r="8" fill="transparent" style={{ cursor: 'pointer' }}
+                        onClick={(e) => { e.stopPropagation(); setActiveTooltip(isActive ? null : { chartId: `e1rm-${sIdx}`, label: `${s.short} ${Math.round(p.v)} ${u}`, date: chrono[p.i]?.date ?? '' }); }}
+                      />
+                    </g>
+                  );
+                }),
+              )}
+            </svg>
+            {activeTooltip?.chartId?.startsWith('e1rm-') && (
+              <div style={styles.tooltipBar}>
+                <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+              </div>
             )}
-            {series.map((s, idx) =>
-              s.pts.length ? (
-                <circle key={`c${idx}`} cx={xFor(s.pts[s.pts.length - 1].i)} cy={yFor(s.pts[s.pts.length - 1].v)} r="3.5" style={{ fill: s.color }} />
-              ) : null,
-            )}
-          </svg>
+          </>
         ) : (
           <div style={styles.empty}>Complete treinos com os 3 levantamentos para ver a evolução.</div>
         )}
@@ -498,9 +548,28 @@ export const Analytics: React.FC = () => {
           </span>
         </div>
         {bwSeries.length >= 2 ? (
-          <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" preserveAspectRatio="none">
-            <polyline points={linePoints(bwSeries, 300, 80, 8)} stroke="#cfcfd4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <>
+            <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+              <polyline points={linePoints(bwSeries, 300, 80, 8)} stroke="#cfcfd4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              {lineCoords(bwSeries, 300, 80, 8).map((pt, i) => {
+                const isActive = activeTooltip?.chartId === 'bw' && activeTooltip.date === bwEntries[i]?.date;
+                return (
+                  <g key={i}>
+                    <circle cx={pt.x} cy={pt.y} r="3" fill={isActive ? '#cfcfd4' : 'transparent'} stroke="#cfcfd4" strokeWidth={isActive ? 1.5 : 0} style={{ pointerEvents: 'none' }} />
+                    <circle cx={pt.x} cy={pt.y} r="8" fill="transparent" style={{ cursor: 'pointer' }}
+                      onClick={(e) => { e.stopPropagation(); setActiveTooltip(isActive ? null : { chartId: 'bw', label: `${bwSeries[i]} ${u}`, date: bwEntries[i]?.date ?? '' }); }}
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+            {activeTooltip?.chartId === 'bw' && (
+              <div style={styles.tooltipBar}>
+                <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+              </div>
+            )}
+          </>
         ) : bwSeries.length === 1 ? (
           <div style={styles.emptySmall}>{bwSeries[0]} {u} — registre mais pesos para ver a evolução.</div>
         ) : (
@@ -523,8 +592,12 @@ export const Analytics: React.FC = () => {
               <MuscleMap view={muscleView} fill={fillFor} />
             </div>
             <div style={styles.muscleChips}>
-              {topMuscles.map(([m]) => (
-                <span key={m} style={styles.muscleChip}>{MUSCLE_LABELS[m]}</span>
+              {topMuscles.map(([m, val]) => (
+                <span key={m} style={styles.muscleChip}>
+                  {MUSCLE_LABELS[m]}
+                  {' · '}
+                  <span style={{ fontWeight: 400 }}>{val >= 1000 ? `${(val / 1000).toFixed(1)}t` : Math.round(val)}</span>
+                </span>
               ))}
             </div>
             <div style={styles.heatBarRow}>
@@ -556,17 +629,24 @@ export const Analytics: React.FC = () => {
             {weekBars.map((v, idx) => (
               <div
                 key={idx}
-                style={{ ...styles.bar, height: `${Math.max(6, (v / maxWeekBar) * 110)}px`, opacity: idx === weekBars.length - 1 ? 1 : 0.45 }}
+                style={{ ...styles.bar, height: `${Math.max(6, (v / maxWeekBar) * 110)}px`, opacity: idx === weekBars.length - 1 ? 1 : 0.45, cursor: 'pointer' }}
                 title={`${Math.round(v)} ${u}`}
+                onClick={() => {
+                  const isActive = activeTooltip?.chartId === 'tonnage' && activeTooltip.label === `${Math.round(v)} ${u}`;
+                  setActiveTooltip(isActive ? null : { chartId: 'tonnage', label: `${Math.round(v)} ${u}`, date: '' });
+                }}
               />
             ))}
           </div>
         ) : (
           <div style={styles.empty}>Sem sessões no período.</div>
         )}
+        {activeTooltip?.chartId === 'tonnage' && (
+          <div style={styles.tooltipBar}>
+            <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+          </div>
+        )}
       </div>
-
-      {/* Top exercises */}
       <div style={styles.card}>
         <span style={styles.cardTitle}>Top exercícios por volume</span>
         {topEx.length ? (
@@ -627,9 +707,29 @@ export const Analytics: React.FC = () => {
           <span style={styles.cardTitle}>RPE médio</span>
           <span style={styles.cardMeta}>por semana</span>
           {rpeWeekVals.length >= 2 ? (
-            <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none">
-              <polyline points={linePoints(rpeWeekVals, 140, 60, 8)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <>
+              <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+                <polyline points={linePoints(rpeWeekVals, 140, 60, 8)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                {lineCoords(rpeWeekVals, 140, 60, 8).map((pt, i) => {
+                  const weekIso = new Date(rpeWeekKeys[i]).toISOString().slice(0, 10);
+                  const isActive = activeTooltip?.chartId === 'rpe' && activeTooltip.date === weekIso;
+                  return (
+                    <g key={i}>
+                      <circle cx={pt.x} cy={pt.y} r="2.5" fill={isActive ? 'var(--accent)' : 'transparent'} stroke="var(--accent)" strokeWidth={isActive ? 1.5 : 0} style={{ pointerEvents: 'none' }} />
+                      <circle cx={pt.x} cy={pt.y} r="7" fill="transparent" style={{ cursor: 'pointer' }}
+                        onClick={(e) => { e.stopPropagation(); setActiveTooltip(isActive ? null : { chartId: 'rpe', label: `RPE ${rpeWeekVals[i]}`, date: weekIso }); }}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+              {activeTooltip?.chartId === 'rpe' && (
+                <div style={styles.tooltipBar}>
+                  <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                  <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+                </div>
+              )}
+            </>
           ) : rpeWeekVals.length === 1 ? (
             <div style={styles.emptySmall}>Média: <strong>{rpeWeekVals[0]}</strong> — registre mais treinos com RPE.</div>
           ) : (
@@ -638,11 +738,30 @@ export const Analytics: React.FC = () => {
         </div>
         <div style={styles.card}>
           <span style={styles.cardTitle}>e1RM / peso</span>
-          <span style={styles.cardMeta}>força relativa</span>
+          <span style={styles.cardMeta}>SBD total ÷ peso corporal</span>
           {relTrend.length >= 2 ? (
-            <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none">
-              <polyline points={linePoints(relTrend, 140, 60, 8)} stroke="#9ec5ff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <>
+              <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+                <polyline points={linePoints(relTrend, 140, 60, 8)} stroke="#9ec5ff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                {lineCoords(relTrend, 140, 60, 8).map((pt, i) => {
+                  const isActive = activeTooltip?.chartId === 'rel' && activeTooltip.date === relTrendDates[i];
+                  return (
+                    <g key={i}>
+                      <circle cx={pt.x} cy={pt.y} r="2.5" fill={isActive ? '#9ec5ff' : 'transparent'} stroke="#9ec5ff" strokeWidth={isActive ? 1.5 : 0} style={{ pointerEvents: 'none' }} />
+                      <circle cx={pt.x} cy={pt.y} r="7" fill="transparent" style={{ cursor: 'pointer' }}
+                        onClick={(e) => { e.stopPropagation(); setActiveTooltip(isActive ? null : { chartId: 'rel', label: `${relTrend[i]}×`, date: relTrendDates[i] }); }}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+              {activeTooltip?.chartId === 'rel' && (
+                <div style={styles.tooltipBar}>
+                  <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                  <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+                </div>
+              )}
+            </>
           ) : relTrend.length === 1 ? (
             <div style={styles.emptySmall}>Atual: <strong>{relTrend[0]}×</strong> — registre mais treinos para ver a tendência.</div>
           ) : (
@@ -789,5 +908,8 @@ const styles: Record<string, React.CSSProperties> = {
   tlName: { fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' },
   tlSub: { fontSize: '11px', color: 'var(--text-muted)' },
   tlDate: { fontSize: '11px', color: 'var(--text-muted)' },
+  tooltipBar: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
+  tooltipVal: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
+  tooltipDate: { fontSize: '11px', color: 'var(--text-muted)' },
 };
 export default Analytics;
