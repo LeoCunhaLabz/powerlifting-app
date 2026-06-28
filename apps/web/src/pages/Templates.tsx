@@ -318,6 +318,17 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                     <span style={styles.exBlockName}>{ex.name}</span>
                     <button onClick={() => removeEx(exIdx)} style={styles.removeExText}>Remover</button>
                   </div>
+                  <input
+                    type="text"
+                    placeholder="Nota do exercício (opcional)"
+                    value={ex.notes ?? ''}
+                    onChange={(e) =>
+                      setExercises(prev => prev.map((x, i) =>
+                        i === exIdx ? { ...x, notes: e.target.value || undefined } : x
+                      ))
+                    }
+                    style={{ ...styles.inp, width: '100%', marginBottom: 6, boxSizing: 'border-box' }}
+                  />
                   <div style={styles.setHead}>
                     <span>SÉRIE</span><span style={styles.cC}>TIPO</span><span style={styles.cC}>REPS</span><span style={styles.cC}>{prescription === 'percent' ? '%1RM' : 'RPE'}</span><span></span>
                   </div>

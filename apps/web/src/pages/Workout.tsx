@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw } from 'lucide-react';
+import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
 
 const EXERCISE_OPTIONS = [
@@ -15,7 +15,7 @@ export const Workout: React.FC = () => {
   const {
     activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
     addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
-    removeSetFromExercise, updateSet, updateWorkoutNotes, state, getMaxE1RM,
+    removeSetFromExercise, updateSet, updateWorkoutNotes, updateExerciseNotes, state, getMaxE1RM,
   } = useWorkout();
   const { settings, history } = state;
   const u = settings.units;
@@ -27,6 +27,7 @@ export const Workout: React.FC = () => {
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [confirmRemoveExIdx, setConfirmRemoveExIdx] = useState<number | null>(null);
   const [showNotes, setShowNotes] = useState(false);
+  const [openExNotes, setOpenExNotes] = useState<Set<number>>(new Set());
   const [elapsed, setElapsed] = useState('00:00');
 
   useEffect(() => {
@@ -135,8 +136,30 @@ export const Workout: React.FC = () => {
                   return `e1RM: ${e1rm || '—'} ${u}`;
                 })()}</div>
               </div>
-              <button onClick={() => setConfirmRemoveExIdx(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={() => setOpenExNotes(prev => {
+                    const next = new Set(prev);
+                    if (next.has(exIdx)) { next.delete(exIdx); } else { next.add(exIdx); }
+                    return next;
+                  })}
+                  style={{ ...styles.exDel, color: (ex.notes || openExNotes.has(exIdx)) ? 'var(--accent)' : undefined }}
+                  aria-label="Notas do exercício"
+                  title="Notas do exercício"
+                >
+                  <MessageSquare size={15} />
+                </button>
+                <button onClick={() => setConfirmRemoveExIdx(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
+              </div>
             </div>
+            {(openExNotes.has(exIdx) || ex.notes) && (
+              <textarea
+                placeholder="Notas do exercício (técnica, observações...)"
+                value={ex.notes || ''}
+                onChange={(e) => updateExerciseNotes(exIdx, e.target.value)}
+                style={{ ...styles.notes, marginTop: 4, marginBottom: 4 }}
+              />
+            )}
 
             <div style={styles.colHead}>
               <span>SÉRIE</span><span>ANT.</span><span style={styles.colC}>{u.toUpperCase()}</span><span style={styles.colC}>REPS</span><span style={styles.colC}>RPE</span><span></span>

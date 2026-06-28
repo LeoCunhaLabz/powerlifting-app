@@ -28,6 +28,7 @@ interface WorkoutContextType {
   removeSetFromExercise: (exerciseIndex: number, setIndex: number) => void;
   updateSet: (exerciseIndex: number, setIndex: number, fields: Partial<SetState>) => void;
   updateWorkoutNotes: (notes: string) => void;
+  updateExerciseNotes: (exerciseIndex: number, notes: string) => void;
   saveTemplate: (template: Omit<WorkoutTemplate, 'id'> & { id?: string }) => void;
   deleteTemplate: (templateId: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
@@ -448,6 +449,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return {
             id: `ex-${exIdx}-${Date.now()}`,
             name: ex.name,
+            notes: ex.notes,
             sets: ex.sets.map((set, setIdx) => {
               let calculatedWeight = 0;
               if (set.weightPercentage) {
@@ -764,6 +766,18 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActiveWorkout(prev => prev ? { ...prev, notes } : null);
   }, [activeWorkout]);
 
+  // Update notes of a specific exercise in the active workout
+  const updateExerciseNotes = useCallback((exerciseIndex: number, notes: string) => {
+    if (!activeWorkout) return;
+    setActiveWorkout(prev => {
+      if (!prev) return null;
+      const exercises = prev.exercises.map((ex, i) =>
+        i === exerciseIndex ? { ...ex, notes } : ex
+      );
+      return { ...prev, exercises };
+    });
+  }, [activeWorkout]);
+
   // Save/Create a workout template
   const saveTemplate = useCallback((templateData: Omit<WorkoutTemplate, 'id'> & { id?: string }) => {
     setState(prev => {
@@ -977,6 +991,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       removeSetFromExercise,
       updateSet,
       updateWorkoutNotes,
+      updateExerciseNotes,
       saveTemplate,
       deleteTemplate,
       updateSettings,
@@ -1001,7 +1016,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
-      removeSetFromExercise, updateSet, updateWorkoutNotes, saveTemplate, deleteTemplate,
+      removeSetFromExercise, updateSet, updateWorkoutNotes, updateExerciseNotes, saveTemplate, deleteTemplate,
       updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
