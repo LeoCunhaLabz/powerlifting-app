@@ -69,6 +69,22 @@ export interface BodyweightEntry {
 export type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
 
 /**
+ * Sobrescreve a prescrição de um exercício numa semana específica do programa.
+ * Campos omitidos herdam os valores do template base.
+ */
+export interface WeekOverride {
+  /** Índice da semana (0-based: semana 1 = índice 0). */
+  weekIndex: number;
+  /** Nome do exercício — igual ao nome no template. */
+  exerciseName: string;
+  reps?: number;
+  weightPercentage?: number;
+  rpe?: number;
+  /** Número de séries de trabalho (substituem a contagem do template). */
+  sets?: number;
+}
+
+/**
  * Representa um programa de treino: uma sequência ordenada de rotinas/templates
  * que define o ciclo de treinos do atleta.
  */
@@ -86,6 +102,10 @@ export interface Program {
   startDate?: string;
   /** Dias da semana para treinar: 0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sáb, 6=Dom. */
   trainingDays?: number[];
+  /** Número de semanas do mesociclo de variação. Default: 1. */
+  weekCount?: number;
+  /** Sobrescritas de prescrição por semana e exercício. */
+  weekOverrides?: WeekOverride[];
 }
 
 export interface AppState {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import type { TemplateExercise, WorkoutTemplate, Program } from '@powerlifting/shared';
+import type { TemplateExercise, WorkoutTemplate, Program, WeekOverride } from '@powerlifting/shared';
 import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface TemplatesProps {
@@ -52,6 +52,9 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [progActive, setProgActive] = useState(false);
   const [progStartDate, setProgStartDate] = useState('');
   const [progTrainingDays, setProgTrainingDays] = useState<number[]>([]);
+  const [progWeekCount, setProgWeekCount] = useState(4);
+  const [progWeekOverrides, setProgWeekOverrides] = useState<WeekOverride[]>([]);
+  const [selectedOverrideWeek, setSelectedOverrideWeek] = useState(0);
   const [confirmDeleteProgId, setConfirmDeleteProgId] = useState<string | null>(null);
 
   const filtered = templates.filter((t) => (filter === 'builtin' ? t.isBuiltIn : !t.isBuiltIn));
@@ -124,7 +127,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   // ---- Program form helpers ----
   const resetProgramForm = () => {
     setProgName(''); setProgDesc(''); setProgTemplateIds([]); setProgActive(false);
-    setProgStartDate(''); setProgTrainingDays([]);
+    setProgStartDate(''); setProgTrainingDays([]); setProgWeekCount(4); setProgWeekOverrides([]); setSelectedOverrideWeek(0);
     setEditingProgramId(null); setIsProgramForm(false);
   };
 
@@ -135,6 +138,9 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     setProgActive(prog.isActive);
     setProgStartDate(prog.startDate ?? prog.createdAt.slice(0, 10));
     setProgTrainingDays(prog.trainingDays ?? []);
+    setProgWeekCount(prog.weekCount ?? 4);
+    setProgWeekOverrides(prog.weekOverrides ? prog.weekOverrides.map(o => ({ ...o })) : []);
+    setSelectedOverrideWeek(0);
     setEditingProgramId(prog.id);
     setIsProgramForm(true);
   };
@@ -149,6 +155,8 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       isActive: progActive,
       startDate: progStartDate || new Date().toISOString().slice(0, 10),
       trainingDays: progTrainingDays,
+      weekCount: progWeekCount,
+      weekOverrides: progWeekOverrides.length > 0 ? progWeekOverrides : undefined,
     });
     resetProgramForm();
   };
@@ -168,6 +176,28 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       return next;
     });
   };
+
+  // ---- Week override helpers ----
+  const updateWeekOverride = (weekIndex: number, exerciseName: string, field: keyof Omit<WeekOverride, 'weekIndex' | 'exerciseName'>, value: number | undefined) => {
+    setProgWeekOverrides(prev => {
+      const existing = prev.findIndex(o => o.weekIndex === weekIndex && o.exerciseName === exerciseName);
+      if (existing > -1) {
+        const next = [...prev];
+        next[existing] = { ...next[existing], [field]: value };
+        // Remover override se todos os campos opcionais estiverem undefined
+        const ov = next[existing];
+        if (ov.reps === undefined && ov.weightPercentage === undefined && ov.rpe === undefined && ov.sets === undefined) {
+          return next.filter((_, i) => i !== existing);
+        }
+        return next;
+      }
+      if (value === undefined) return prev;
+      return [...prev, { weekIndex, exerciseName, [field]: value }];
+    });
+  };
+
+  const getOverrideVal = (weekIndex: number, exerciseName: string, field: keyof Omit<WeekOverride, 'weekIndex' | 'exerciseName'>): number | undefined =>
+    progWeekOverrides.find(o => o.weekIndex === weekIndex && o.exerciseName === exerciseName)?.[field];
 
   return (
     <div style={styles.container}>
@@ -456,6 +486,69 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               {templates.filter(t => !t.isBuiltIn).length === 0 && (
                 <div style={{ ...styles.empty, padding: '12px', border: 'none', fontSize: '12px' }}>Crie rotinas customizadas primeiro.</div>
               )}
+
+              {/* ---- Periodização por semana ---- */}
+              {progTemplateIds.length > 0 && (() => {
+                // Deduplica exercícios dos templates selecionados
+                const exNames: string[] = [];
+                progTemplateIds.forEach(tid => {
+                  const tpl = templates.find(t => t.id === tid);
+                  tpl?.exercises.forEach(ex => { if (!exNames.includes(ex.name)) exNames.push(ex.name); });
+                });
+                return (
+                  <div>
+                    <div style={{ ...styles.prescLabel, marginBottom: 8 }}>Periodização por semana</div>
+                    <div style={styles.progActiveRow}>
+                      <span style={styles.prescLabel}>Nº de semanas</span>
+                      <input type="number" inputMode="numeric" min={1} max={52} value={progWeekCount}
+                        onChange={(e) => { const v = Math.max(1, Math.min(52, Number(e.target.value))); setProgWeekCount(v); setSelectedOverrideWeek(w => Math.min(w, v - 1)); }}
+                        style={{ ...styles.inp, width: 64, height: 36 }} />
+                    </div>
+                    {/* Week tabs */}
+                    <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4, marginBottom: 8 }}>
+                      {Array.from({ length: progWeekCount }, (_, i) => (
+                        <button key={i} onClick={() => setSelectedOverrideWeek(i)}
+                          style={{ flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+                            backgroundColor: selectedOverrideWeek === i ? 'var(--accent)' : 'var(--bg-tertiary)',
+                            color: selectedOverrideWeek === i ? 'var(--accent-ink)' : 'var(--text-secondary)',
+                            border: '1px solid var(--border-color)' }}>
+                          S{i + 1}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Exercise overrides for selected week */}
+                    {exNames.map(exName => {
+                      const reps = getOverrideVal(selectedOverrideWeek, exName, 'reps');
+                      const pct  = getOverrideVal(selectedOverrideWeek, exName, 'weightPercentage');
+                      const rpe  = getOverrideVal(selectedOverrideWeek, exName, 'rpe');
+                      const sets = getOverrideVal(selectedOverrideWeek, exName, 'sets');
+                      return (
+                        <div key={exName} style={{ ...styles.exBlock, marginBottom: 8 }}>
+                          <div style={{ ...styles.exBlockHead, marginBottom: 6 }}>
+                            <span style={{ ...styles.exBlockName, fontSize: 12 }}>{exName}</span>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>S{selectedOverrideWeek + 1}</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
+                            {[
+                              { label: 'Séries', field: 'sets' as const, val: sets },
+                              { label: 'Reps', field: 'reps' as const, val: reps },
+                              { label: '%1RM', field: 'weightPercentage' as const, val: pct },
+                              { label: 'RPE', field: 'rpe' as const, val: rpe },
+                            ].map(({ label, field, val }) => (
+                              <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-muted)' }}>{label}</span>
+                                <input type="number" inputMode="decimal" placeholder="—" value={val ?? ''}
+                                  onChange={(e) => updateWeekOverride(selectedOverrideWeek, exName, field, e.target.value === '' ? undefined : Number(e.target.value))}
+                                  style={{ ...styles.inp, height: 32, fontSize: 12 }} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
