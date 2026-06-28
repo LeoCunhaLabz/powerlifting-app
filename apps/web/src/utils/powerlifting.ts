@@ -85,6 +85,44 @@ export function calculateWilks(bodyweight: number, total: number, isMale: boolea
 }
 
 /**
+ * Wilks 2020 (Wilks2) Formula
+ * Fonte: OpenPowerlifting coefficients/wilks2020.rs (MIT)
+ */
+export function calculateWilks2020(bodyweight: number, total: number, isMale: boolean): number {
+  if (!(bodyweight > 0) || !(total > 0)) return 0;
+
+  let a: number, b: number, c: number, d: number, e: number, f: number;
+  let minW: number, maxW: number;
+
+  if (isMale) {
+    a = 47.4617885411949;
+    b = 8.47206137941125;
+    c = 0.073694103462609;
+    d = -0.00139583381094385;
+    e = 0.00000707665973070743;
+    f = -0.0000000120804336482315;
+    minW = 40.0;
+    maxW = 200.95;
+  } else {
+    a = -125.425539779509;
+    b = 13.7121941940668;
+    c = -0.0330725063103405;
+    d = -0.0010504000506583;
+    e = 0.00000938773881462799;
+    f = -0.000000023334613884954;
+    minW = 40.0;
+    maxW = 150.95;
+  }
+
+  const w = Math.min(maxW, Math.max(minW, bodyweight));
+  const denominator = a + (b * w) + (c * Math.pow(w, 2)) + (d * Math.pow(w, 3)) + (e * Math.pow(w, 4)) + (f * Math.pow(w, 5));
+  if (denominator === 0) return 0;
+
+  const coeff = 600 / denominator;
+  return Math.round((total * coeff) * 100) / 100;
+}
+
+/**
  * DOTS Formula (standardized weight comparison)
  */
 export function calculateDots(bodyweight: number, total: number, isMale: boolean): number {

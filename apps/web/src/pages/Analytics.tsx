@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { calculateE1RM, calculateDots, calculateWilks, getExerciseMuscles, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
+import { calculateE1RM, calculateDots, calculateWilks, calculateWilks2020, getExerciseMuscles, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { Award } from 'lucide-react';
 
@@ -221,6 +221,7 @@ export const Analytics: React.FC = () => {
   const bwNow = getBodyweightAt(new Date().toISOString());
   const dots = sbdTotal ? calculateDots(bwNow, sbdTotal, isMale) : 0;
   const wilks = sbdTotal ? calculateWilks(bwNow, sbdTotal, isMale) : 0;
+  const wilks2020 = sbdTotal ? calculateWilks2020(bwNow, sbdTotal, isMale) : 0;
 
   // --- Tendência do total estimado (SBD) por sessão (running best) ---
   const { totalTrend, totalTrendDates } = (() => {
@@ -727,6 +728,10 @@ export const Analytics: React.FC = () => {
           <div style={styles.card}>
             <span style={styles.cardMeta}>Wilks</span>
             <span style={styles.scoreVal}>{wilks || '—'}</span>
+          </div>
+          <div style={styles.card}>
+            <span style={styles.cardMeta}>Wilks 2020</span>
+            <span style={styles.scoreVal}>{wilks2020 || '—'}</span>
           </div>
         </div>
       </div>
