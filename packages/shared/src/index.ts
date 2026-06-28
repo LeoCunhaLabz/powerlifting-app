@@ -10,4 +10,5 @@ export type {
   AppState,
   SyncStatus,
   Program,
+  WeekOverride,
 } from './workout';

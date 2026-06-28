@@ -9,6 +9,7 @@ import type {
   BodyweightEntry,
   SyncStatus,
   Program,
+  WeekOverride,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 import { isValidImportedState } from '../utils/validateAppState';
@@ -195,6 +196,17 @@ const DEFAULT_STATE: AppState = {
 //   - Templates: servidor vence para IDs já sincronizados (syncedAt definido);
 //               templates locais PENDENTES (sem syncedAt) são preservados para
 //               evitar perda antes do push terminar; built-ins nunca são substituídos
+// ---------------------------------------------------------------------------
+// Helper puro: índice da semana atual (0-based) a partir da data de início
+// e do número de semanas do mesociclo (ciclo volta ao 0 após weekCount semanas).
+// ---------------------------------------------------------------------------
+function currentWeekIndex(startDate: string, weekCount: number): number {
+  const start = new Date(startDate + 'T00:00:00');
+  const now = new Date();
+  const elapsed = Math.max(0, Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000)));
+  return weekCount > 0 ? elapsed % weekCount : 0;
+}
+
 // ---------------------------------------------------------------------------
 function mergePullResult(
   prev: AppState,
@@ -456,6 +468,38 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
             })
           };
         });
+
+        // Aplicar sobrescritas de periodização semanal (se o programa ativo tiver overrides)
+        const activeProgram = state.programs.find(p => p.isActive);
+        if (activeProgram?.weekOverrides?.length && activeProgram.templateIds.includes(templateId)) {
+          const startDate = activeProgram.startDate ?? activeProgram.createdAt.slice(0, 10);
+          const weekIdx = currentWeekIndex(startDate, activeProgram.weekCount ?? 1);
+          exercises = exercises.map(ex => {
+            const ov: WeekOverride | undefined = activeProgram.weekOverrides!.find(
+              o => o.weekIndex === weekIdx && o.exerciseName === ex.name
+            );
+            if (!ov) return ex;
+            const baseSets = ex.sets.slice(0, ov.sets ?? ex.sets.length);
+            const maxE1RM = getMaxE1RM(ex.name);
+            return {
+              ...ex,
+              sets: baseSets.map((set, setIdx) => {
+                const ovPct = ov.weightPercentage;
+                const ovWeight = ovPct
+                  ? Math.round((maxE1RM * ovPct / 100) / 2.5) * 2.5
+                  : set.weight;
+                return {
+                  ...set,
+                  id: `set-${ex.id}-${setIdx}-${Date.now()}`,
+                  reps: ov.reps ?? set.reps,
+                  weight: ovWeight,
+                  rpe: ov.rpe ?? set.rpe,
+                  percentage: ovPct ?? set.percentage,
+                };
+              }),
+            };
+          });
+        }
       }
     }
 
@@ -853,6 +897,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         description: programData.description,
         templateIds: programData.templateIds,
         isActive: programData.isActive,
+        startDate: programData.startDate,
+        trainingDays: programData.trainingDays,
+        weekCount: programData.weekCount,
+        weekOverrides: programData.weekOverrides,
         createdAt: existingIndex > -1 ? prev.programs[existingIndex].createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
