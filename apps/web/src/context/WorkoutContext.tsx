@@ -450,6 +450,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
             id: `ex-${exIdx}-${Date.now()}`,
             name: ex.name,
             notes: ex.notes,
+            restSeconds: ex.restSeconds,
             sets: ex.sets.map((set, setIdx) => {
               let calculatedWeight = 0;
               if (set.weightPercentage) {
@@ -750,7 +751,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Trigger Rest Timer when a set is completed
       if (!wasCompleted && isNowCompleted) {
-        startRestTimer(restTimerDuration);
+        startRestTimer(targetEx.restSeconds ?? restTimerDuration);
       }
 
       return {
