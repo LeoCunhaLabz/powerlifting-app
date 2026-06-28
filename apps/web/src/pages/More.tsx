@@ -1,11 +1,11 @@
 import React from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
-import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut } from 'lucide-react';
+import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays } from 'lucide-react';
 import { calculateDots } from '../utils/powerlifting';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
-export type MoreTab = 'calculators' | 'settings';
+export type MoreTab = 'calculators' | 'settings' | 'calendar';
 
 interface MoreProps {
   onNavigate: (tab: MoreTab) => void;
@@ -35,6 +35,12 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
   const avatarLetter = user?.name?.charAt(0).toUpperCase() ?? 'A';
 
   const items: MoreItem[] = [
+    {
+      tab: 'calendar',
+      label: 'Calendário',
+      desc: 'Projeção do programa ativo: planejado vs concluído',
+      icon: <CalendarDays size={22} />,
+    },
     {
       tab: 'calculators',
       label: 'Calculadoras',

@@ -82,6 +82,10 @@ export interface Program {
   isActive: boolean;
   createdAt: string; // ISO
   updatedAt?: string; // ISO
+  /** Data de início do ciclo (ISO YYYY-MM-DD). Padrão: createdAt. */
+  startDate?: string;
+  /** Dias da semana para treinar: 0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sáb, 6=Dom. */
+  trainingDays?: number[];
 }
 
 export interface AppState {
