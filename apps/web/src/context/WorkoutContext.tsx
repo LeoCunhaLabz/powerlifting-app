@@ -179,6 +179,49 @@ const DEFAULT_STATE: AppState = {
   bodyweightLog: []
 };
 
+// ---------------------------------------------------------------------------
+// Helper de merge puro — reutilizado em pullFromServer e no pull inicial de boot
+// Regras:
+//   - Workouts:  servidor vence para IDs existentes; locais-only são preservados
+//   - Templates: servidor vence para IDs já sincronizados (syncedAt definido);
+//               templates locais PENDENTES (sem syncedAt) são preservados para
+//               evitar perda antes do push terminar; built-ins nunca são substituídos
+// ---------------------------------------------------------------------------
+function mergePullResult(
+  prev: AppState,
+  result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[] },
+  now: string,
+): AppState {
+  // Workouts
+  const serverWorkoutIds = new Set(result.workouts.map(w => w.id));
+  const localWorkoutsOnly = prev.history.filter(h => !serverWorkoutIds.has(h.id));
+  const mergedHistory = [
+    ...result.workouts.map(w => ({ ...w, syncedAt: now })),
+    ...localWorkoutsOnly,
+  ];
+
+  // Templates
+  const localCustomMap = new Map(
+    prev.templates.filter(t => !t.isBuiltIn).map(t => [t.id, t]),
+  );
+  const builtIns = prev.templates.filter(t => t.isBuiltIn);
+  const serverTplIds = new Set(result.templates.map(t => t.id));
+
+  const mergedTemplates = [
+    ...builtIns,
+    ...result.templates.map(t => {
+      const local = localCustomMap.get(t.id);
+      // Preservar versão local quando pendente (editada mas ainda não enviada)
+      if (local && !local.syncedAt) return local;
+      return { ...t, syncedAt: now };
+    }),
+    // Locais custom sem correspondência no servidor (novos, ainda não sincronizados)
+    ...prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id)),
+  ];
+
+  return { ...prev, history: mergedHistory, templates: mergedTemplates };
+}
+
 export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load State from LocalStorage
   const [state, setState] = useState<AppState>(() => {
@@ -249,33 +292,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const { syncStatus, triggerSync, pullFromServer: syncPull } = useSyncManager({ onSyncComplete });
 
-  // Faz pull do servidor e merge com estado local:
-  // - servidor vence para IDs já existentes
-  // - itens locais sem par no servidor (ainda não sincronizados) são preservados
-  // - built-ins nunca são substituídos
+  // Faz pull do servidor e merge com estado local (reutiliza mergePullResult)
   const pullFromServer = useCallback(async () => {
     const result = await syncPull();
     if (!result) return;
     const now = new Date().toISOString();
-    setState(prev => {
-      const serverIds = new Set(result.workouts.map(w => w.id));
-      const localOnly = prev.history.filter(h => !serverIds.has(h.id));
-      const mergedHistory = [
-        ...result.workouts.map(w => ({ ...w, syncedAt: now })),
-        ...localOnly,
-      ];
-
-      const serverTplIds = new Set(result.templates.map(t => t.id));
-      const builtIns = prev.templates.filter(t => t.isBuiltIn);
-      const localCustomOnly = prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id));
-      const mergedTemplates = [
-        ...builtIns,
-        ...result.templates.map(t => ({ ...t, syncedAt: now })),
-        ...localCustomOnly,
-      ];
-
-      return { ...prev, history: mergedHistory, templates: mergedTemplates };
-    });
+    setState(prev => mergePullResult(prev, result, now));
   }, [syncPull]);
 
   // Pull inicial ao montar (= usuário acabou de autenticar)
@@ -284,25 +306,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     syncPull().then(result => {
       if (!result || cancelled) return;
       const now = new Date().toISOString();
-      setState(prev => {
-        const serverIds = new Set(result.workouts.map(w => w.id));
-        const localOnly = prev.history.filter(h => !serverIds.has(h.id));
-        const mergedHistory = [
-          ...result.workouts.map(w => ({ ...w, syncedAt: now })),
-          ...localOnly,
-        ];
-
-        const serverTplIds = new Set(result.templates.map(t => t.id));
-        const builtIns = prev.templates.filter(t => t.isBuiltIn);
-        const localCustomOnly = prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id));
-        const mergedTemplates = [
-          ...builtIns,
-          ...result.templates.map(t => ({ ...t, syncedAt: now })),
-          ...localCustomOnly,
-        ];
-
-        return { ...prev, history: mergedHistory, templates: mergedTemplates };
-      });
+      setState(prev => mergePullResult(prev, result, now));
     });
     return () => { cancelled = true; };
   // Roda apenas uma vez ao montar
