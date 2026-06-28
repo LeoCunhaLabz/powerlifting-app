@@ -470,8 +470,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
   },
   liftsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    display: 'flex',
+    flexDirection: 'column',
     gap: '8px',
     width: '100%',
     marginBottom: '16px',
