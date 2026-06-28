@@ -7,18 +7,20 @@ import Templates from './pages/Templates';
 import Calculators from './pages/Calculators';
 import SettingsPage from './pages/Settings';
 import Analytics from './pages/Analytics';
+import Calendar from './pages/Calendar';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff } from 'lucide-react';
 
-type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more';
+type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar';
 
 // Abas que vivem dentro do hub "Mais" (Análises voltou para a barra inferior)
-const MORE_TABS: Tab[] = ['more', 'calculators', 'settings'];
+const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar'];
 const MORE_LABELS: Record<MoreTab, string> = {
   calculators: 'Calculadoras',
   settings: 'Configurações',
+  calendar: 'Calendário',
 };
 
 const AppContent: React.FC = () => {
@@ -46,7 +48,7 @@ const AppContent: React.FC = () => {
     prevSync.current = syncStatus;
   }, [syncStatus]);
 
-  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings';
+  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar';
   const moreActive = MORE_TABS.includes(currentTab);
 
   const renderActiveTab = () => {
@@ -65,6 +67,8 @@ const AppContent: React.FC = () => {
         return <Calculators />;
       case 'settings':
         return <SettingsPage />;
+      case 'calendar':
+        return <Calendar onStartWorkoutTab={() => setCurrentTab('workout')} />;
       default:
         return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} />;
     }

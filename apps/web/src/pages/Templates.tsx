@@ -50,6 +50,8 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [progDesc, setProgDesc] = useState('');
   const [progTemplateIds, setProgTemplateIds] = useState<string[]>([]);
   const [progActive, setProgActive] = useState(false);
+  const [progStartDate, setProgStartDate] = useState('');
+  const [progTrainingDays, setProgTrainingDays] = useState<number[]>([]);
   const [confirmDeleteProgId, setConfirmDeleteProgId] = useState<string | null>(null);
 
   const filtered = templates.filter((t) => (filter === 'builtin' ? t.isBuiltIn : !t.isBuiltIn));
@@ -122,6 +124,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   // ---- Program form helpers ----
   const resetProgramForm = () => {
     setProgName(''); setProgDesc(''); setProgTemplateIds([]); setProgActive(false);
+    setProgStartDate(''); setProgTrainingDays([]);
     setEditingProgramId(null); setIsProgramForm(false);
   };
 
@@ -130,13 +133,23 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     setProgDesc(prog.description ?? '');
     setProgTemplateIds([...prog.templateIds]);
     setProgActive(prog.isActive);
+    setProgStartDate(prog.startDate ?? prog.createdAt.slice(0, 10));
+    setProgTrainingDays(prog.trainingDays ?? []);
     setEditingProgramId(prog.id);
     setIsProgramForm(true);
   };
 
   const handleSaveProgram = () => {
     if (!progName.trim() || progTemplateIds.length === 0) return;
-    saveProgram({ id: editingProgramId ?? undefined, name: progName, description: progDesc, templateIds: progTemplateIds, isActive: progActive });
+    saveProgram({
+      id: editingProgramId ?? undefined,
+      name: progName,
+      description: progDesc,
+      templateIds: progTemplateIds,
+      isActive: progActive,
+      startDate: progStartDate || new Date().toISOString().slice(0, 10),
+      trainingDays: progTrainingDays,
+    });
     resetProgramForm();
   };
 
@@ -396,6 +409,23 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                 <button onClick={() => setProgActive(v => !v)} style={{ ...styles.toggleBtn, backgroundColor: progActive ? 'var(--accent)' : 'var(--bg-tertiary)', borderColor: progActive ? 'var(--accent-border)' : 'var(--border-color)' }}>
                   <span style={{ ...styles.toggleKnob, transform: progActive ? 'translateX(20px)' : 'translateX(2px)' }} />
                 </button>
+              </div>
+
+              <div style={styles.progActiveRow}>
+                <span style={styles.prescLabel}>Data de início</span>
+                <input type="date" value={progStartDate} onChange={(e) => setProgStartDate(e.target.value)} style={{ ...styles.inp, width: 'auto', height: '36px', padding: '0 8px' }} />
+              </div>
+
+              <div>
+                <div style={{ ...styles.prescLabel, marginBottom: 8 }}>Dias de treino</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((d, i) => (
+                    <button key={i} onClick={() => setProgTrainingDays(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
+                      style={{ flex: 1, height: 34, borderRadius: 8, fontSize: 10, fontWeight: 700, border: '1px solid var(--border-color)', backgroundColor: progTrainingDays.includes(i) ? 'var(--accent)' : 'var(--bg-tertiary)', color: progTrainingDays.includes(i) ? 'var(--accent-ink)' : 'var(--text-secondary)' }}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div style={styles.prescLabel}>Sequência de rotinas</div>
