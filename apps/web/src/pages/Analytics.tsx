@@ -133,6 +133,8 @@ export const Analytics: React.FC = () => {
   const [muscleView, setMuscleView] = useState<'front' | 'back'>('front');
   const [muscleMetric, setMuscleMetric] = useState<'tonnage' | 'sets'>('tonnage');
   const [activeTooltip, setActiveTooltip] = useState<{ chartId: string; label: string; date: string } | null>(null);
+  const [topExMetric, setTopExMetric] = useState<'volume' | 'series'>('volume');
+  const [topExExpanded, setTopExExpanded] = useState(false);
 
   const u = settings.units;
   const isMale = settings.gender === 'male';
@@ -308,18 +310,21 @@ export const Analytics: React.FC = () => {
     return { weekBars: bars, maxWeekBar: bars.length ? Math.max(...bars, 1) : 1 };
   }, [sessions]);
 
-  // --- Top exercícios por volume ---
+  // --- Top exercícios por volume/séries ---
   const { topEx, maxEx } = useMemo(() => {
-    const exVol: Record<string, number> = {};
+    const exVal: Record<string, number> = {};
     sessions.forEach((s) =>
       s.exercises.forEach((ex) => {
-        const v = ex.sets.reduce((a, set) => a + (set.completed ? set.weight * set.reps : 0), 0);
-        if (v) exVol[ex.name] = (exVol[ex.name] || 0) + v;
+        const v = ex.sets.reduce((a, set) => {
+          if (!set.completed) return a;
+          return topExMetric === 'volume' ? a + set.weight * set.reps : a + 1;
+        }, 0);
+        if (v) exVal[ex.name] = (exVal[ex.name] || 0) + v;
       }),
     );
-    const top = Object.entries(exVol).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return { topEx: top, maxEx: top.length ? top[0][1] : 1 };
-  }, [sessions]);
+    const all = Object.entries(exVal).sort((a, b) => b[1] - a[1]);
+    return { topEx: all, maxEx: all.length ? all[0][1] : 1 };
+  }, [sessions, topExMetric]);
 
   // --- RPE médio por semana ---
   const rpeWeek: Record<number, { sum: number; count: number }> = {};
@@ -648,19 +653,34 @@ export const Analytics: React.FC = () => {
         )}
       </div>
       <div style={styles.card}>
-        <span style={styles.cardTitle}>Top exercícios por volume</span>
-        {topEx.length ? (
-          <div style={styles.topList}>
-            {topEx.map(([name, v]) => (
-              <div key={name} style={styles.topRow}>
-                <span style={styles.topName}>{name}</span>
-                <span style={styles.topTrack}>
-                  <span style={{ ...styles.topFill, width: `${Math.max(6, (v / maxEx) * 100)}%` }} />
-                </span>
-                <span style={styles.topVal}>{v >= 1000 ? `${(v / 1000).toFixed(1)}t` : Math.round(v)}</span>
-              </div>
-            ))}
+        <div style={styles.cardHead}>
+          <span style={styles.cardTitle}>Top exercícios</span>
+          <div style={styles.segmented}>
+            <button onClick={() => setTopExMetric('volume')} style={topExMetric === 'volume' ? styles.segOn : styles.segOff}>Volume</button>
+            <button onClick={() => setTopExMetric('series')} style={topExMetric === 'series' ? styles.segOn : styles.segOff}>Séries</button>
           </div>
+        </div>
+        {topEx.length ? (
+          <>
+            <div style={styles.topList}>
+              {(topExExpanded ? topEx : topEx.slice(0, 5)).map(([name, v]) => (
+                <div key={name} style={styles.topRow}>
+                  <span style={styles.topName}>{name}</span>
+                  <span style={styles.topTrack}>
+                    <span style={{ ...styles.topFill, width: `${Math.max(6, (v / maxEx) * 100)}%` }} />
+                  </span>
+                  <span style={styles.topVal}>
+                    {topExMetric === 'volume' ? (v >= 1000 ? `${(v / 1000).toFixed(1)}t` : Math.round(v)) : v}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {topEx.length > 5 && (
+              <button onClick={() => setTopExExpanded((x) => !x)} style={styles.verMaisBtn}>
+                {topExExpanded ? 'Ver menos ↑' : `Ver mais (${topEx.length - 5} exercícios) ↓`}
+              </button>
+            )}
+          </>
         ) : (
           <div style={styles.empty}>Sem dados no período.</div>
         )}
@@ -878,6 +898,7 @@ const styles: Record<string, React.CSSProperties> = {
   topTrack: { flex: 1, height: '14px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' },
   topFill: { display: 'block', height: '100%', background: 'var(--accent)', borderRadius: '4px' },
   topVal: { width: '40px', fontSize: '10px', color: 'var(--text-secondary)', textAlign: 'right' },
+  verMaisBtn: { fontSize: '12px', fontWeight: 700, color: 'var(--accent)', background: 'transparent', border: 'none', padding: '6px 0', cursor: 'pointer', alignSelf: 'flex-start' },
   twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
   donutWrap: { position: 'relative', width: '108px', height: '108px', alignSelf: 'center' },
   donut: { width: '108px', height: '108px', borderRadius: '50%' },
