@@ -81,6 +81,15 @@ export async function logout(refreshToken: string): Promise<void> {
   // ignora erros de rede/server no logout — limpa local sempre
 }
 
+export async function loginWithGoogle(credential: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  });
+  return handleResponse<AuthResponse>(res);
+}
+
 export async function getMe(accessToken: string): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/auth/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },

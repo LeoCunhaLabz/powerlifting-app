@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AuthApiError } from '../services/authApi';
 import { Eye, EyeOff, Dumbbell } from 'lucide-react';
 
+// Declaração mínima do Google Identity Services (carregado via script externo)
+declare const google: {
+  accounts: {
+    id: {
+      initialize: (opts: { client_id: string; callback: (r: { credential: string }) => void }) => void;
+      renderButton: (el: HTMLElement, opts: object) => void;
+      cancel: () => void;
+    };
+  };
+} | undefined;
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
 type Mode = 'login' | 'register';
 
 export const Auth: React.FC = () => {
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -14,6 +27,46 @@ export const Auth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  // Inicializa o botão Google GSI quando o script carregar
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+
+    const init = () => {
+      if (typeof google === 'undefined' || !googleBtnRef.current) return;
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async ({ credential }) => {
+          setError(null);
+          setLoading(true);
+          try {
+            await loginWithGoogle(credential);
+          } catch (err) {
+            setError(err instanceof AuthApiError ? err.message : 'Erro ao entrar com Google.');
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+      google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'filled_black',
+        size: 'large',
+        width: googleBtnRef.current.offsetWidth || 352,
+        text: 'signin_with',
+        locale: 'pt-BR',
+      });
+    };
+
+    // Se o script já carregou, inicializa direto; caso contrário aguarda o load
+    if (typeof google !== 'undefined') {
+      init();
+    } else {
+      const script = document.querySelector('script[src*="accounts.google.com/gsi"]');
+      script?.addEventListener('load', init);
+      return () => script?.removeEventListener('load', init);
+    }
+  }, [loginWithGoogle]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +202,17 @@ export const Auth: React.FC = () => {
             {mode === 'login' ? 'Cadastrar' : 'Entrar'}
           </button>
         </div>
+
+        {GOOGLE_CLIENT_ID && (
+          <>
+            <div style={styles.dividerRow}>
+              <span style={styles.dividerLine} />
+              <span style={styles.dividerText}>ou</span>
+              <span style={styles.dividerLine} />
+            </div>
+            <div ref={googleBtnRef} style={styles.googleBtnWrap} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -296,6 +360,30 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     padding: '0',
     textDecoration: 'underline',
+  },
+  dividerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '20px',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    background: 'var(--border-color)',
+  },
+  dividerText: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+  },
+  googleBtnWrap: {
+    marginTop: '12px',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
   },
 };
 
