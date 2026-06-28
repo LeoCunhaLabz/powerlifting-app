@@ -195,7 +195,11 @@ const AuthGate: React.FC = () => {
   }
 
   return (
-    <WorkoutProvider demoEmail={user?.email ?? null}>
+    <WorkoutProvider
+      key={user?.id ?? 'auth'}
+      storageScopeId={user?.id ?? null}
+      demoEmail={user?.email ?? null}
+    >
       <AppContent />
     </WorkoutProvider>
   );
