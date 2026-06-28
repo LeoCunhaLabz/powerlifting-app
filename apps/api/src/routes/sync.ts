@@ -1,7 +1,25 @@
 import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import { createHash } from 'node:crypto'
 import { workouts, templates } from '../db/schema.js'
+
+function deterministicUuidFromText(input: string): string {
+  const hash = createHash('sha1').update(input).digest('hex')
+  const bytes = hash.slice(0, 32).split('')
+
+  // Version 5 UUID (name-based), com variante RFC 4122.
+  bytes[12] = '5'
+  const variant = parseInt(bytes[16], 16)
+  bytes[16] = ((variant & 0x3) | 0x8).toString(16)
+
+  const hex = bytes.join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+}
+
+function mapClientIdToDbUuid(userId: string, entity: 'workout' | 'template', clientId: string): string {
+  return deterministicUuidFromText(`${entity}:${userId}:${clientId}`)
+}
 
 // ---------------------------------------------------------------------------
 // Schemas Zod (espelham @powerlifting/shared sem importar o pacote no backend)
@@ -132,11 +150,13 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
       // --- Workouts: upsert append-only ---
       const syncedWorkoutRows = await Promise.all(
         clientWorkouts.map(async (w) => {
+          const dbWorkoutId = mapClientIdToDbUuid(userId, 'workout', w.id)
+
           // Tenta inserir; se já existe (conflito de PK), ignora (mantém servidor)
           await app.db
             .insert(workouts)
             .values({
-              id: w.id,
+              id: dbWorkoutId,
               userId,
               data: w as Record<string, unknown>,
               startedAt: new Date(w.date),
@@ -149,7 +169,7 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
           const [row] = await app.db
             .select()
             .from(workouts)
-            .where(and(eq(workouts.id, w.id), eq(workouts.userId, userId)))
+            .where(and(eq(workouts.id, dbWorkoutId), eq(workouts.userId, userId)))
             .limit(1)
 
           return row
@@ -161,13 +181,14 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
         clientTemplates
           .filter((t) => !t.isBuiltIn) // built-in templates não são sincronizados
           .map(async (t) => {
+            const dbTemplateId = mapClientIdToDbUuid(userId, 'template', t.id)
             const clientUpdatedAt = t.updatedAt ? new Date(t.updatedAt) : now
 
             // Verifica se já existe no servidor
             const [existing] = await app.db
               .select()
               .from(templates)
-              .where(and(eq(templates.id, t.id), eq(templates.userId, userId)))
+              .where(and(eq(templates.id, dbTemplateId), eq(templates.userId, userId)))
               .limit(1)
 
             if (!existing) {
@@ -175,7 +196,7 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
               const [row] = await app.db
                 .insert(templates)
                 .values({
-                  id: t.id,
+                  id: dbTemplateId,
                   userId,
                   data: t as Record<string, unknown>,
                   createdAt: now,
@@ -190,7 +211,7 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
               const [row] = await app.db
                 .update(templates)
                 .set({ data: t as Record<string, unknown>, updatedAt: clientUpdatedAt })
-                .where(and(eq(templates.id, t.id), eq(templates.userId, userId)))
+                .where(and(eq(templates.id, dbTemplateId), eq(templates.userId, userId)))
                 .returning()
               return row
             }
