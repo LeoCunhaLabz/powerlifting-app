@@ -176,7 +176,7 @@ export const Workout: React.FC = () => {
       <div style={styles.appbar}>
         <div style={styles.titleWrap}>
           <h1 style={styles.title}>{activeWorkout.name}</h1>
-          <span style={styles.timer}><Clock size={12} /> {elapsed}</span>
+          <span style={styles.timer}><Clock size={14} /> {elapsed}</span>
         </div>
         <div style={styles.actions}>
           <button onClick={() => setShowConfirmCancel(true)} style={styles.discardBtn}>Descartar</button>
@@ -414,7 +414,7 @@ const styles: Record<string, React.CSSProperties> = {
   appbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
   titleWrap: { display: 'flex', flexDirection: 'column', gap: '6px' },
   title: { fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)' },
-  timer: { display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-display)', padding: '3px 10px', borderRadius: '999px' },
+  timer: { display: 'inline-flex', alignItems: 'center', gap: '7px', alignSelf: 'flex-start', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-display)', padding: '5px 12px', borderRadius: '999px' },
   actions: { display: 'flex', gap: '8px' },
   discardBtn: { backgroundColor: 'rgba(229,84,75,0.1)', color: 'var(--error)', padding: '8px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '999px', border: '1px solid rgba(229,84,75,0.18)' },
   finishBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '8px 18px', fontSize: '12px', fontWeight: 800, borderRadius: '999px' },

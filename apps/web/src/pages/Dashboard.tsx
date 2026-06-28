@@ -19,6 +19,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [weightInput, setWeightInput] = useState('');
+  const [isEvoHovered, setIsEvoHovered] = useState(false);
 
   const u = settings.units;
 
@@ -223,8 +224,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
           </div>
         </div>
         {evoVals.length >= 2 ? (
-          <svg width="100%" height="84" viewBox="0 0 300 84" fill="none" preserveAspectRatio="none">
-            <polyline points={polyline(evoVals, 300, 84, 10)} stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            width="100%"
+            height="84"
+            viewBox="0 0 300 84"
+            fill="none"
+            preserveAspectRatio="none"
+            onMouseEnter={() => setIsEvoHovered(true)}
+            onMouseLeave={() => setIsEvoHovered(false)}
+          >
+            <polyline
+              points={polyline(evoVals, 300, 84, 10)}
+              stroke="var(--accent)"
+              strokeWidth={isEvoHovered ? '2.9' : '2.4'}
+              opacity={isEvoHovered ? 1 : 0.9}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transition: 'stroke-width var(--transition-fast), opacity var(--transition-fast)' }}
+            />
           </svg>
         ) : (
           <div style={styles.emptyMini}>Registre treinos para ver sua evolução.</div>
@@ -373,7 +390,7 @@ const styles: Record<string, React.CSSProperties> = {
   statVal: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' },
   unit: { fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 },
   statLbl: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginTop: '2px' },
-  bwCard: { ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0' },
+  bwCard: { ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
   bwLeft: {},
   bwLabel: { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' },
   bwValRow: { display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' },
