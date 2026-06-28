@@ -46,11 +46,11 @@ export const Workout: React.FC = () => {
   }, [activeWorkout]);
 
   if (!activeWorkout) {
+    const myTemplates = state.templates.filter((t) => !t.isBuiltIn && !t.archived);
     return (
       <div style={styles.empty}>
         <div style={styles.emptyIcon}><Dumbbell size={44} color="var(--text-secondary)" /></div>
         <h2 style={styles.emptyTitle}>Nenhum treino ativo</h2>
-        <p style={styles.emptyDesc}>Inicie um treino avulso para registrar na hora, ou carregue uma rotina na aba <strong>Rotinas</strong>.</p>
         <button onClick={() => startWorkout()} style={styles.startBtn}>
           <Play size={16} fill="var(--accent-ink)" stroke="none" /> Iniciar treino avulso
         </button>
@@ -58,6 +58,23 @@ export const Workout: React.FC = () => {
           <button onClick={() => repeatWorkout(history[0])} style={styles.repeatLastBtn}>
             <RotateCcw size={15} /> Repetir último treino
           </button>
+        )}
+        {myTemplates.length > 0 && (
+          <>
+            <p style={{ ...styles.emptyDesc, marginTop: 24, marginBottom: 8 }}>Ou inicie uma rotina:</p>
+            <div style={styles.templateList}>
+              {myTemplates.map((t) => (
+                <button key={t.id} onClick={() => startWorkout(t.id)} style={styles.templateRow}>
+                  <span style={styles.templateAvatar}>{t.name.charAt(0).toUpperCase()}</span>
+                  <span style={styles.templateTexts}>
+                    <span style={styles.templateName}>{t.name}</span>
+                    <span style={styles.templateSub}>{t.exercises.length} exercícios · {t.exercises.reduce((a, e) => a + e.sets.length, 0)} séries</span>
+                  </span>
+                  <Play size={14} fill="var(--accent)" stroke="none" />
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
     );
@@ -326,6 +343,12 @@ const styles: Record<string, React.CSSProperties> = {
   emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
   startBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '12px 24px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   repeatLastBtn: { marginTop: '10px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px 22px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '7px' },
+  templateList: { display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 },
+  templateRow: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '11px 14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', textAlign: 'left' },
+  templateAvatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, flexShrink: 0 },
+  templateTexts: { display: 'flex', flexDirection: 'column', gap: 2, flex: 1 },
+  templateName: { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' },
+  templateSub: { fontSize: 11, color: 'var(--text-muted)' },
   appbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
   titleWrap: { display: 'flex', flexDirection: 'column', gap: '6px' },
   title: { fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)' },
