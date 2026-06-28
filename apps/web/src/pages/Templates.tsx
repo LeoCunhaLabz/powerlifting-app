@@ -7,65 +7,70 @@ interface TemplatesProps {
   onStartWorkoutTab: () => void;
 }
 
-const EXERCISE_SUGGESTIONS = [
-  // Powerlifting - Movimentos Básicos
-  'Agachamento', 'Supino Reto', 'Levantamento Terra',
-  
-  // Agachamento - Variações
-  'Agachamento Frontal', 'Agachamento no Smith', 'Agachamento com Pausa', 'Leg Press 45°',
-  'Leg Press Vertical', 'Agachamento Sumô', 'Agachamento Sissy',
-  
-  // Supino - Variações
-  'Supino Inclinado', 'Supino Declinado', 'Supino com Halteres', 'Supino Inclinado com Halteres',
-  'Supino Máquina', 'Supino Close Grip', 'Supino Barra Aberta',
-  
-  // Terra - Variações
-  'Terra Convencional', 'Terra Sumo', 'Terra com Halteres', 'Terra Romeno',
-  'Terra com Pausa', 'Terra Parcial (Altura)', 'Terra Trap Bar',
-  
-  // Costas
-  'Remada Curvada', 'Remada T', 'Remada Máquina', 'Remada com Halteres', 'Remada Unilateral',
-  'Barra Fixa', 'Barra Fixa Assistida', 'Puxada Aberta', 'Puxada Fechada', 'Puxada Neutra',
-  'Puxada na Máquina', 'Puxada Alta', 'Puxada Baixa', 'Puxada no Rosto',
-  'Encolhimento com Barra', 'Encolhimento com Halteres', 'Encolhimento Máquina',
-  'Face Pull', 'Reverse Pec Deck',
-  
-  // Ombros
-  'Desenvolvimento Militar', 'Desenvolvimento Inclinado', 'Desenvolvimento com Halteres',
-  'Desenvolvimento Máquina', 'Elevação Lateral', 'Elevação Frontal', 'Elevação Frontal Alternada',
-  'Elevação Lateral Máquina', 'Puxada Vertical', 'Desenvolvimento Arnês',
-  
-  // Peito
-  'Crucifixo', 'Crucifixo Máquina', 'Flexão Poliada', 'Flexão',
-  'Paralela', 'Mosca', 'Mosca Máquina',
-  
-  // Braços - Bíceps
-  'Rosca Direta', 'Rosca Halter', 'Rosca Inclinada', 'Rosca na Máquina',
-  'Rosca Scott', 'Rosca Cable', 'Rosca Reversa', 'Rosca Martelo',
-  
-  // Braços - Tríceps
-  'Tríceps Testa', 'Tríceps Corda', 'Tríceps Máquina', 'Tríceps na Barra',
-  'Tríceps Banco', 'Tríceps Polias', 'Extensão Acima da Cabeça', 'Mergulho',
-  
-  // Antebraço
-  'Rosca Pronada', 'Extensão Punho', 'Flexão Punho', 'Rosca Punho',
-  
-  // Pernas - Acessórios
-  'Leg Curl', 'Leg Curl Máquina', 'Leg Curl Deitado', 'Leg Curl em Pé',
-  'Extensora', 'Extensora Máquina', 'Hack Squat', 'Adutora', 'Abdutora',
-  'Panturrilha em Pé', 'Panturrilha Sentado', 'Panturrilha Máquina', 'Panturrilha Leg Press',
-  'Cadeira Extensora', 'Cadeira Flexora',
-  
-  // Core e Abdômen
-  'Abdominal', 'Abdominal Máquina', 'Prancha', 'Prancha Lateral',
-  'Levantamento Pélvico', 'Abdominal Declinado', 'Abdominal Inverso', 'Abdominal Oblíquo',
-  'Rotação Russa', 'Sacode Russas', 'Wheel Rollout', 'Mountain Climber',
-  'Bola Abdominal', 'Ab Wheel', 'Lying Leg Raise',
-  
-  // Glúteos
-  'Agachamento Búlgaro', 'Ponte Glúteos', 'Hip Thrust', 'Glúteo Máquina',
-  'Kick Back', 'Extensão Perna', 'Rosca Glúteo',
-];
+const EXERCISE_CATEGORIES = {
+  'Powerlifting (Básicos)': [
+    'Agachamento', 'Supino Reto', 'Levantamento Terra',
+  ],
+  'Agachamento (Variações)': [
+    'Agachamento Frontal', 'Agachamento no Smith', 'Agachamento com Pausa', 'Leg Press 45°',
+    'Leg Press Vertical', 'Agachamento Sumô', 'Agachamento Sissy',
+  ],
+  'Supino (Variações)': [
+    'Supino Inclinado', 'Supino Declinado', 'Supino com Halteres', 'Supino Inclinado com Halteres',
+    'Supino Máquina', 'Supino Close Grip', 'Supino Barra Aberta',
+  ],
+  'Terra (Variações)': [
+    'Terra Convencional', 'Terra Sumo', 'Terra com Halteres', 'Terra Romeno',
+    'Terra com Pausa', 'Terra Parcial (Altura)', 'Terra Trap Bar',
+  ],
+  'Costas': [
+    'Remada Curvada', 'Remada T', 'Remada Máquina', 'Remada com Halteres', 'Remada Unilateral',
+    'Barra Fixa', 'Barra Fixa Assistida', 'Puxada Aberta', 'Puxada Fechada', 'Puxada Neutra',
+    'Puxada na Máquina', 'Puxada Alta', 'Puxada Baixa', 'Puxada no Rosto',
+    'Encolhimento com Barra', 'Encolhimento com Halteres', 'Encolhimento Máquina',
+    'Face Pull', 'Reverse Pec Deck',
+  ],
+  'Ombros': [
+    'Desenvolvimento Militar', 'Desenvolvimento Inclinado', 'Desenvolvimento com Halteres',
+    'Desenvolvimento Máquina', 'Elevação Lateral', 'Elevação Frontal', 'Elevação Frontal Alternada',
+    'Elevação Lateral Máquina', 'Puxada Vertical', 'Desenvolvimento Arnês',
+  ],
+  'Peito': [
+    'Crucifixo', 'Crucifixo Máquina', 'Flexão Poliada', 'Flexão',
+    'Paralela', 'Mosca', 'Mosca Máquina',
+  ],
+  'Bíceps': [
+    'Rosca Direta', 'Rosca Halter', 'Rosca Inclinada', 'Rosca na Máquina',
+    'Rosca Scott', 'Rosca Cable', 'Rosca Reversa', 'Rosca Martelo',
+  ],
+  'Tríceps': [
+    'Tríceps Testa', 'Tríceps Corda', 'Tríceps Máquina', 'Tríceps na Barra',
+    'Tríceps Banco', 'Tríceps Polias', 'Extensão Acima da Cabeça', 'Mergulho',
+  ],
+  'Antebraço': [
+    'Rosca Pronada', 'Extensão Punho', 'Flexão Punho', 'Rosca Punho',
+  ],
+  'Pernas (Acessórios)': [
+    'Leg Curl', 'Leg Curl Máquina', 'Leg Curl Deitado', 'Leg Curl em Pé',
+    'Extensora', 'Extensora Máquina', 'Hack Squat', 'Adutora', 'Abdutora',
+    'Panturrilha em Pé', 'Panturrilha Sentado', 'Panturrilha Máquina', 'Panturrilha Leg Press',
+    'Cadeira Extensora', 'Cadeira Flexora',
+  ],
+  'Core e Abdômen': [
+    'Abdominal', 'Abdominal Máquina', 'Prancha', 'Prancha Lateral',
+    'Levantamento Pélvico', 'Abdominal Declinado', 'Abdominal Inverso', 'Abdominal Oblíquo',
+    'Rotação Russa', 'Sacode Russas', 'Wheel Rollout', 'Mountain Climber',
+    'Bola Abdominal', 'Ab Wheel', 'Lying Leg Raise',
+  ],
+  'Glúteos': [
+    'Agachamento Búlgaro', 'Ponte Glúteos', 'Hip Thrust', 'Glúteo Máquina',
+    'Kick Back', 'Extensão Perna', 'Rosca Glúteo',
+  ],
+} as const;
+
+// Achata todas as categorias para validação de customizados
+const getAllSuggestedExercises = (): string[] =>
+  Object.values(EXERCISE_CATEGORIES).flat();
 
 
 type Prescription = 'percent' | 'rpe';
@@ -450,14 +455,26 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
               <div style={styles.addExBox}>
                 <input type="text" value={searchExercise} onChange={(e) => { setSearchExercise(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} placeholder="Buscar ou adicionar exercício..." style={styles.searchEx} />
-                {searchExercise.trim() && !EXERCISE_SUGGESTIONS.includes(searchExercise) && (
+                {searchExercise.trim() && !getAllSuggestedExercises().includes(searchExercise) && (
                   <button onClick={() => addEx(searchExercise)} style={styles.addCustom}>Adicionar "{searchExercise}"</button>
                 )}
                 {showSuggestions && (
                   <div style={styles.suggestions}>
-                    {EXERCISE_SUGGESTIONS.filter((e) => e.toLowerCase().includes(searchExercise.toLowerCase())).map((e) => (
-                      <button key={e} onClick={() => addEx(e)} style={styles.suggestion}>{e}</button>
-                    ))}
+                    {Object.entries(EXERCISE_CATEGORIES).map(([category, exercises]) => {
+                      const filtered = exercises.filter((e) => e.toLowerCase().includes(searchExercise.toLowerCase())).slice(0, 5);
+                      if (filtered.length === 0) return null;
+                      return (
+                        <div key={category} style={styles.categoryGroup}>
+                          <div style={styles.categoryHeader}>{category}</div>
+                          {filtered.map((e) => (
+                            <button key={e} onClick={() => addEx(e)} style={styles.suggestion}>{e}</button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {Object.entries(EXERCISE_CATEGORIES).every(([, exercises]) => exercises.filter((e) => e.toLowerCase().includes(searchExercise.toLowerCase())).length === 0) && (
+                      <div style={styles.noResults}>Nenhum exercício encontrado</div>
+                    )}
                   </div>
                 )}
               </div>
@@ -728,8 +745,11 @@ const styles: Record<string, React.CSSProperties> = {
   addExBox: { position: 'relative' },
   searchEx: { width: '100%', height: '46px' },
   addCustom: { width: '100%', height: '38px', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, marginTop: '8px' },
-  suggestions: { position: 'absolute', bottom: '50px', left: 0, width: '100%', maxHeight: '180px', overflowY: 'auto', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' },
-  suggestion: { display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: '13px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', background: 'none' },
+  suggestions: { position: 'absolute', bottom: '50px', left: 0, width: '100%', maxHeight: '300px', overflowY: 'auto', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' },
+  categoryGroup: { borderBottom: '1px solid var(--border-color)' },
+  categoryHeader: { padding: '8px 14px 6px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent)', letterSpacing: '0.05em', backgroundColor: 'rgba(255,255,255,0.02)' },
+  suggestion: { display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: '13px', color: 'var(--text-primary)', borderBottom: '1px solid rgba(255,255,255,0.03)', background: 'none' },
+  noResults: { padding: '16px 14px', textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary)' },
   activeBadge: { fontSize: '10px', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: '999px', padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' },
   activateBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '9px 18px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800 },
   progSequence: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 14px 4px' },
