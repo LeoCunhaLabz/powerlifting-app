@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare } from 'lucide-react';
+import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
 
 const EXERCISE_OPTIONS = [
@@ -26,10 +26,19 @@ export const Workout: React.FC = () => {
   const [plateCalcTarget, setPlateCalcTarget] = useState({ exIdx: 0, setIdx: 0 });
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [showConfirmFinish, setShowConfirmFinish] = useState(false);
+  const [workoutSummary, setWorkoutSummary] = useState<typeof history[number] | null>(null);
+  const pendingFinishRef = useRef(false);
   const [confirmRemoveExIdx, setConfirmRemoveExIdx] = useState<number | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [openExNotes, setOpenExNotes] = useState<Set<number>>(new Set());
   const [elapsed, setElapsed] = useState('00:00');
+
+  useEffect(() => {
+    if (pendingFinishRef.current && history.length > 0) {
+      pendingFinishRef.current = false;
+      setWorkoutSummary(history[0]);
+    }
+  }, [history]);
 
   useEffect(() => {
     if (!activeWorkout) return;
@@ -46,6 +55,59 @@ export const Workout: React.FC = () => {
   }, [activeWorkout]);
 
   if (!activeWorkout) {
+    if (workoutSummary) {
+      const summaryTonnage = workoutSummary.exercises.reduce(
+        (t, ex) => t + ex.sets.reduce((st, s) => st + s.weight * s.reps, 0), 0
+      );
+      const prCount = workoutSummary.exercises.reduce(
+        (n, ex) => n + ex.sets.filter((s) => s.isPr).length, 0
+      );
+      const dur = workoutSummary.duration;
+      const dh = Math.floor(dur / 3600), dm = Math.floor((dur % 3600) / 60), ds = dur % 60;
+      const durStr = dh > 0 ? `${dh}:${String(dm).padStart(2, '0')}:${String(ds).padStart(2, '0')}` : `${String(dm).padStart(2, '0')}:${String(ds).padStart(2, '0')}`;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '24px 0', textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: 'var(--accent-soft)', border: '2px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Check size={36} color="var(--accent)" />
+          </div>
+          <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 4 }}>Treino concluído</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', marginBottom: 20 }}>{workoutSummary.name}</h1>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, width: '100%', marginBottom: 20 }}>
+            {[
+              { icon: <Clock size={18} color="var(--accent)" />, val: durStr, lbl: 'Duração' },
+              { icon: <TrendingUp size={18} color="var(--accent)" />, val: `${Math.round(summaryTonnage)}`, lbl: `Volume (${u})` },
+              { icon: <Award size={18} color="var(--accent)" />, val: String(prCount), lbl: prCount === 1 ? 'PR' : 'PRs' },
+            ].map(({ icon, val, lbl }) => (
+              <div key={lbl} style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px 8px' }}>
+                {icon}
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', marginTop: 6 }}>{val}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700 }}>{lbl}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ width: '100%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: 16, textAlign: 'left' }}>
+            {workoutSummary.exercises.map((ex) => (
+              <div key={ex.id} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {ex.name}
+                  {ex.sets.some((s) => s.isPr) && <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '1px 5px', borderRadius: 4 }}>PR</span>}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {ex.sets.map((s, i) => `${i + 1}. ${s.weight}×${s.reps}`).join(' · ')}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setWorkoutSummary(null)} style={{ width: '100%', height: 44, backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800 }}>
+            Concluir
+          </button>
+        </div>
+      );
+    }
+
     const myTemplates = state.templates.filter((t) => !t.isBuiltIn && !t.archived);
     return (
       <div style={styles.empty}>
@@ -289,7 +351,7 @@ export const Workout: React.FC = () => {
               <p style={styles.confirmDesc}>{completedSets} de {totalSets} séries concluídas · {activeWorkout.exercises.length} exercícios.</p>
               <div style={styles.confirmActions}>
                 <button onClick={() => setShowConfirmFinish(false)} style={styles.confirmBack}>Voltar</button>
-                <button onClick={() => { completeActiveWorkout(); setShowConfirmFinish(false); }} style={styles.finishBtn}>Finalizar</button>
+                <button onClick={() => { pendingFinishRef.current = true; completeActiveWorkout(); setShowConfirmFinish(false); }} style={styles.finishBtn}>Finalizar</button>
               </div>
             </div>
           </div>
