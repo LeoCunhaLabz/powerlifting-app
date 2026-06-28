@@ -4,6 +4,7 @@ import {
   calculateE1RMBrzycki,
   calculateE1RMEpley,
   calculateWilks,
+  calculateWilks2020,
   calculateDots,
   calculateIpfGl,
   calculatePlates,
@@ -281,6 +282,39 @@ describe('calculateIpfGl', () => {
 
   it('arredonda para 0.01', () => {
     const result = calculateIpfGl(80, 600, true)
+    expect(Number(result.toFixed(2))).toBe(result)
+  })
+})
+
+// ─── calculateWilks2020 ──────────────────────────────────────────────────────
+
+describe('calculateWilks2020', () => {
+  it('retorna 0 para peso corporal zero', () => {
+    expect(calculateWilks2020(0, 500, true)).toBe(0)
+  })
+
+  it('retorna 0 para total zero', () => {
+    expect(calculateWilks2020(80, 0, true)).toBe(0)
+  })
+
+  it('retorna 0 para peso corporal negativo', () => {
+    expect(calculateWilks2020(-80, 600, true)).toBe(0)
+  })
+
+  it('retorna 0 para total negativo', () => {
+    expect(calculateWilks2020(80, -600, true)).toBe(0)
+  })
+
+  it('masculino: 100 kg / 1000 kg total ≈ 729.36', () => {
+    expect(calculateWilks2020(100, 1000, true)).toBe(729.36)
+  })
+
+  it('feminino: 60 kg / 400 kg total ≈ 527.61', () => {
+    expect(calculateWilks2020(60, 400, false)).toBe(527.61)
+  })
+
+  it('arredonda para 0.01', () => {
+    const result = calculateWilks2020(80, 600, true)
     expect(Number(result.toFixed(2))).toBe(result)
   })
 })
