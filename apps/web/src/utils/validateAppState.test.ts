@@ -37,6 +37,7 @@ const validSettings = {
   units: 'kg' as const,
   barWeight: 20,
   availablePlates: [25, 20, 10, 5, 2.5, 1.25],
+  customPlates: [],
   bodyweight: 80,
   gender: 'male' as const,
   isEquipped: false,

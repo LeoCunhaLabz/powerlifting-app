@@ -59,6 +59,7 @@ export interface Settings {
   units: 'kg' | 'lbs';
   barWeight: number;
   availablePlates: number[];
+  customPlates: number[];
   bodyweight: number;
   gender: 'male' | 'female';
   isEquipped: boolean;
