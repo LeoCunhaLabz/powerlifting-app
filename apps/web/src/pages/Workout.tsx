@@ -25,6 +25,7 @@ export const Workout: React.FC = () => {
   const [plateCalcWeight, setPlateCalcWeight] = useState<number | null>(null);
   const [plateCalcTarget, setPlateCalcTarget] = useState({ exIdx: 0, setIdx: 0 });
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [showConfirmFinish, setShowConfirmFinish] = useState(false);
   const [confirmRemoveExIdx, setConfirmRemoveExIdx] = useState<number | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [openExNotes, setOpenExNotes] = useState<Set<number>>(new Set());
@@ -100,7 +101,7 @@ export const Workout: React.FC = () => {
         </div>
         <div style={styles.actions}>
           <button onClick={() => setShowConfirmCancel(true)} style={styles.discardBtn}>Descartar</button>
-          <button onClick={completeActiveWorkout} style={styles.finishBtn}>Finalizar</button>
+          <button onClick={() => setShowConfirmFinish(true)} style={styles.finishBtn}>Finalizar</button>
         </div>
       </div>
 
@@ -258,6 +259,25 @@ export const Workout: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Finish confirmation modal */}
+      {showConfirmFinish && (() => {
+        const completedSets = activeWorkout.exercises.reduce((acc, ex) => acc + ex.sets.filter((s) => s.completed).length, 0);
+        const totalSets = activeWorkout.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+        return (
+          <div style={styles.overlay} onClick={() => setShowConfirmFinish(false)}>
+            <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              <Check size={40} color="var(--accent)" style={{ marginBottom: 12 }} />
+              <h3 style={styles.modalTitle}>Finalizar treino?</h3>
+              <p style={styles.confirmDesc}>{completedSets} de {totalSets} séries concluídas · {activeWorkout.exercises.length} exercícios.</p>
+              <div style={styles.confirmActions}>
+                <button onClick={() => setShowConfirmFinish(false)} style={styles.confirmBack}>Voltar</button>
+                <button onClick={() => { completeActiveWorkout(); setShowConfirmFinish(false); }} style={styles.finishBtn}>Finalizar</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Discard modal */}
       {showConfirmCancel && (
