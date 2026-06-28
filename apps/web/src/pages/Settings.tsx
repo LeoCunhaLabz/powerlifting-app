@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
-import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check, LogOut } from 'lucide-react';
+import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check, LogOut, Plus, X } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
 import type { ThemeName } from '@powerlifting/shared';
 
@@ -12,13 +12,14 @@ const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = 
 ];
 
 export const Settings: React.FC = () => {
-  const { state, updateSettings, exportData, importData, logBodyweight } = useWorkout();
+  const { state, updateSettings, exportData, importData, logBodyweight, addCustomPlate, removeCustomPlate } = useWorkout();
   const { user, logout } = useAuth();
   const { settings } = state;
 
   const [importText, setImportText] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [customPlateInput, setCustomPlateInput] = useState('');
 
   const handleUnitChange = (units: 'kg' | 'lbs') => {
     updateSettings({ units });
@@ -27,14 +28,27 @@ export const Settings: React.FC = () => {
   const handlePlateToggle = (plate: number) => {
     let newPlates = [...settings.availablePlates];
     if (newPlates.includes(plate)) {
-      // Don't allow empty plate inventory
-      if (newPlates.length > 1) {
-        newPlates = newPlates.filter((p) => p !== plate);
+      // Only remove if there's at least one other plate available (standard or custom)
+      const otherStandardPlates = newPlates.filter(p => p !== plate);
+      if (otherStandardPlates.length > 0 || settings.customPlates.length > 0) {
+        newPlates = otherStandardPlates;
       }
     } else {
       newPlates.push(plate);
     }
     updateSettings({ availablePlates: newPlates });
+  };
+
+  const handleAddCustomPlate = () => {
+    const weight = parseFloat(customPlateInput);
+    if (weight > 0) {
+      addCustomPlate(weight);
+      setCustomPlateInput('');
+    }
+  };
+
+  const handleRemoveCustomPlate = (weight: number) => {
+    removeCustomPlate(weight);
   };
 
   const handleExportFile = () => {
@@ -219,6 +233,50 @@ export const Settings: React.FC = () => {
                 </button>
               );
             })}
+          </div>
+
+          {/* Seção de anilhas customizadas */}
+          <div style={styles.customPlatesSection}>
+            <div style={styles.settingLabel}>Anilhas Customizadas</div>
+            <div style={{ ...styles.settingDesc, marginBottom: '10px' }}>
+              Adicione anilhas não-padrão disponíveis na sua academia (ex.: 1 kg, 2 kg, 3 kg).
+            </div>
+
+            <div style={styles.customPlateInput}>
+              <input
+                type="number"
+                value={customPlateInput}
+                onChange={(e) => setCustomPlateInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddCustomPlate();
+                  }
+                }}
+                placeholder="Ex: 1.5"
+                step="0.25"
+                min="0.01"
+                style={styles.plateNumberInput}
+              />
+              <button onClick={handleAddCustomPlate} style={styles.addPlateBtn}>
+                <Plus size={16} /> Adicionar
+              </button>
+            </div>
+
+            {settings.customPlates.length > 0 && (
+              <div style={styles.customPlatesList}>
+                {settings.customPlates.map((plate) => (
+                  <div key={plate} style={styles.customPlateItem}>
+                    <span style={styles.customPlateName}>{plate} {settings.units}</span>
+                    <button
+                      onClick={() => handleRemoveCustomPlate(plate)}
+                      style={styles.removeCustomPlateBtn}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -589,6 +647,69 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontWeight: '700',
     color: '#ffffff',
+  },
+  customPlatesSection: {
+    marginTop: '14px',
+    paddingTop: '12px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+  },
+  customPlateInput: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '10px',
+  },
+  plateNumberInput: {
+    flex: 1,
+    height: '36px',
+    textAlign: 'center',
+    fontSize: '14px',
+    fontWeight: '700',
+  },
+  addPlateBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    backgroundColor: 'var(--accent)',
+    color: 'var(--accent-ink)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    fontSize: '12px',
+    fontWeight: '700',
+    cursor: 'pointer',
+  },
+  customPlatesList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '6px',
+  },
+  customPlateItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '8px 10px',
+    backgroundColor: 'var(--bg-tertiary)',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border-color)',
+  },
+  customPlateName: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  removeCustomPlateBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    padding: '0',
   },
 };
 export default Settings;

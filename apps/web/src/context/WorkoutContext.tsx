@@ -98,6 +98,10 @@ interface WorkoutContextType {
   getNextTemplate: () => WorkoutTemplate | undefined;
   /** Atualiza uma sessão do histórico (correção de dados) e recalcula PRs. */
   updateHistorySession: (session: WorkoutSession) => void;
+  /** Adiciona uma anilha customizada à lista (validação: > 0, sem duplicatas, ordena decrescente). */
+  addCustomPlate: (weight: number) => void;
+  /** Remove uma anilha customizada da lista. */
+  removeCustomPlate: (weight: number) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -219,6 +223,7 @@ const DEFAULT_SETTINGS: Settings = {
   units: 'kg',
   barWeight: 20,
   availablePlates: DEFAULT_PLATES_KG,
+  customPlates: [],
   bodyweight: 80,
   gender: 'male',
   isEquipped: false,
@@ -919,6 +924,40 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, []);
 
+  // Add custom plate weight with validation and sorting
+  const addCustomPlate = useCallback((weight: number) => {
+    setState(prev => {
+      if (weight <= 0) return prev; // Invalid weight
+      
+      const existing = [...prev.settings.customPlates];
+      if (existing.includes(weight)) return prev; // Already exists
+      
+      const newCustom = [...existing, weight].sort((a, b) => b - a); // Sort descending
+      
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          customPlates: newCustom
+        }
+      };
+    });
+  }, []);
+
+  // Remove custom plate weight
+  const removeCustomPlate = useCallback((weight: number) => {
+    setState(prev => {
+      const newCustom = prev.settings.customPlates.filter(p => p !== weight);
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          customPlates: newCustom
+        }
+      };
+    });
+  }, []);
+
   // Export entire state to stringified JSON
   const exportData = useCallback((): string => {
     return JSON.stringify(state, null, 2);
@@ -1097,6 +1136,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       deleteProgram,
       getNextTemplate,
       updateHistorySession,
+      addCustomPlate,
+      removeCustomPlate,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -1105,7 +1146,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
-      updateHistorySession,
+      updateHistorySession, addCustomPlate, removeCustomPlate,
     ])}>
       {children}
     </WorkoutContext.Provider>
