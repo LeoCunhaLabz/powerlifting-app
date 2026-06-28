@@ -43,6 +43,8 @@ interface WorkoutContextType {
   saveError: string | null;
   dismissSaveError: () => void;
   syncStatus: SyncStatus;
+  /** Baixa dados do servidor e faz merge com o estado local (útil para refresh manual). */
+  pullFromServer: () => Promise<void>;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -245,15 +247,76 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [],
   );
 
-  const { syncStatus, triggerSync } = useSyncManager({ onSyncComplete });
+  const { syncStatus, triggerSync, pullFromServer: syncPull } = useSyncManager({ onSyncComplete });
 
-  // Detecta itens sem syncedAt e dispara sync automaticamente
+  // Faz pull do servidor e merge com estado local:
+  // - servidor vence para IDs já existentes
+  // - itens locais sem par no servidor (ainda não sincronizados) são preservados
+  // - built-ins nunca são substituídos
+  const pullFromServer = useCallback(async () => {
+    const result = await syncPull();
+    if (!result) return;
+    const now = new Date().toISOString();
+    setState(prev => {
+      const serverIds = new Set(result.workouts.map(w => w.id));
+      const localOnly = prev.history.filter(h => !serverIds.has(h.id));
+      const mergedHistory = [
+        ...result.workouts.map(w => ({ ...w, syncedAt: now })),
+        ...localOnly,
+      ];
+
+      const serverTplIds = new Set(result.templates.map(t => t.id));
+      const builtIns = prev.templates.filter(t => t.isBuiltIn);
+      const localCustomOnly = prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id));
+      const mergedTemplates = [
+        ...builtIns,
+        ...result.templates.map(t => ({ ...t, syncedAt: now })),
+        ...localCustomOnly,
+      ];
+
+      return { ...prev, history: mergedHistory, templates: mergedTemplates };
+    });
+  }, [syncPull]);
+
+  // Pull inicial ao montar (= usuário acabou de autenticar)
   useEffect(() => {
+    let cancelled = false;
+    syncPull().then(result => {
+      if (!result || cancelled) return;
+      const now = new Date().toISOString();
+      setState(prev => {
+        const serverIds = new Set(result.workouts.map(w => w.id));
+        const localOnly = prev.history.filter(h => !serverIds.has(h.id));
+        const mergedHistory = [
+          ...result.workouts.map(w => ({ ...w, syncedAt: now })),
+          ...localOnly,
+        ];
+
+        const serverTplIds = new Set(result.templates.map(t => t.id));
+        const builtIns = prev.templates.filter(t => t.isBuiltIn);
+        const localCustomOnly = prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id));
+        const mergedTemplates = [
+          ...builtIns,
+          ...result.templates.map(t => ({ ...t, syncedAt: now })),
+          ...localCustomOnly,
+        ];
+
+        return { ...prev, history: mergedHistory, templates: mergedTemplates };
+      });
+    });
+    return () => { cancelled = true; };
+  // Roda apenas uma vez ao montar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Detecta itens sem syncedAt e dispara push automaticamente (built-ins excluídos)
+  useEffect(() => {
+    const customTemplates = state.templates.filter(t => !t.isBuiltIn);
     const hasPending =
       state.history.some(s => !s.syncedAt) ||
-      state.templates.some(t => !t.isBuiltIn && !t.syncedAt);
+      customTemplates.some(t => !t.syncedAt);
     if (hasPending) {
-      triggerSync({ workouts: state.history, templates: state.templates });
+      triggerSync({ workouts: state.history, templates: customTemplates });
     }
   // triggerSync é estável (useCallback com deps [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -790,13 +853,14 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveError,
       dismissSaveError,
       syncStatus,
+      pullFromServer,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
       removeSetFromExercise, updateSet, updateWorkoutNotes, saveTemplate, deleteTemplate,
       updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
-      getBodyweightAt, saveError, dismissSaveError, syncStatus,
+      getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
     ])}>
       {children}
     </WorkoutContext.Provider>
