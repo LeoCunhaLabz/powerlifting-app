@@ -141,7 +141,7 @@ A codebase evolui por **issues**, uma de cada vez. Para cada issue:
 2. **Um PR por issue**, com escopo focado. Evite misturar mudanças não relacionadas.
 3. **Vincule a issue** no corpo do PR com `Closes #N`.
 4. Use o template em `.github/PULL_REQUEST_TEMPLATE.md`.
-5. **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize no **mesmo PR** o `AGENTS.md`, o `.github/copilot-instructions.md` e os arquivos em `.github/{agents,prompts,skills}` afetados. Documentação desatualizada é tratada como bug. Para informações de produção/VPS, consulte [docs/deploy-vps.md](docs/deploy-vps.md).
+5. **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize no **mesmo PR** o `AGENTS.md`, o `.github/copilot-instructions.md` e os arquivos em `.github/{agents,prompts,skills}` e `.claude/skills/` afetados. Documentação desatualizada é tratada como bug. Para informações de produção/VPS, consulte [docs/deploy-vps.md](docs/deploy-vps.md).
 6. Antes de finalizar, rode `npm run build` e `npm run lint` (sem novos erros) e marque o checklist do PR.
 
 > Dependências entre issues importam: respeite a ordem lógica (ex.: monorepo → API → banco → auth → docker → sync) para evitar conflitos e retrabalho.
@@ -152,3 +152,4 @@ A codebase evolui por **issues**, uma de cada vez. Para cada issue:
 - `.github/prompts/` — prompts para tarefas comuns; veja [.github/prompts/README.md](.github/prompts/README.md) para o fluxo de issues (gerar → planejar → executar), labels e aprovação.
 - `.github/agents/powerlifting-dev.agent.md` — agente especializado.
 - `.github/skills/` — conhecimento de domínio (fórmulas, design system).
+- `.claude/skills/` — skills do Claude Code que espelham o fluxo de issues dos prompts (`planejar-issue`, `executar-issue`, `finalizar-pr`, `resolver-issue` end-to-end e `resolver-todas-issues` em lote).

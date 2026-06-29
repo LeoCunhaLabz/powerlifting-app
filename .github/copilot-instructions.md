@@ -35,5 +35,5 @@ Antes de concluir: `npm run build` (na raiz) deve passar. Rode `npm run lint` e 
 
 - **Um PR por issue.** Crie um branch por issue a partir de `main` com o padrão `<type>/<issue-number>-<resumo>` (ex.: `feat/7-api-fastify`, `fix/99-correcao-calculo`) e abra um PR focado, vinculando a issue (`Closes #N`).
 - Use o template em `.github/PULL_REQUEST_TEMPLATE.md` ao abrir o PR.
-- **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize `AGENTS.md`, este arquivo, e os `.github/{agents,prompts,skills}` afetados no mesmo PR.
+- **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize `AGENTS.md`, este arquivo, e os `.github/{agents,prompts,skills}` e `.claude/skills/` afetados no mesmo PR. As skills do Claude Code em `.claude/skills/` espelham o fluxo de issues dos prompts (`planejar-issue`, `executar-issue`, `finalizar-pr`, `resolver-issue`, `resolver-todas-issues`).
 - Antes de finalizar: `npm run build` e `npm run lint` sem novos erros.
