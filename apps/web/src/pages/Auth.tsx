@@ -339,6 +339,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '13px',
     padding: '10px 14px',
     fontWeight: 500,
+    textAlign: 'center',
   },
   submitBtn: {
     marginTop: '4px',
