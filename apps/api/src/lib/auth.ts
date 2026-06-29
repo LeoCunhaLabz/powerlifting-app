@@ -18,6 +18,16 @@ export function generateRefreshToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
+/** Gera um token de redefinição de senha aleatório (base64url, alta entropia). */
+export function generatePasswordResetToken(): string {
+  return randomBytes(32).toString('base64url')
+}
+
+/** Hash determinístico (sha256) de um token de alta entropia (refresh/reset). Alias semântico. */
+export function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
+
 /**
  * Calcula o hash determinístico (sha256) de um refresh token para armazenamento.
  * Determinístico para permitir busca por igualdade no banco; o token tem alta

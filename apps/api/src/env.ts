@@ -18,6 +18,14 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRES_IN: durationEnvSchema.default('7d'),
   /** Client ID do Google OAuth (console.cloud.google.com). Obrigatório para login com Google. */
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  /** Validade do token de redefinição de senha. Default 1h. */
+  PASSWORD_RESET_EXPIRES_IN: durationEnvSchema.default('1h'),
+  /** API key do Resend (resend.com) para envio de e-mails. Se ausente, o link é apenas logado (dev). */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /** Remetente dos e-mails (ex.: "ONYX <no-reply@seu-dominio.com>"). Necessário junto com RESEND_API_KEY. */
+  EMAIL_FROM: z.string().min(1).optional(),
+  /** URL pública do app web (base do link de redefinição). Default: CORS_ORIGIN. */
+  APP_PUBLIC_URL: z.string().url().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

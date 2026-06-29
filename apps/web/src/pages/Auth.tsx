@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { AuthApiError } from '../services/authApi';
-import { Eye, EyeOff, Dumbbell } from 'lucide-react';
+import { AuthApiError, forgotPassword, resetPassword } from '../services/authApi';
+import { Eye, EyeOff, Dumbbell, ArrowLeft } from 'lucide-react';
 
 // Declaração mínima do Google Identity Services (carregado via script externo)
 declare const google: {
@@ -16,18 +16,37 @@ declare const google: {
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'forgot' | 'reset';
+
+// Lê o token de redefinição da URL (?reset_token=...) uma única vez, no carregamento.
+const initialResetToken = (() => {
+  try {
+    return new URLSearchParams(window.location.search).get('reset_token');
+  } catch {
+    return null;
+  }
+})();
 
 export const Auth: React.FC = () => {
   const { login, register, loginWithGoogle } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(initialResetToken ? 'reset' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(initialResetToken);
   const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  // Remove o parâmetro reset_token da URL (após concluir/cancelar o fluxo de reset).
+  const clearResetParam = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reset_token');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+  };
 
   // Inicializa o botão Google GSI quando o script carregar
   useEffect(() => {
@@ -109,9 +128,77 @@ export const Auth: React.FC = () => {
     }
   };
 
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      const res = await forgotPassword(email.trim().toLowerCase());
+      setInfo(res.message);
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        setError(err.message);
+      } else {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+    if (password.length < 8) {
+      setError('A senha deve ter ao menos 8 caracteres.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.');
+      return;
+    }
+    if (!resetToken) {
+      setError('Link de redefinição inválido. Solicite um novo.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await resetPassword(resetToken, password);
+      clearResetParam();
+      setResetToken(null);
+      setPassword('');
+      setConfirmPassword('');
+      setMode('login');
+      setInfo('Senha redefinida com sucesso. Faça login com a nova senha.');
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        setError(err.message);
+      } else {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goToMode = (m: Mode) => {
+    setMode(m);
+    setError(null);
+    setInfo(null);
+    setPassword('');
+    setConfirmPassword('');
+    if (m !== 'reset') {
+      clearResetParam();
+      setResetToken(null);
+    }
+  };
+
   const toggleMode = () => {
     setMode((m) => (m === 'login' ? 'register' : 'login'));
     setError(null);
+    setInfo(null);
     setName('');
     setPassword('');
   };
@@ -127,15 +214,97 @@ export const Auth: React.FC = () => {
           <span style={styles.wordmark}>ONYX</span>
         </div>
 
+        {(mode === 'forgot' || mode === 'reset') && (
+          <button onClick={() => goToMode('login')} style={styles.backLink}>
+            <ArrowLeft size={14} /> Voltar ao login
+          </button>
+        )}
+
         <h1 style={styles.title}>
-          {mode === 'login' ? 'Entrar' : 'Criar conta'}
+          {mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : mode === 'forgot' ? 'Recuperar senha' : 'Nova senha'}
         </h1>
         <p style={styles.subtitle}>
           {mode === 'login'
             ? 'Acesse seu histórico de treinos em qualquer dispositivo.'
-            : 'Registre-se para sincronizar seus treinos.'}
+            : mode === 'register'
+            ? 'Registre-se para sincronizar seus treinos.'
+            : mode === 'forgot'
+            ? 'Informe seu e-mail e enviaremos um link para redefinir a senha.'
+            : 'Defina uma nova senha para a sua conta.'}
         </p>
 
+        {/* Forgot password form */}
+        {mode === 'forgot' && (
+          <form onSubmit={handleForgot} style={styles.form} noValidate>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label} htmlFor="auth-email">E-mail</label>
+              <input
+                id="auth-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                autoComplete="email"
+                required
+                style={styles.input}
+              />
+            </div>
+            {error && <div style={styles.errorBox} role="alert">{error}</div>}
+            {info && <div style={styles.infoBox} role="status">{info}</div>}
+            <button type="submit" style={styles.submitBtn} disabled={loading}>
+              {loading ? 'Aguarde…' : 'Enviar link'}
+            </button>
+          </form>
+        )}
+
+        {/* Reset password form */}
+        {mode === 'reset' && (
+          <form onSubmit={handleReset} style={styles.form} noValidate>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label} htmlFor="auth-password">Nova senha</label>
+              <div style={styles.passwordWrap}>
+                <input
+                  id="auth-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  autoComplete="new-password"
+                  required
+                  style={{ ...styles.input, paddingRight: '44px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  style={styles.eyeBtn}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label} htmlFor="auth-confirm">Confirmar senha</label>
+              <input
+                id="auth-confirm"
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repita a nova senha"
+                autoComplete="new-password"
+                required
+                style={styles.input}
+              />
+            </div>
+            {error && <div style={styles.errorBox} role="alert">{error}</div>}
+            <button type="submit" style={styles.submitBtn} disabled={loading}>
+              {loading ? 'Aguarde…' : 'Redefinir senha'}
+            </button>
+          </form>
+        )}
+
+        {/* Login / register form */}
+        {(mode === 'login' || mode === 'register') && (
         <form onSubmit={handleSubmit} style={styles.form} noValidate>
           {mode === 'register' && (
             <div style={styles.fieldGroup}>
@@ -191,9 +360,20 @@ export const Auth: React.FC = () => {
             </div>
           </div>
 
+          {mode === 'login' && (
+            <button type="button" onClick={() => goToMode('forgot')} style={styles.forgotLink}>
+              Esqueci minha senha
+            </button>
+          )}
+
           {error && (
             <div style={styles.errorBox} role="alert">
               {error}
+            </div>
+          )}
+          {info && (
+            <div style={styles.infoBox} role="status">
+              {info}
             </div>
           )}
 
@@ -205,7 +385,9 @@ export const Auth: React.FC = () => {
               : 'Criar conta'}
           </button>
         </form>
+        )}
 
+        {(mode === 'login' || mode === 'register') && (
         <div style={styles.switchRow}>
           <span style={styles.switchText}>
             {mode === 'login' ? 'Não tem uma conta?' : 'Já tem uma conta?'}
@@ -214,8 +396,9 @@ export const Auth: React.FC = () => {
             {mode === 'login' ? 'Cadastrar' : 'Entrar'}
           </button>
         </div>
+        )}
 
-        {GOOGLE_CLIENT_ID && (
+        {GOOGLE_CLIENT_ID && (mode === 'login' || mode === 'register') && (
           <>
             <div style={styles.dividerRow}>
               <span style={styles.dividerLine} />
@@ -340,6 +523,41 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 14px',
     fontWeight: 500,
     textAlign: 'center',
+  },
+  infoBox: {
+    background: 'var(--accent-soft)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--accent)',
+    fontSize: '13px',
+    padding: '10px 14px',
+    fontWeight: 500,
+    textAlign: 'center',
+  },
+  backLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    padding: 0,
+    marginBottom: '16px',
+    alignSelf: 'flex-start',
+  },
+  forgotLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--accent)',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    padding: 0,
+    alignSelf: 'flex-end',
+    textDecoration: 'underline',
   },
   submitBtn: {
     marginTop: '4px',
