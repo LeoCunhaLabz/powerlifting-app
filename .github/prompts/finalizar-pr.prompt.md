@@ -16,6 +16,7 @@ Fonte da verdade das convenções: [AGENTS.md](../../AGENTS.md) e [.github/copil
 ## Regras de execução (inegociáveis)
 
 - **Pausa obrigatória antes do merge.** Resolve comments, valida, rebaseia e resolve conflitos; então **apresenta um resumo e espera meu "ok"** para o squash merge. **Nunca** mergeie sem aprovação explícita.
+- **Gate de review do Copilot (obrigatório).** Não seguir para merge enquanto o review do Copilot ainda puder chegar. Após abrir/atualizar o PR, faça espera ativa até haver evidência de review do Copilot ou timeout controlado (detalhes no Passo 2). Merge antecipado é proibido.
 - **Comments do Copilot — resolver os óbvios, perguntar nos duvidosos:**
   - **Óbvio** (aplicar direto): bug claro, typo, edge case não tratado, violação evidente das convenções do projeto, sugestão de baixo risco e dentro do escopo da issue.
   - **Duvidoso** (parar e perguntar): muda escopo/comportamento, é questão de preferência/estilo discutível, exige decisão de design, ou conflita com `AGENTS.md`/escopo mínimo. **Não** aplique sozinho — liste e pergunte.
@@ -37,7 +38,12 @@ Fonte da verdade das convenções: [AGENTS.md](../../AGENTS.md) e [.github/copil
      gh api repos/{owner}/{repo}/pulls/<N>/comments
      ```
    - Filtre os autorados pelo **GitHub Copilot** (bot de review). Se o `gh` não estiver disponível/autenticado, **pare e peça** os comments (ou um print) e diga que segui só com o que recebi.
-   - Se ainda não houver comments do Copilot, **avise e pergunte** se quer esperar o review ou seguir só com build/lint + merge.
+   - **Janela de espera ativa (obrigatória):**
+      1. Aguarde CI principal concluir (ou falhar) antes da triagem final de comments.
+      2. Se não houver comments do Copilot, repita a checagem em ciclos curtos (ex.: 2 em 2 min) por até **20 min** após o último push relevante no PR.
+      3. Se surgirem comments durante a janela, trate-os e só avance quando houver um período de silêncio curto (ex.: 3 min sem novos comments).
+      4. Se passar 20 min sem nenhum comment do Copilot, pause e peça decisão explícita: "seguir sem review do Copilot nesta rodada?".
+   - Só prossiga para o passo de merge com: comments tratados, ou timeout + confirmação explícita do usuário.
 
 3. **Triar cada comment** em **óbvio** vs **duvidoso** (critérios acima). Monte uma lista curta:
    - `✅ aplicar` — o que vou corrigir e onde.

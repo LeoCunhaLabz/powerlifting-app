@@ -47,6 +47,17 @@ flowchart LR
 5. **Finalizar — [`/finalizar-pr`](finalizar-pr.prompt.md)** (modo agent)
    Fecha o PR: lê os **review comments do GitHub Copilot**, resolve os óbvios (pergunta nos duvidosos), revalida `build`/`lint`, faz **rebase** em `main` e resolve conflitos. **Pausa e espera seu "ok"** antes do **squash merge** + `--delete-branch`. O `Closes #N` fecha a issue.
 
+## Gate de revisão do Copilot (obrigatório)
+
+Para evitar merge precoce antes dos comments automáticos chegarem:
+
+1. Após abrir/atualizar PR, aguarde o CI principal concluir.
+2. Faça checagens cíclicas de review/comments do Copilot (ex.: a cada 2 minutos) por até **20 minutos** após o último push relevante.
+3. Se surgirem comments, trate-os e só avance quando houver breve período sem novidades (ex.: 3 minutos).
+4. Se não surgir nenhum comment no prazo, **pause e peça decisão explícita** para seguir sem review do Copilot naquela rodada.
+
+Sem esse gate, o merge não deve acontecer.
+
 > **Atalho end-to-end — [`/resolver-issue`](resolver-issue.prompt.md)** (modo agent): encadeia **planejar → executar → finalizar** uma issue de uma vez, parando só em 3 pontos de decisão (confirmar plano · comments duvidosos · aprovar merge). Aceita um número ou `próxima` (pega a mais prioritária `status:aprovada`). Use quando quiser tocar a issue inteira sem disparar cada prompt na mão.
 
 ## Sistema de labels (a ordem de execução)

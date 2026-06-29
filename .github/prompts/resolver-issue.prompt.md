@@ -51,6 +51,7 @@ Leia a issue, desempacote o escopo e produza o plano técnico (arquivos, funçõ
 ### 3. Finalizar — segue [`/finalizar-pr`](finalizar-pr.prompt.md)
 
 - Busque os review comments do **Copilot**; **resolva os óbvios**, **PAUSA 2** nos duvidosos.
+- Aplique o **gate de review do Copilot**: espera ativa por comments (checagens em ciclo por até 20 min após último push). Se não vier nada nesse período, pause e peça decisão explícita para seguir sem review do Copilot.
 - Revalide `build` + `lint`; rebaseie em `origin/main` e resolva conflitos; `git push --force-with-lease`.
 - **PAUSA 3:** mostre o resumo (comments aplicados/pendentes/recusados, build/lint, estado do rebase, comando de merge) e pergunte *"Posso fazer o squash merge?"*.
 - Após o ok: `gh pr merge <N> --squash --delete-branch`, feche a issue via `Closes #N`, volte para `main` e `git pull`.
