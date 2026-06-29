@@ -234,15 +234,27 @@ export const Workout: React.FC = () => {
         </div>
       </div>
 
+      {(() => {
+        const routineNote = activeWorkout.templateId
+          ? state.templates.find((t) => t.id === activeWorkout.templateId)?.notes
+          : undefined;
+        return routineNote ? (
+          <div style={styles.routineNote}>
+            <span style={styles.routineNoteLabel}>Nota da rotina</span>
+            <span style={styles.routineNoteText}>{routineNote}</span>
+          </div>
+        ) : null;
+      })()}
+
       <div style={styles.metaRow}>
         <span style={styles.metaItem}>{activeWorkout.exercises.length} exercícios</span>
         <button onClick={() => setShowNotes((v) => !v)} style={styles.notesToggle}>
-          {showNotes ? 'Ocultar notas' : 'Notas'}
+          {showNotes ? 'Ocultar notas' : 'Notas da sessão'}
         </button>
       </div>
       {showNotes && (
         <textarea
-          placeholder="Notas do treino (clima, humor, dores...)"
+          placeholder="Notas da sessão (clima, humor, dores...)"
           value={activeWorkout.notes || ''}
           onChange={(e) => updateWorkoutNotes(e.target.value)}
           style={styles.notes}
@@ -481,6 +493,9 @@ const styles: Record<string, React.CSSProperties> = {
   metaRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
   metaItem: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 },
   typeLegend: { fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 10px', lineHeight: 1.4 },
+  routineNote: { display: 'flex', flexDirection: 'column', gap: 3, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-md)', padding: '10px 12px', marginBottom: 10 },
+  routineNoteLabel: { fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' },
+  routineNoteText: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, whiteSpace: 'pre-wrap' },
   notesToggle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' },
   notes: { width: '100%', height: '54px', resize: 'none', marginBottom: '14px', backgroundColor: 'var(--bg-secondary)' },
   exList: { display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '14px' },

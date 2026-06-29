@@ -126,6 +126,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   // Create/Edit template form
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [routineNotes, setRoutineNotes] = useState('');
   const [prescription, setPrescription] = useState<Prescription>('percent');
   const [exercises, setExercises] = useState<TemplateExercise[]>([]);
   const [searchExercise, setSearchExercise] = useState('');
@@ -189,7 +190,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const removeEx = (exIdx: number) => setExercises((prev) => prev.filter((_, i) => i !== exIdx));
 
   const resetForm = () => {
-    setName(''); setDescription(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
+    setName(''); setDescription(''); setRoutineNotes(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
   };
 
   const startEdit = (tpl: WorkoutTemplate, duplicate = false) => {
@@ -197,6 +198,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       tpl.exercises[0]?.sets[0]?.rpe !== undefined ? 'rpe' : 'percent';
     setName(duplicate ? `${tpl.name} (cópia)` : tpl.name);
     setDescription(tpl.description);
+    setRoutineNotes(tpl.notes ?? '');
     setPrescription(detectedPresc);
     setExercises(tpl.exercises.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })));
     setEditingId(duplicate ? null : tpl.id);
@@ -215,7 +217,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
         rpe: prescription === 'rpe' ? s.rpe : undefined,
       })),
     }));
-    saveTemplate({ id: editingId ?? undefined, name, description, exercises: cleaned });
+    saveTemplate({ id: editingId ?? undefined, name, description, notes: routineNotes.trim() || undefined, exercises: cleaned });
     showToast(editingId ? 'Rotina atualizada' : 'Rotina salva');
     resetForm();
   };
@@ -411,6 +413,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
             <div style={styles.form}>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da rotina" style={styles.nameInput} />
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição (opcional)" style={styles.descInput} />
+              <textarea value={routineNotes} onChange={(e) => setRoutineNotes(e.target.value)} placeholder="Nota da rotina (cues, observações — aparece durante o treino)" style={styles.descInput} />
 
               {/* Prescription toggle (%1RM OU RPE) */}
               <div style={styles.prescRow}>
