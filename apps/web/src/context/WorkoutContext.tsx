@@ -941,14 +941,15 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       return;
     }
 
-    // Determine duration
+    // Determine duration from the active session start time
     const startTime = new Date(activeWorkout.date).getTime();
-    const duration = Math.round((Date.now() - startTime) / 1000);
+    const rawDuration = Math.round((Date.now() - startTime) / 1000);
+    const duration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 0;
 
     const completedSession: WorkoutSession = {
       ...activeWorkout,
       exercises: finalizedExercises,
-      duration: duration > 0 ? duration : 60, // Minimum 1 minute
+      duration,
       date: new Date().toISOString() // Set completion date/time
     };
 
