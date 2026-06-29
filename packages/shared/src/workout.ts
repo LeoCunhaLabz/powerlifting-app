@@ -114,10 +114,23 @@ export interface Program {
   weekOverrides?: WeekOverride[];
 }
 
+/**
+ * Exercício criado pelo usuário, reutilizável por toda a conta.
+ * Complementa os exercícios sugeridos embutidos no app — aparece no autocomplete
+ * de rotinas e do treino ao vivo e persiste no estado.
+ */
+export interface CustomExercise {
+  id: string;
+  name: string;
+  createdAt: string; // ISO
+}
+
 export interface AppState {
   history: WorkoutSession[];
   templates: WorkoutTemplate[];
   settings: Settings;
   bodyweightLog: BodyweightEntry[];
   programs: Program[];
+  /** Exercícios customizados criados pelo usuário (reutilizáveis na busca). */
+  customExercises: CustomExercise[];
 }

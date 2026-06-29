@@ -50,6 +50,7 @@ const validState: AppState = {
   settings: validSettings,
   bodyweightLog: [],
   programs: [],
+  customExercises: [],
 };
 
 // ─── casos válidos ────────────────────────────────────────────────────────────
