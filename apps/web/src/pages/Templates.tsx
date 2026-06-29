@@ -579,7 +579,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               <div style={styles.progActiveRow}>
                 <span style={styles.prescLabel}>Programa ativo</span>
                 <button onClick={() => setProgActive(v => !v)} style={{ ...styles.toggleBtn, backgroundColor: progActive ? 'var(--accent)' : 'var(--bg-tertiary)', borderColor: progActive ? 'var(--accent-border)' : 'var(--border-color)' }}>
-                  <span style={{ ...styles.toggleKnob, transform: progActive ? 'translateX(20px)' : 'translateX(2px)' }} />
+                  <span style={{ ...styles.toggleKnob, transform: progActive ? 'translateX(22px)' : 'translateX(2px)' }} />
                 </button>
               </div>
 
@@ -777,8 +777,8 @@ const styles: Record<string, React.CSSProperties> = {
   progSeqNum: { width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 } as React.CSSProperties,
   progSeqName: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' },
   progActiveRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' },
-  toggleBtn: { width: '44px', height: '24px', borderRadius: '999px', border: '1px solid', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0, cursor: 'pointer' } as React.CSSProperties,
-  toggleKnob: { position: 'absolute', top: '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#fff', transition: 'transform 0.2s' } as React.CSSProperties,
+  toggleBtn: { width: '44px', height: '24px', padding: 0, borderRadius: '999px', border: '1px solid', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0, cursor: 'pointer' } as React.CSSProperties,
+  toggleKnob: { position: 'absolute', top: '2px', left: 0, width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#fff', transition: 'transform 0.2s' } as React.CSSProperties,
   progOrderList: { display: 'flex', flexDirection: 'column', gap: '6px' },
   progOrderItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
   reorderBtn: { color: 'var(--text-muted)', padding: '2px', display: 'flex', alignItems: 'center' },
