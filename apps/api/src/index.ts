@@ -4,6 +4,7 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import { ZodError } from 'zod'
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
 import { authRoutes } from './routes/auth.js'
@@ -13,6 +14,72 @@ import { syncRoutes } from './routes/sync.js'
 import { dbPluginFp } from './plugins/db.js'
 import { authPluginFp } from './plugins/auth.js'
 import { runMigrations } from './db/index.js'
+
+const FIELD_LABELS: Record<string, string> = {
+  email: 'e-mail',
+  password: 'senha',
+  name: 'nome',
+}
+
+const normalizePath = (path: (string | number)[]): string => {
+  const relevantSegments = path
+    .filter((segment) => segment !== 'body')
+    .map((segment) => String(segment))
+
+  return relevantSegments.join('.')
+}
+
+const formatField = (path: (string | number)[]): string => {
+  const normalizedPath = normalizePath(path)
+  const lastSegment = normalizedPath.split('.').at(-1)
+
+  if (!lastSegment) {
+    return 'campo'
+  }
+
+  return FIELD_LABELS[lastSegment] ?? lastSegment
+}
+
+const formatZodValidationMessage = (error: ZodError): string => {
+  const firstIssue = error.issues[0]
+
+  if (!firstIssue) {
+    return 'Dados inválidos. Revise os campos enviados.'
+  }
+
+  const field = formatField(firstIssue.path)
+
+  if (field === 'e-mail') {
+    if (firstIssue.code === 'invalid_string') {
+      return 'Informe um e-mail válido.'
+    }
+
+    if (firstIssue.code === 'too_small') {
+      return 'Informe o e-mail.'
+    }
+  }
+
+  if (field === 'senha') {
+    if (firstIssue.code === 'too_small') {
+      const minLength =
+        typeof firstIssue.minimum === 'number' && Number.isFinite(firstIssue.minimum)
+          ? firstIssue.minimum
+          : undefined
+
+      if (minLength && minLength > 1) {
+        return `A senha deve ter ao menos ${minLength} caracteres.`
+      }
+
+      return 'Informe a senha.'
+    }
+  }
+
+  if (field === 'nome' && firstIssue.code === 'too_small') {
+    return 'Informe o nome.'
+  }
+
+  return `Valor inválido para ${field}.`
+}
 
 const app = Fastify({
   logger: {
@@ -38,6 +105,14 @@ const defaultErrorHandler = app.errorHandler
 
 app.setErrorHandler((error: FastifyError, request, reply) => {
   const statusCode = error.statusCode ?? 500
+
+  if (error instanceof ZodError) {
+    return reply.code(400).send({
+      statusCode: 400,
+      error: 'Bad Request',
+      message: formatZodValidationMessage(error),
+    })
+  }
 
   if (statusCode < 500) {
     return defaultErrorHandler(error, request, reply)
