@@ -3,6 +3,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
+import type { WorkoutTemplate } from '@powerlifting/shared';
 
 const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D: 'N' };
 
@@ -118,10 +119,35 @@ export const Workout: React.FC = () => {
     const activeProgram = programs.find((p) => p.isActive);
     const nextTemplate = getNextTemplate();
     const nextFromProgram = !!(activeProgram && nextTemplate && activeProgram.templateIds.includes(nextTemplate.id));
+
+    // Rotinas do programa ativo (na ordem do programa), exceto a "próxima" já destacada.
+    const programTemplates = activeProgram
+      ? activeProgram.templateIds
+          .map((id) => myTemplates.find((t) => t.id === id))
+          .filter((t): t is WorkoutTemplate => !!t)
+      : [];
+    const otherProgramTemplates = programTemplates.filter((t) => t.id !== nextTemplate?.id);
+    // Rotinas avulsas: minhas rotinas que não pertencem ao programa ativo.
+    const programIdSet = new Set(programTemplates.map((t) => t.id));
+    const standaloneTemplates = myTemplates.filter((t) => !programIdSet.has(t.id));
+
+    const renderTemplateRow = (t: WorkoutTemplate) => (
+      <button key={t.id} onClick={() => startWorkout(t.id)} style={styles.templateRow}>
+        <span style={styles.templateAvatar}>{t.name.charAt(0).toUpperCase()}</span>
+        <span style={styles.templateTexts}>
+          <span style={styles.templateName}>{t.name}</span>
+          <span style={styles.templateSub}>{t.exercises.length} exercícios · {t.exercises.reduce((a, e) => a + e.sets.length, 0)} séries</span>
+        </span>
+        <Play size={14} fill="var(--accent)" stroke="none" />
+      </button>
+    );
+
     return (
       <div style={styles.empty}>
         <div style={styles.emptyIcon}><Dumbbell size={44} color="var(--text-secondary)" /></div>
         <h2 style={styles.emptyTitle}>Nenhum treino ativo</h2>
+
+        {/* Modo 1 — Programa ativo: próxima rotina + escolher outra do programa */}
         {nextFromProgram && nextTemplate && activeProgram && (
           <button onClick={() => startWorkout(nextTemplate.id)} style={styles.nextProgramCard}>
             <span style={styles.nextProgramKicker}>Próxima rotina · {activeProgram.name}</span>
@@ -132,6 +158,23 @@ export const Workout: React.FC = () => {
             <span style={styles.nextProgramPlay}><Play size={16} fill="var(--accent-ink)" stroke="none" /> Começar</span>
           </button>
         )}
+        {otherProgramTemplates.length > 0 && (
+          <>
+            <p style={styles.sectionHeader}>Outra rotina do programa</p>
+            <div style={styles.templateList}>{otherProgramTemplates.map(renderTemplateRow)}</div>
+          </>
+        )}
+
+        {/* Modo 2 — Rotina avulsa */}
+        {standaloneTemplates.length > 0 && (
+          <>
+            <p style={styles.sectionHeader}>{activeProgram ? 'Outras rotinas' : 'Iniciar uma rotina'}</p>
+            <div style={styles.templateList}>{standaloneTemplates.map(renderTemplateRow)}</div>
+          </>
+        )}
+
+        {/* Modo 3 — Treino vazio ou repetir sem vínculo */}
+        <p style={styles.sectionHeader}>Sem rotina</p>
         <button onClick={() => startWorkout()} style={styles.startBtn}>
           <Play size={16} fill="var(--accent-ink)" stroke="none" /> Iniciar treino avulso
         </button>
@@ -139,23 +182,6 @@ export const Workout: React.FC = () => {
           <button onClick={() => repeatWorkout(history[0])} style={styles.repeatLastBtn}>
             <RotateCcw size={15} /> Repetir último treino
           </button>
-        )}
-        {myTemplates.length > 0 && (
-          <>
-            <p style={{ ...styles.emptyDesc, marginTop: 24, marginBottom: 8 }}>Ou inicie uma rotina:</p>
-            <div style={styles.templateList}>
-              {myTemplates.map((t) => (
-                <button key={t.id} onClick={() => startWorkout(t.id)} style={styles.templateRow}>
-                  <span style={styles.templateAvatar}>{t.name.charAt(0).toUpperCase()}</span>
-                  <span style={styles.templateTexts}>
-                    <span style={styles.templateName}>{t.name}</span>
-                    <span style={styles.templateSub}>{t.exercises.length} exercícios · {t.exercises.reduce((a, e) => a + e.sets.length, 0)} séries</span>
-                  </span>
-                  <Play size={14} fill="var(--accent)" stroke="none" />
-                </button>
-              ))}
-            </div>
-          </>
         )}
       </div>
     );
@@ -432,6 +458,7 @@ const styles: Record<string, React.CSSProperties> = {
   nextProgramName: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 },
   nextProgramSub: { fontSize: 12, color: 'var(--text-secondary)' },
   nextProgramPlay: { display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 13, fontWeight: 800, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '7px 14px', borderRadius: 'var(--radius-sm)' },
+  sectionHeader: { width: '100%', maxWidth: 320, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 22, marginBottom: 8, textAlign: 'left' },
   startBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '12px 24px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   repeatLastBtn: { marginTop: '10px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px 22px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '7px' },
   templateList: { display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 },
