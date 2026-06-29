@@ -438,7 +438,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                     }
                     style={{ ...styles.inp, width: '100%', marginBottom: 6, boxSizing: 'border-box' }}
                   />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                     <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>DESCANSO (m:ss)</label>
                     <input
                       key={ex.restSeconds ?? 'empty'}
@@ -451,7 +451,22 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                           i === exIdx ? { ...x, restSeconds: parseRestInput(e.target.value) } : x
                         ))
                       }
-                      style={{ ...styles.inp, width: 100 }}
+                      style={{ ...styles.inp, width: 80 }}
+                    />
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>PESO ESPERADO</label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step={2.5}
+                      placeholder="—"
+                      value={ex.expectedWeight ?? ''}
+                      onChange={(e) =>
+                        setExercises(prev => prev.map((x, i) =>
+                          i === exIdx ? { ...x, expectedWeight: e.target.value ? Math.max(0, Number(e.target.value)) : undefined } : x
+                        ))
+                      }
+                      style={{ ...styles.inp, width: 80 }}
                     />
                   </div>
                   <div style={styles.setHead}>
