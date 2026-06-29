@@ -37,6 +37,7 @@
 
   /* Layout constraints */
   --max-width: 480px; /* Locked to a premium mobile shell for optimal UX, centered on desktop */
+  --template-desc-min-height: clamp(88px, 16vh, 120px);
 }
 
 /* ====== Temas de acento (selecionáveis em Configurações) ====== */
