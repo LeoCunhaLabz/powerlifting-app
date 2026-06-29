@@ -29,7 +29,14 @@ const MORE_LABELS: Record<MoreTab, string> = {
 
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
+  const [historyInit, setHistoryInit] = useState<{ sessionId?: string; edit?: boolean } | null>(null);
   const { activeWorkout, saveError, dismissSaveError, syncStatus, repeatWorkout } = useWorkout();
+
+  // Navega para o Histórico, opcionalmente abrindo uma sessão (deep-link do Dashboard).
+  const goToHistory = (opts?: { sessionId?: string; edit?: boolean }) => {
+    setHistoryInit(opts ?? null);
+    setCurrentTab('history');
+  };
 
   const syncIndicator = (() => {
     switch (syncStatus) {
@@ -58,13 +65,13 @@ const AppContent: React.FC = () => {
   const renderActiveTab = () => {
     switch (currentTab) {
       case 'dashboard':
-        return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} />;
+        return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} onNavigateHistory={goToHistory} />;
       case 'workout':
         return <Workout />;
       case 'templates':
         return <Templates onStartWorkoutTab={() => setCurrentTab('workout')} />;
       case 'more':
-        return <More onNavigate={(tab) => setCurrentTab(tab)} />;
+        return <More onNavigate={(tab) => { setHistoryInit(null); setCurrentTab(tab); }} />;
       case 'analytics':
         return <Analytics />;
       case 'calculators':
@@ -74,11 +81,11 @@ const AppContent: React.FC = () => {
       case 'calendar':
         return <Calendar onStartWorkoutTab={() => setCurrentTab('workout')} />;
       case 'history':
-        return <History onRepeat={(s) => { repeatWorkout(s); setCurrentTab('workout'); }} />;
+        return <History onRepeat={(s) => { repeatWorkout(s); setCurrentTab('workout'); }} initialSessionId={historyInit?.sessionId} initialEdit={historyInit?.edit} />;
       case 'exercises':
         return <CustomExercises />;
       default:
-        return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} />;
+        return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} onNavigateHistory={goToHistory} />;
     }
   };
 

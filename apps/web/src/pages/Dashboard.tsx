@@ -2,20 +2,23 @@ import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { calculateE1RM, calculateDots } from '../utils/powerlifting';
-import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw } from 'lucide-react';
+import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw, Pencil, Trash2, AlertTriangle, ChevronRight } from 'lucide-react';
 
 interface DashboardProps {
   onStartWorkoutTab: () => void;
+  /** Navega para o Histórico completo; opcionalmente abre uma sessão (em edição). */
+  onNavigateHistory: (opts?: { sessionId?: string; edit?: boolean }) => void;
 }
 
 const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
 
-export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
-  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight, getNextTemplate } = useWorkout();
+export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavigateHistory }) => {
+  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight, getNextTemplate, deleteHistorySession } = useWorkout();
   const { history, settings, bodyweightLog, programs } = state;
 
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [confirmRepeat, setConfirmRepeat] = useState<WorkoutSession | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<WorkoutSession | null>(null);
   const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [weightInput, setWeightInput] = useState('');
@@ -275,7 +278,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
       {/* Recent history */}
       {recentHistory.length > 0 && (
         <>
-          <div style={styles.sectionLabel}>Histórico recente</div>
+          <div style={styles.recentHead}>
+            <span style={styles.sectionLabel}>Histórico recente</span>
+            <button onClick={() => onNavigateHistory()} style={styles.seeAllBtn}>Ver tudo</button>
+          </div>
           <div style={styles.historyList}>
             {recentHistory.slice(0, 4).map((s) => {
               const hasPr = s.exercises.some((ex) => ex.sets.some((set) => set.isPr));
@@ -283,17 +289,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
                 <button key={s.id} onClick={() => setSelectedSession(s)} style={styles.historyCard}>
                   <div style={styles.historyTop}>
                     <span style={styles.historyName}>{s.name}{hasPr && <span style={styles.prTag}>PR</span>}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmRepeat(s); }}
-                        style={styles.repeatBtn}
-                        aria-label="Repetir treino"
-                        title="Repetir treino"
-                      >
-                        <RotateCcw size={13} />
-                      </button>
-                      <Eye size={15} color="var(--text-muted)" />
-                    </div>
+                    <Eye size={15} color="var(--text-muted)" />
                   </div>
                   <div style={styles.historyStats}>
                     <span style={styles.hStat}>{formatDate(s.date)}</span>
@@ -339,6 +335,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
                   ))}
                 </div>
               ))}
+            </div>
+            <div style={styles.modalActions}>
+              <button onClick={() => onNavigateHistory({ sessionId: selectedSession.id, edit: true })} style={styles.modalActionBtn}>
+                <Pencil size={14} /> Editar
+              </button>
+              <button onClick={() => setConfirmDelete(selectedSession)} style={{ ...styles.modalActionBtn, color: 'var(--error)' }}>
+                <Trash2 size={14} /> Excluir
+              </button>
+            </div>
+            <button onClick={() => onNavigateHistory()} style={styles.fullHistoryLink}>
+              Ver histórico completo <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm delete modal */}
+      {confirmDelete && (
+        <div style={styles.modalOverlay} onClick={() => setConfirmDelete(null)}>
+          <div style={{ ...styles.modalContent, padding: '24px', alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={36} color="var(--error)" style={{ marginBottom: 12 }} />
+            <h3 style={styles.modalTitle}>Excluir treino?</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 20px', lineHeight: 1.4 }}>
+              O treino "{confirmDelete.name}" será removido do histórico e os PRs serão recalculados.
+            </p>
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button onClick={() => setConfirmDelete(null)} style={styles.closeBtn}>Cancelar</button>
+              <button
+                onClick={() => { deleteHistorySession(confirmDelete.id); setConfirmDelete(null); setSelectedSession(null); }}
+                style={{ flex: 1, height: 44, backgroundColor: 'var(--error)', color: '#fff', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800 }}
+              >
+                Excluir
+              </button>
             </div>
           </div>
         </div>
@@ -393,6 +422,11 @@ const styles: Record<string, React.CSSProperties> = {
   heroPlay: { width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avulsoBtn: { width: '100%', height: '44px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 700, marginBottom: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' },
   sectionLabel: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px' },
+  recentHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
+  seeAllBtn: { background: 'none', border: 'none', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: 0 },
+  modalActions: { display: 'flex', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', marginTop: '4px' },
+  modalActionBtn: { flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '40px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' },
+  fullHistoryLink: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '10px', background: 'none', border: 'none', color: 'var(--accent)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '20px' },
   statTile: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '13px 10px' },
   statVal: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' },
