@@ -116,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)} min`;
 
   const suggestedTemplate = getNextTemplate();
-  const recentHistory = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const recentHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
   const handleResume = () => {
     if (!activeWorkout && suggestedTemplate) startWorkout(suggestedTemplate.id);
