@@ -1370,21 +1370,40 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
   /** Próximo template baseado no programa ativo + histórico de sessões. */
   const getNextTemplate = useCallback((): WorkoutTemplate | undefined => {
+    const isSameDay = (isoA: string, isoB: string) => new Date(isoA).toDateString() === new Date(isoB).toDateString();
+    const todayIso = new Date().toISOString();
+    const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
+
     const activeProgram = state.programs.find(p => p.isActive);
     if (activeProgram && activeProgram.templateIds.length > 0) {
-      const { templateIds } = activeProgram;
+      const validTemplateIds = activeProgram.templateIds.filter(id => state.templates.some(t => t.id === id && !t.archived));
+      if (validTemplateIds.length === 0) return undefined;
+
+      // Prioriza a próxima rotina ainda não concluída hoje dentro do programa ativo
+      const completedToday = new Set(
+        sorted
+          .filter(s => s.templateId && validTemplateIds.includes(s.templateId) && isSameDay(s.date, todayIso))
+          .map(s => s.templateId as string)
+      );
+      if (completedToday.size < validTemplateIds.length) {
+        const nextTodayId = validTemplateIds.find(id => !completedToday.has(id));
+        if (nextTodayId) {
+          const nextToday = state.templates.find(t => t.id === nextTodayId);
+          if (nextToday) return nextToday;
+        }
+      }
+
       // Encontra o índice do último template executado que pertence ao programa
-      const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
-      const lastMatch = sorted.find(s => s.templateId && templateIds.includes(s.templateId));
+      const lastMatch = sorted.find(s => s.templateId && validTemplateIds.includes(s.templateId));
       if (lastMatch && lastMatch.templateId) {
-        const lastIdx = templateIds.indexOf(lastMatch.templateId);
-        const nextIdx = (lastIdx + 1) % templateIds.length;
-        const nextId = templateIds[nextIdx];
+        const lastIdx = validTemplateIds.indexOf(lastMatch.templateId);
+        const nextIdx = (lastIdx + 1) % validTemplateIds.length;
+        const nextId = validTemplateIds[nextIdx];
         const next = state.templates.find(t => t.id === nextId);
         if (next) return next;
       }
       // Nenhum treino do programa ainda — retorna o primeiro da sequência
-      const first = state.templates.find(t => t.id === templateIds[0]);
+      const first = state.templates.find(t => t.id === validTemplateIds[0]);
       if (first) return first;
     }
     // Fallback sem programa: rotaciona entre templates customizados por histórico
@@ -1392,8 +1411,18 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     if (myTemplates.length === 0) return state.templates.find(t => !t.archived);
     if (myTemplates.length === 1) return myTemplates[0];
 
+    // Prioriza o próximo template customizado ainda não concluído hoje
+    const completedToday = new Set(
+      sorted
+        .filter(s => s.templateId && myTemplates.some(t => t.id === s.templateId) && isSameDay(s.date, todayIso))
+        .map(s => s.templateId as string)
+    );
+    if (completedToday.size < myTemplates.length) {
+      const nextToday = myTemplates.find(t => !completedToday.has(t.id));
+      if (nextToday) return nextToday;
+    }
+
     // Encontra o último treino que usou um desses templates
-    const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
     const lastMatch = sorted.find(s => s.templateId && myTemplates.some(t => t.id === s.templateId));
     if (lastMatch && lastMatch.templateId) {
       const lastIdx = myTemplates.findIndex(t => t.id === lastMatch.templateId);
