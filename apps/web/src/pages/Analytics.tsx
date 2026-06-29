@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { calculateE1RM, calculateDots, calculateWilks, calculateWilks2020, getExerciseMuscles, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
+import { calculateE1RM, calculateDots, calculateWilks, calculateWilks2020, getExerciseMuscles, getBodyweightSeriesInRange, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { Award } from 'lucide-react';
 
@@ -271,9 +271,7 @@ export const Analytics: React.FC = () => {
   })();
 
   // --- Peso corporal no período ---
-  const bwEntries = bodyweightLog
-    .filter((e) => inRange(e.date))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const bwEntries = getBodyweightSeriesInRange(bodyweightLog, from, to);
   const bwSeries = bwEntries.map((e) => e.weight);
   const bwDelta = bwSeries.length >= 2 ? Math.round((bwSeries[bwSeries.length - 1] - bwSeries[0]) * 10) / 10 : 0;
 

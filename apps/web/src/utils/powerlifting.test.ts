@@ -9,6 +9,7 @@ import {
   getStrengthComparison,
   calculateIpfGl,
   calculatePlates,
+  getBodyweightSeriesInRange,
 } from './powerlifting'
 
 // ─── calculateE1RM ────────────────────────────────────────────────────────────
@@ -393,5 +394,44 @@ describe('calculatePlates', () => {
   it('anilhas ordenadas por peso descendente internamente', () => {
     const r = calculatePlates(100, 20, [5, 25, 10, 20])
     expect(r.actualWeight).toBe(100)
+  })
+})
+
+describe('getBodyweightSeriesInRange', () => {
+  it('retorna série ordenada e sem entradas inválidas', () => {
+    const from = new Date('2026-01-01T00:00:00.000Z').getTime()
+    const to = new Date('2026-01-31T23:59:59.999Z').getTime()
+
+    const series = getBodyweightSeriesInRange(
+      [
+        { date: '2026-01-03T10:00:00.000Z', weight: 82.1 },
+        { date: 'data-invalida', weight: 90 },
+        { date: '2026-01-01T08:00:00.000Z', weight: 82.5 },
+        { date: '2026-01-10', weight: 0 },
+      ],
+      from,
+      to,
+    )
+
+    expect(series).toEqual([
+      { date: '2026-01-01T08:00:00.000Z', weight: 82.5 },
+      { date: '2026-01-03T10:00:00.000Z', weight: 82.1 },
+    ])
+  })
+
+  it('mantém apenas o registro mais recente no mesmo dia', () => {
+    const from = new Date('2026-02-01T00:00:00.000Z').getTime()
+    const to = new Date('2026-02-28T23:59:59.999Z').getTime()
+
+    const series = getBodyweightSeriesInRange(
+      [
+        { date: '2026-02-10T07:00:00.000Z', weight: 81.4 },
+        { date: '2026-02-10T18:30:00.000Z', weight: 81.0 },
+      ],
+      from,
+      to,
+    )
+
+    expect(series).toEqual([{ date: '2026-02-10T18:30:00.000Z', weight: 81.0 }])
   })
 })

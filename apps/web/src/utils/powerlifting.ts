@@ -380,3 +380,33 @@ export function getEffectiveBodyweight(
   return best ? best.weight : fallback;
 }
 
+/**
+ * Série de peso corporal normalizada no intervalo solicitado.
+ * Mantém somente registros válidos e, para o mesmo dia, preserva o mais recente.
+ */
+export function getBodyweightSeriesInRange(
+  log: { date: string; weight: number }[],
+  from: number,
+  to: number,
+): { date: string; weight: number }[] {
+  const normalized = log
+    .map((entry) => ({
+      date: entry.date,
+      weight: entry.weight,
+      timestamp: new Date(entry.date).getTime(),
+    }))
+    .filter((entry) => Number.isFinite(entry.timestamp) && entry.weight > 0)
+    .filter((entry) => entry.timestamp >= from && entry.timestamp <= to)
+    .sort((a, b) => a.timestamp - b.timestamp)
+
+  const byDay = new Map<string, { date: string; weight: number; timestamp: number }>()
+  for (const entry of normalized) {
+    const dayKey = entry.date.slice(0, 10)
+    byDay.set(dayKey, entry)
+  }
+
+  return Array.from(byDay.values())
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map(({ date, weight }) => ({ date, weight }))
+}
+
