@@ -47,6 +47,8 @@ export interface WorkoutTemplate {
   id: string;
   name: string;
   description: string;
+  /** Nota da rotina (orientações/cues configurados na rotina). Distinta da nota da sessão ao vivo. */
+  notes?: string;
   exercises: TemplateExercise[];
   isBuiltIn?: boolean;
   archived?: boolean;

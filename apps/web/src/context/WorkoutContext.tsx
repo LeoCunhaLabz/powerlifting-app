@@ -1159,6 +1159,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         id: templateData.id || `template-${Date.now()}`,
         name: templateData.name,
         description: templateData.description,
+        notes: templateData.notes,
         exercises: templateData.exercises,
         isBuiltIn: false,
         updatedAt: new Date().toISOString(),
