@@ -6,6 +6,10 @@ import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 
 interface HistoryProps {
   onRepeat: (session: WorkoutSession) => void;
+  /** Abre direto a sessão com este id ao montar (deep-link vindo do Dashboard). */
+  initialSessionId?: string;
+  /** Se true, abre a sessão inicial já em modo de edição. */
+  initialEdit?: boolean;
 }
 
 const formatDate = (iso: string) =>
@@ -20,15 +24,20 @@ const formatDuration = (s: number) => {
 const monthLabel = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
+export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, initialEdit }) => {
   const { state, updateHistorySession, deleteHistorySession } = useWorkout();
   const { history, settings } = state;
   const u = settings.units;
 
-  const [selected, setSelected] = useState<WorkoutSession | null>(null);
+  // Deep-link do Dashboard: abre a sessão (e edição) já no primeiro render.
+  const initialSelected = initialSessionId ? history.find((s) => s.id === initialSessionId) ?? null : null;
+
+  const [selected, setSelected] = useState<WorkoutSession | null>(initialSelected);
   const [search, setSearch] = useState('');
-  const [editMode, setEditMode] = useState(false);
-  const [editDraft, setEditDraft] = useState<WorkoutSession | null>(null);
+  const [editMode, setEditMode] = useState(!!(initialSelected && initialEdit));
+  const [editDraft, setEditDraft] = useState<WorkoutSession | null>(
+    initialSelected && initialEdit ? (JSON.parse(JSON.stringify(initialSelected)) as WorkoutSession) : null,
+  );
   const [showAddEx, setShowAddEx] = useState(false);
   const [addExSearch, setAddExSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
