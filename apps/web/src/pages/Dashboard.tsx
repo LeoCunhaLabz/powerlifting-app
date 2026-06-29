@@ -12,7 +12,7 @@ const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
 
 export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight, getNextTemplate } = useWorkout();
-  const { history, settings, bodyweightLog } = state;
+  const { history, settings, bodyweightLog, programs } = state;
 
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [confirmRepeat, setConfirmRepeat] = useState<WorkoutSession | null>(null);
@@ -116,6 +116,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)} min`;
 
   const suggestedTemplate = getNextTemplate();
+  const activeProgram = programs.find((p) => p.isActive);
+  const fromProgram = !!(activeProgram && suggestedTemplate && activeProgram.templateIds.includes(suggestedTemplate.id));
   const recentHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
   const handleResume = () => {
@@ -151,12 +153,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
       </div>
 
       {/* Resume / start hero */}
-      <div style={styles.hero}>
+      <div style={{ ...styles.hero, ...(fromProgram && !activeWorkout ? styles.heroProgram : {}) }}>
         <div>
-          <div style={styles.heroKicker}>{activeWorkout ? 'Em andamento' : 'Próximo treino'}</div>
+          <div style={styles.heroKicker}>
+            {activeWorkout ? 'Em andamento' : fromProgram ? 'Próxima rotina do programa' : 'Próximo treino'}
+          </div>
           <div style={styles.heroTitle}>{activeWorkout ? activeWorkout.name : suggestedTemplate?.name || 'Treino avulso'}</div>
           {!activeWorkout && suggestedTemplate && (
-            <div style={styles.heroSub}>{suggestedTemplate.exercises.length} exercícios</div>
+            <div style={styles.heroSub}>
+              {fromProgram && activeProgram ? `${activeProgram.name} · ` : ''}{suggestedTemplate.exercises.length} exercícios
+            </div>
           )}
         </div>
         <button onClick={handleResume} style={styles.heroPlay} aria-label="Iniciar">
@@ -380,6 +386,7 @@ const styles: Record<string, React.CSSProperties> = {
   title: { fontSize: '23px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)', marginTop: '2px' },
   streak: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 800, padding: '6px 11px', borderRadius: '999px' },
   hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-lg)', padding: '18px', marginBottom: '12px' },
+  heroProgram: { borderColor: 'var(--accent)', boxShadow: '0 0 0 1px var(--accent-border)' },
   heroKicker: { fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)', textTransform: 'uppercase' },
   heroTitle: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' },
   heroSub: { fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' },

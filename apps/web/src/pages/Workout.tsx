@@ -11,9 +11,9 @@ export const Workout: React.FC = () => {
     activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
     addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
     removeSetFromExercise, updateSet, updateWorkoutNotes, updateExerciseNotes, state, getMaxE1RM,
-    addCustomExercise,
+    addCustomExercise, getNextTemplate,
   } = useWorkout();
-  const { settings, history, customExercises } = state;
+  const { settings, history, customExercises, programs } = state;
   const u = settings.units;
 
   // Sugestões = exercícios embutidos + customizados do usuário (sem duplicar nome)
@@ -115,10 +115,23 @@ export const Workout: React.FC = () => {
     }
 
     const myTemplates = state.templates.filter((t) => !t.isBuiltIn && !t.archived);
+    const activeProgram = programs.find((p) => p.isActive);
+    const nextTemplate = getNextTemplate();
+    const nextFromProgram = !!(activeProgram && nextTemplate && activeProgram.templateIds.includes(nextTemplate.id));
     return (
       <div style={styles.empty}>
         <div style={styles.emptyIcon}><Dumbbell size={44} color="var(--text-secondary)" /></div>
         <h2 style={styles.emptyTitle}>Nenhum treino ativo</h2>
+        {nextFromProgram && nextTemplate && activeProgram && (
+          <button onClick={() => startWorkout(nextTemplate.id)} style={styles.nextProgramCard}>
+            <span style={styles.nextProgramKicker}>Próxima rotina · {activeProgram.name}</span>
+            <span style={styles.nextProgramName}>{nextTemplate.name}</span>
+            <span style={styles.nextProgramSub}>
+              {nextTemplate.exercises.length} exercícios · {nextTemplate.exercises.reduce((a, e) => a + e.sets.length, 0)} séries
+            </span>
+            <span style={styles.nextProgramPlay}><Play size={16} fill="var(--accent-ink)" stroke="none" /> Começar</span>
+          </button>
+        )}
         <button onClick={() => startWorkout()} style={styles.startBtn}>
           <Play size={16} fill="var(--accent-ink)" stroke="none" /> Iniciar treino avulso
         </button>
@@ -414,6 +427,11 @@ const styles: Record<string, React.CSSProperties> = {
   emptyIcon: { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' },
   emptyTitle: { fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' },
   emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
+  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
+  nextProgramKicker: { fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', textTransform: 'uppercase' },
+  nextProgramName: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 },
+  nextProgramSub: { fontSize: 12, color: 'var(--text-secondary)' },
+  nextProgramPlay: { display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 13, fontWeight: 800, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '7px 14px', borderRadius: 'var(--radius-sm)' },
   startBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '12px 24px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   repeatLastBtn: { marginTop: '10px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px 22px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '7px' },
   templateList: { display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 },
