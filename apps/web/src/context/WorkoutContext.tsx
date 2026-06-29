@@ -1370,22 +1370,40 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
   /** Próximo template baseado no programa ativo + histórico de sessões. */
   const getNextTemplate = useCallback((): WorkoutTemplate | undefined => {
+    const isSameDay = (isoA: string, isoB: string) => new Date(isoA).toDateString() === new Date(isoB).toDateString();
+    const todayIso = new Date().toISOString();
+    const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
+    const pickNextId = (ids: string[], completedToday: Set<string>, lastId?: string): string | undefined => {
+      if (ids.length === 0) return undefined;
+      const startIdx = lastId ? ids.indexOf(lastId) : -1;
+
+      // Prefer the next item in sequence that has not been completed today.
+      for (let step = 1; step <= ids.length; step += 1) {
+        const candidate = ids[(startIdx + step + ids.length) % ids.length];
+        if (!completedToday.has(candidate)) return candidate;
+      }
+
+      // If all were completed today, continue regular rotation.
+      return ids[(startIdx + 1 + ids.length) % ids.length];
+    };
+
     const activeProgram = state.programs.find(p => p.isActive);
     if (activeProgram && activeProgram.templateIds.length > 0) {
-      const { templateIds } = activeProgram;
-      // Encontra o índice do último template executado que pertence ao programa
-      const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
-      const lastMatch = sorted.find(s => s.templateId && templateIds.includes(s.templateId));
-      if (lastMatch && lastMatch.templateId) {
-        const lastIdx = templateIds.indexOf(lastMatch.templateId);
-        const nextIdx = (lastIdx + 1) % templateIds.length;
-        const nextId = templateIds[nextIdx];
+      const validTemplateIds = activeProgram.templateIds.filter(id => state.templates.some(t => t.id === id && !t.archived));
+      if (validTemplateIds.length === 0) return undefined;
+
+      // Encontra o último template executado que pertence ao programa
+      const lastMatch = sorted.find(s => s.templateId && validTemplateIds.includes(s.templateId));
+      const completedToday = new Set(
+        sorted
+          .filter(s => s.templateId && validTemplateIds.includes(s.templateId) && isSameDay(s.date, todayIso))
+          .map(s => s.templateId as string)
+      );
+      const nextId = pickNextId(validTemplateIds, completedToday, lastMatch?.templateId);
+      if (nextId) {
         const next = state.templates.find(t => t.id === nextId);
         if (next) return next;
       }
-      // Nenhum treino do programa ainda — retorna o primeiro da sequência
-      const first = state.templates.find(t => t.id === templateIds[0]);
-      if (first) return first;
     }
     // Fallback sem programa: rotaciona entre templates customizados por histórico
     const myTemplates = state.templates.filter(t => !t.isBuiltIn && !t.archived);
@@ -1393,13 +1411,17 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     if (myTemplates.length === 1) return myTemplates[0];
 
     // Encontra o último treino que usou um desses templates
-    const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
     const lastMatch = sorted.find(s => s.templateId && myTemplates.some(t => t.id === s.templateId));
-    if (lastMatch && lastMatch.templateId) {
-      const lastIdx = myTemplates.findIndex(t => t.id === lastMatch.templateId);
-      if (lastIdx >= 0) {
-        return myTemplates[(lastIdx + 1) % myTemplates.length];
-      }
+    const completedToday = new Set(
+      sorted
+        .filter(s => s.templateId && myTemplates.some(t => t.id === s.templateId) && isSameDay(s.date, todayIso))
+        .map(s => s.templateId as string)
+    );
+    const myTemplateIds = myTemplates.map(t => t.id);
+    const nextId = pickNextId(myTemplateIds, completedToday, lastMatch?.templateId);
+    if (nextId) {
+      const next = myTemplates.find(t => t.id === nextId);
+      if (next) return next;
     }
     return myTemplates[0];
   }, [state.programs, state.history, state.templates]);
