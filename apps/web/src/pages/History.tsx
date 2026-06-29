@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import type { WorkoutSession } from '@powerlifting/shared';
-import { Clock, TrendingUp, Award, X, RotateCcw, Pencil, Check } from 'lucide-react';
+import type { WorkoutSession, ExerciseState, SetState } from '@powerlifting/shared';
+import { Clock, TrendingUp, Award, X, RotateCcw, Pencil, Check, Trash2, Plus, AlertTriangle } from 'lucide-react';
+import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 
 interface HistoryProps {
   onRepeat: (session: WorkoutSession) => void;
@@ -20,7 +21,7 @@ const monthLabel = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
 export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
-  const { state, updateHistorySession } = useWorkout();
+  const { state, updateHistorySession, deleteHistorySession } = useWorkout();
   const { history, settings } = state;
   const u = settings.units;
 
@@ -28,9 +29,12 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editDraft, setEditDraft] = useState<WorkoutSession | null>(null);
+  const [showAddEx, setShowAddEx] = useState(false);
+  const [addExSearch, setAddExSearch] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const openModal = (s: WorkoutSession) => { setSelected(s); setEditMode(false); setEditDraft(null); };
-  const closeModal = () => { setSelected(null); setEditMode(false); setEditDraft(null); };
+  const closeModal = () => { setSelected(null); setEditMode(false); setEditDraft(null); setConfirmDelete(false); };
 
   const startEdit = () => {
     if (!selected) return;
@@ -38,7 +42,7 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
     setEditMode(true);
   };
 
-  const cancelEdit = () => { setEditMode(false); setEditDraft(null); };
+  const cancelEdit = () => { setEditMode(false); setEditDraft(null); setShowAddEx(false); setAddExSearch(''); };
 
   const saveEdit = () => {
     if (!editDraft) return;
@@ -46,6 +50,12 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
     setSelected(editDraft);
     setEditMode(false);
     setEditDraft(null);
+  };
+
+  const removeSession = () => {
+    if (!selected) return;
+    deleteHistorySession(selected.id);
+    closeModal();
   };
 
   type NumericSetField = 'weight' | 'reps' | 'rpe';
@@ -81,6 +91,64 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
       return { ...prev, exercises };
     });
   };
+
+  const updateDraftField = (patch: Partial<WorkoutSession>) =>
+    setEditDraft(prev => (prev ? { ...prev, ...patch } : prev));
+
+  const updateDraftDurationMin = (raw: string) => {
+    const min = parseFloat(raw);
+    updateDraftField({ duration: isNaN(min) || min < 0 ? 0 : Math.round(min * 60) });
+  };
+
+  const updateDraftExerciseNotes = (exIdx: number, notes: string) =>
+    setEditDraft(prev => prev
+      ? { ...prev, exercises: prev.exercises.map((ex, ei) => ei === exIdx ? { ...ex, notes } : ex) }
+      : prev);
+
+  const addDraftExercise = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const newEx: ExerciseState = {
+      id: `ex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: trimmed,
+      sets: [{ id: `set-${Date.now()}-0`, weight: 0, reps: 5, completed: true, type: 'N' }],
+    };
+    setEditDraft(prev => (prev ? { ...prev, exercises: [...prev.exercises, newEx] } : prev));
+    setShowAddEx(false);
+    setAddExSearch('');
+  };
+
+  const removeDraftExercise = (exIdx: number) =>
+    setEditDraft(prev => prev
+      ? { ...prev, exercises: prev.exercises.filter((_, ei) => ei !== exIdx) }
+      : prev);
+
+  const addDraftSet = (exIdx: number) =>
+    setEditDraft(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.map((ex, ei) => {
+        if (ei !== exIdx) return ex;
+        const last = ex.sets[ex.sets.length - 1];
+        const newSet: SetState = {
+          id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          weight: last ? last.weight : 0,
+          reps: last ? last.reps : 5,
+          rpe: last ? last.rpe : undefined,
+          completed: true,
+          type: last ? last.type : 'N',
+        };
+        return { ...ex, sets: [...ex.sets, newSet] };
+      });
+      return { ...prev, exercises };
+    });
+
+  const removeDraftSet = (exIdx: number, setIdx: number) =>
+    setEditDraft(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.map((ex, ei) =>
+        ei !== exIdx ? ex : { ...ex, sets: ex.sets.filter((_, si) => si !== setIdx) });
+      return { ...prev, exercises };
+    });
 
   const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -177,6 +245,11 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
                   </button>
                 )}
                 {!editMode && (
+                  <button onClick={() => setConfirmDelete(true)} style={styles.deleteBtn} aria-label="Excluir treino">
+                    <Trash2 size={15} />
+                  </button>
+                )}
+                {!editMode && (
                   <button onClick={closeModal} style={styles.closeBtn} aria-label="Fechar">
                     <X size={20} />
                   </button>
@@ -219,16 +292,35 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
               ) : (
                 // Edit mode
                 <>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>EDITANDO &mdash; corrija os valores e salve</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>EDITANDO &mdash; mesmas ações do treino ao vivo</p>
+
+                  <div style={styles.durationRow}>
+                    <span style={styles.durationLabel}>Duração (min)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      defaultValue={Math.round((editDraft?.duration ?? 0) / 60)}
+                      onBlur={(e) => updateDraftDurationMin(e.target.value)}
+                      style={{ ...styles.editInput, flex: '0 0 90px' }}
+                    />
+                  </div>
+
                   {(editDraft?.exercises ?? []).map((ex, exIdx) => (
                     <div key={ex.id} style={styles.exBlock}>
-                      <div style={styles.exName}>{ex.name}</div>
+                      <div style={styles.exHeadEdit}>
+                        <span style={styles.exName}>{ex.name}</span>
+                        <button onClick={() => removeDraftExercise(exIdx)} style={styles.removeExBtn} aria-label="Remover exercício">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                       <div style={styles.editHeader}>
                         <span style={{ flex: '0 0 22px' }}>#</span>
                         <span style={{ flex: 1 }}>Tipo</span>
                         <span style={{ flex: 1 }}>{u}</span>
                         <span style={{ flex: 1 }}>Reps</span>
                         <span style={{ flex: 1 }}>RPE</span>
+                        <span style={{ flex: '0 0 28px' }} />
                       </div>
                       {ex.sets.map((set, setIdx) => (
                         <div key={set.id} style={styles.editRow}>
@@ -268,15 +360,89 @@ export const History: React.FC<HistoryProps> = ({ onRepeat }) => {
                             onBlur={(e) => updateDraftSet(exIdx, setIdx, 'rpe', e.target.value)}
                             style={styles.editInput}
                           />
+                          <button
+                            onClick={() => removeDraftSet(exIdx, setIdx)}
+                            disabled={ex.sets.length <= 1}
+                            style={{ ...styles.removeSetBtn, opacity: ex.sets.length <= 1 ? 0.3 : 1 }}
+                            aria-label="Remover série"
+                          >
+                            <X size={14} />
+                          </button>
                         </div>
                       ))}
+                      <button onClick={() => addDraftSet(exIdx)} style={styles.addSetBtn}>
+                        <Plus size={12} /> Série
+                      </button>
+                      <textarea
+                        placeholder="Nota do exercício..."
+                        value={ex.notes ?? ''}
+                        onChange={(e) => updateDraftExerciseNotes(exIdx, e.target.value)}
+                        style={styles.exNotesInput}
+                      />
                     </div>
                   ))}
+
+                  <button onClick={() => setShowAddEx(true)} style={styles.addExBtn}>
+                    <Plus size={15} /> Adicionar exercício
+                  </button>
+
+                  <textarea
+                    placeholder="Notas do treino..."
+                    value={editDraft?.notes ?? ''}
+                    onChange={(e) => updateDraftField({ notes: e.target.value })}
+                    style={styles.sessionNotesInput}
+                  />
+
                   <button onClick={saveEdit} style={styles.saveBtn}>
                     <Check size={15} /> Salvar alterações
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add exercise picker (edit mode) */}
+      {showAddEx && (
+        <div style={styles.overlay} onClick={() => { setShowAddEx(false); setAddExSearch(''); }}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <h3 style={styles.modalTitle}>Adicionar exercício</h3>
+              <button onClick={() => { setShowAddEx(false); setAddExSearch(''); }} style={styles.closeBtn} aria-label="Fechar"><X size={20} /></button>
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar ou digitar exercício..."
+              value={addExSearch}
+              onChange={(e) => setAddExSearch(e.target.value)}
+              style={styles.search}
+              autoFocus
+            />
+            <div style={styles.suggestions}>
+              {addExSearch.trim() && !EXERCISE_OPTIONS.some((o) => o.toLowerCase() === addExSearch.toLowerCase()) && (
+                <button onClick={() => addDraftExercise(addExSearch)} style={{ ...styles.suggestion, color: 'var(--accent)', fontWeight: 700 }}>
+                  Criar "{addExSearch}"
+                </button>
+              )}
+              {EXERCISE_OPTIONS.filter((o) => o.toLowerCase().includes(addExSearch.toLowerCase())).map((name) => (
+                <button key={name} onClick={() => addDraftExercise(name)} style={styles.suggestion}>{name}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete session confirmation */}
+      {confirmDelete && (
+        <div style={styles.overlay} onClick={() => setConfirmDelete(false)}>
+          <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center', padding: '24px 20px' }} onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12 }} />
+            <h3 style={styles.modalTitle}>Excluir treino</h3>
+            <p style={styles.confirmDesc}>O treino será removido do histórico e os PRs serão recalculados. Esta ação não pode ser desfeita.</p>
+            <div style={styles.confirmActions}>
+              <button onClick={() => setConfirmDelete(false)} style={styles.confirmBack}>Voltar</button>
+              <button onClick={removeSession} style={styles.confirmDelete}>Excluir</button>
             </div>
           </div>
         </div>
@@ -314,7 +480,23 @@ const styles: Record<string, React.CSSProperties> = {
   notes: { fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0', borderTop: '1px solid var(--border-color)', marginTop: 4 },
   repeatBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '7px 12px', borderRadius: 'var(--radius-sm)' },
   editBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  deleteBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   closeBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  durationRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border-color)' },
+  durationLabel: { fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' },
+  exHeadEdit: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 },
+  removeExBtn: { width: 30, height: 30, borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  removeSetBtn: { flex: '0 0 28px', height: 34, borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  addSetBtn: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '6px 10px', marginTop: 6 },
+  exNotesInput: { width: '100%', minHeight: 36, marginTop: 8, padding: '8px 10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' },
+  addExBtn: { width: '100%', height: 42, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', background: 'var(--bg-tertiary)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)' },
+  sessionNotesInput: { width: '100%', minHeight: 56, marginTop: 12, padding: '10px 12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' },
+  suggestions: { overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', maxHeight: '50dvh' },
+  suggestion: { textAlign: 'left', padding: '12px 16px', fontSize: 14, color: 'var(--text-primary)', background: 'transparent', borderBottom: '1px solid var(--border-color)' },
+  confirmDesc: { fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 18px', lineHeight: 1.5 },
+  confirmActions: { display: 'flex', gap: 10, width: '100%' },
+  confirmBack: { flex: 1, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 700 },
+  confirmDelete: { flex: 1, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--error)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700 },
   editHeader: { display: 'flex', gap: 6, alignItems: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4, paddingBottom: 4, borderBottom: '1px solid var(--border-color)' },
   editRow: { display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 },
   editInput: { flex: 1, height: 34, textAlign: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 13, padding: '0 4px' },

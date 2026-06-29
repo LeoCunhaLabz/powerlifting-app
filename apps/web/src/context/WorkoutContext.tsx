@@ -98,6 +98,8 @@ interface WorkoutContextType {
   getNextTemplate: () => WorkoutTemplate | undefined;
   /** Atualiza uma sessão do histórico (correção de dados) e recalcula PRs. */
   updateHistorySession: (session: WorkoutSession) => void;
+  /** Remove uma sessão do histórico e recalcula PRs das demais. */
+  deleteHistorySession: (sessionId: string) => void;
   /** Adiciona uma anilha customizada à lista (validação: > 0, sem duplicatas, ordena decrescente). */
   addCustomPlate: (weight: number) => void;
   /** Remove uma anilha customizada da lista. */
@@ -1196,6 +1198,13 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     });
   }, []);
 
+  const deleteHistorySession = useCallback((sessionId: string) => {
+    setState(prev => {
+      const newHistory = prev.history.filter(s => s.id !== sessionId);
+      return { ...prev, history: recalculatePRs(newHistory) };
+    });
+  }, []);
+
   // Update user configurations
   const updateSettings = useCallback((newSettings: Partial<Settings>) => {
     setState(prev => {
@@ -1466,6 +1475,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       deleteProgram,
       getNextTemplate,
       updateHistorySession,
+      deleteHistorySession,
       addCustomPlate,
       removeCustomPlate,
     }), [
@@ -1476,7 +1486,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
-      updateHistorySession, addCustomPlate, removeCustomPlate,
+      updateHistorySession, deleteHistorySession, addCustomPlate, removeCustomPlate,
     ])}>
       {children}
     </WorkoutContext.Provider>
