@@ -52,8 +52,10 @@ O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zo
 - `JWT_EXPIRES_IN` — expiração do access token (default `15m`).
 - `REFRESH_TOKEN_EXPIRES_IN` — expiração do refresh token (default `7d`).
 - `GOOGLE_CLIENT_ID` — Client ID do projeto no Google Cloud Console; **opcional** — se omitido, o endpoint `POST /auth/google` retorna 503 e o botão Google não aparece no frontend (`VITE_GOOGLE_CLIENT_ID` também deve ser definido no web).
+- `PASSWORD_RESET_EXPIRES_IN` — validade do token de redefinição de senha (default `1h`).
+- `RESEND_API_KEY` + `EMAIL_FROM` — credenciais do [Resend](https://resend.com) para envio dos e-mails de redefinição (via `fetch` HTTP, sem dependência extra). **Opcionais**: se ausentes, o link é apenas registrado no log do servidor (fallback de dev). `APP_PUBLIC_URL` define a base do link de redefinição (default `CORS_ORIGIN`).
 
-Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout` e `GET /auth/me` (protegida via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. Nunca exponha `password_hash` em responses ou logs.
+Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout|forgot|reset` e `GET /auth/me` (protegida via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. A redefinição de senha usa a tabela `password_reset_tokens` (token sha256, uso único, expiração) — `/auth/forgot` responde sempre genérico (não revela e-mails) e `/auth/reset` invalida todas as sessões ao concluir. Nunca exponha `password_hash` em responses ou logs.
 
 ### Banco de dados e migrations
 

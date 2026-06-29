@@ -1,17 +1,20 @@
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { eq, and, gt, isNull } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { OAuth2Client } from 'google-auth-library'
-import { users, sessions } from '../db/schema.js'
+import { users, sessions, passwordResetTokens } from '../db/schema.js'
 import { env } from '../env.js'
 import {
   hashPassword,
   verifyPassword,
   generateRefreshToken,
+  generatePasswordResetToken,
   hashRefreshToken,
+  hashToken,
   durationToMs,
 } from '../lib/auth.js'
+import { sendEmail, buildPasswordResetEmail } from '../lib/mailer.js'
 
 const userSchema = z.object({
   id: z.string().uuid(),
@@ -42,6 +45,20 @@ const loginBodySchema = z.object({
 const refreshBodySchema = z.object({
   refreshToken: z.string().min(1),
 })
+
+const forgotBodySchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(255),
+})
+
+const resetBodySchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8).max(128),
+})
+
+/** Base pública do app para montar o link de redefinição (sem barra final). */
+function resetUrlBase(): string {
+  return (env.APP_PUBLIC_URL ?? env.CORS_ORIGIN).replace(/\/$/, '')
+}
 
 const authRateLimit = { rateLimit: { max: 10, timeWindow: '1 minute' } }
 
@@ -330,6 +347,99 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       const refreshToken = await issueRefreshToken(app, user.id)
 
       return reply.send({ accessToken, refreshToken, user })
+    },
+  )
+
+  // ---------------------------------------------------------------------------
+  // POST /auth/forgot — inicia a redefinição: gera token e envia o link por e-mail.
+  // Resposta sempre genérica (200) para não revelar quais e-mails têm conta.
+  // ---------------------------------------------------------------------------
+  app.post(
+    '/auth/forgot',
+    {
+      config: authRateLimit,
+      schema: {
+        body: forgotBodySchema,
+        response: { 200: messageSchema },
+      },
+    },
+    async (request, reply) => {
+      const email = request.body.email.trim().toLowerCase()
+      const genericMessage = 'Se houver uma conta com este e-mail, enviaremos instruções para redefinir a senha.'
+
+      const [user] = await app.db
+        .select({ id: users.id, email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1)
+
+      if (user) {
+        const token = generatePasswordResetToken()
+        const expiresAt = new Date(Date.now() + durationToMs(env.PASSWORD_RESET_EXPIRES_IN))
+        await app.db.insert(passwordResetTokens).values({
+          userId: user.id,
+          tokenHash: hashToken(token),
+          expiresAt,
+        })
+
+        const resetUrl = `${resetUrlBase()}/?reset_token=${encodeURIComponent(token)}`
+        try {
+          const { subject, html, text } = buildPasswordResetEmail(resetUrl, user.name)
+          await sendEmail({ to: user.email, subject, html, text })
+        } catch (error) {
+          // Não vaza o erro ao cliente; apenas registra (a resposta segue genérica).
+          app.log.error({ err: error }, 'Falha ao enviar e-mail de redefinição de senha')
+        }
+      }
+
+      return reply.send({ message: genericMessage })
+    },
+  )
+
+  // ---------------------------------------------------------------------------
+  // POST /auth/reset — consome um token válido e define a nova senha.
+  // Invalida o token e todas as sessões ativas do usuário.
+  // ---------------------------------------------------------------------------
+  app.post(
+    '/auth/reset',
+    {
+      config: authRateLimit,
+      schema: {
+        body: resetBodySchema,
+        response: {
+          200: messageSchema,
+          400: messageSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { token, password } = request.body
+      const tokenHash = hashToken(token)
+
+      const [record] = await app.db
+        .select({ id: passwordResetTokens.id, userId: passwordResetTokens.userId })
+        .from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.tokenHash, tokenHash),
+            isNull(passwordResetTokens.usedAt),
+            gt(passwordResetTokens.expiresAt, new Date()),
+          ),
+        )
+        .limit(1)
+
+      if (!record) {
+        return reply.code(400).send({ message: 'Link de redefinição inválido ou expirado. Solicite um novo.' })
+      }
+
+      const passwordHash = await hashPassword(password)
+      await app.db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, record.userId))
+
+      // Invalida o token usado e todas as sessões ativas (força novo login).
+      await app.db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, record.id))
+      await app.db.delete(sessions).where(eq(sessions.userId, record.userId))
+
+      return reply.send({ message: 'Senha redefinida com sucesso. Faça login com a nova senha.' })
     },
   )
 }
