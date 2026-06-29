@@ -1373,62 +1373,55 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     const isSameDay = (isoA: string, isoB: string) => new Date(isoA).toDateString() === new Date(isoB).toDateString();
     const todayIso = new Date().toISOString();
     const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
+    const pickNextId = (ids: string[], completedToday: Set<string>, lastId?: string): string | undefined => {
+      if (ids.length === 0) return undefined;
+      const startIdx = lastId ? ids.indexOf(lastId) : -1;
+
+      // Prefer the next item in sequence that has not been completed today.
+      for (let step = 1; step <= ids.length; step += 1) {
+        const candidate = ids[(startIdx + step + ids.length) % ids.length];
+        if (!completedToday.has(candidate)) return candidate;
+      }
+
+      // If all were completed today, continue regular rotation.
+      return ids[(startIdx + 1 + ids.length) % ids.length];
+    };
 
     const activeProgram = state.programs.find(p => p.isActive);
     if (activeProgram && activeProgram.templateIds.length > 0) {
       const validTemplateIds = activeProgram.templateIds.filter(id => state.templates.some(t => t.id === id && !t.archived));
       if (validTemplateIds.length === 0) return undefined;
 
-      // Prioriza a próxima rotina ainda não concluída hoje dentro do programa ativo
+      // Encontra o último template executado que pertence ao programa
+      const lastMatch = sorted.find(s => s.templateId && validTemplateIds.includes(s.templateId));
       const completedToday = new Set(
         sorted
           .filter(s => s.templateId && validTemplateIds.includes(s.templateId) && isSameDay(s.date, todayIso))
           .map(s => s.templateId as string)
       );
-      if (completedToday.size < validTemplateIds.length) {
-        const nextTodayId = validTemplateIds.find(id => !completedToday.has(id));
-        if (nextTodayId) {
-          const nextToday = state.templates.find(t => t.id === nextTodayId);
-          if (nextToday) return nextToday;
-        }
-      }
-
-      // Encontra o índice do último template executado que pertence ao programa
-      const lastMatch = sorted.find(s => s.templateId && validTemplateIds.includes(s.templateId));
-      if (lastMatch && lastMatch.templateId) {
-        const lastIdx = validTemplateIds.indexOf(lastMatch.templateId);
-        const nextIdx = (lastIdx + 1) % validTemplateIds.length;
-        const nextId = validTemplateIds[nextIdx];
+      const nextId = pickNextId(validTemplateIds, completedToday, lastMatch?.templateId);
+      if (nextId) {
         const next = state.templates.find(t => t.id === nextId);
         if (next) return next;
       }
-      // Nenhum treino do programa ainda — retorna o primeiro da sequência
-      const first = state.templates.find(t => t.id === validTemplateIds[0]);
-      if (first) return first;
     }
     // Fallback sem programa: rotaciona entre templates customizados por histórico
     const myTemplates = state.templates.filter(t => !t.isBuiltIn && !t.archived);
     if (myTemplates.length === 0) return state.templates.find(t => !t.archived);
     if (myTemplates.length === 1) return myTemplates[0];
 
-    // Prioriza o próximo template customizado ainda não concluído hoje
+    // Encontra o último treino que usou um desses templates
+    const lastMatch = sorted.find(s => s.templateId && myTemplates.some(t => t.id === s.templateId));
     const completedToday = new Set(
       sorted
         .filter(s => s.templateId && myTemplates.some(t => t.id === s.templateId) && isSameDay(s.date, todayIso))
         .map(s => s.templateId as string)
     );
-    if (completedToday.size < myTemplates.length) {
-      const nextToday = myTemplates.find(t => !completedToday.has(t.id));
-      if (nextToday) return nextToday;
-    }
-
-    // Encontra o último treino que usou um desses templates
-    const lastMatch = sorted.find(s => s.templateId && myTemplates.some(t => t.id === s.templateId));
-    if (lastMatch && lastMatch.templateId) {
-      const lastIdx = myTemplates.findIndex(t => t.id === lastMatch.templateId);
-      if (lastIdx >= 0) {
-        return myTemplates[(lastIdx + 1) % myTemplates.length];
-      }
+    const myTemplateIds = myTemplates.map(t => t.id);
+    const nextId = pickNextId(myTemplateIds, completedToday, lastMatch?.templateId);
+    if (nextId) {
+      const next = myTemplates.find(t => t.id === nextId);
+      if (next) return next;
     }
     return myTemplates[0];
   }, [state.programs, state.history, state.templates]);
