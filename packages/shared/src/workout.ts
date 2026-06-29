@@ -48,6 +48,12 @@ export interface WorkoutTemplate {
   exercises: TemplateExercise[];
   isBuiltIn?: boolean;
   archived?: boolean;
+  /**
+   * Soft-delete: rotina excluída pelo usuário mas preservada como snapshot por estar
+   * referenciada em algum programa (evita "(rotina removida)" e perda de dados).
+   * Não aparece nas listas de rotinas, mas o nome continua resolvível na sequência do programa.
+   */
+  deleted?: boolean;
   updatedAt?: string; // ISO — última modificação local (para last-write-wins)
   syncedAt?: string;  // ISO — quando foi sincronizado com o servidor
 }

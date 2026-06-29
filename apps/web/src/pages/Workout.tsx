@@ -115,7 +115,7 @@ export const Workout: React.FC = () => {
       );
     }
 
-    const myTemplates = state.templates.filter((t) => !t.isBuiltIn && !t.archived);
+    const myTemplates = state.templates.filter((t) => !t.isBuiltIn && !t.archived && !t.deleted);
     const activeProgram = programs.find((p) => p.isActive);
     const nextTemplate = getNextTemplate();
     const nextFromProgram = !!(activeProgram && nextTemplate && activeProgram.templateIds.includes(nextTemplate.id));
