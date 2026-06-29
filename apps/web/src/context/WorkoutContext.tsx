@@ -10,6 +10,7 @@ import type {
   SyncStatus,
   Program,
   WeekOverride,
+  CustomExercise,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 
@@ -104,6 +105,10 @@ interface WorkoutContextType {
   addCustomPlate: (weight: number) => void;
   /** Remove uma anilha customizada da lista. */
   removeCustomPlate: (weight: number) => void;
+  /** Cria um exercício customizado (ignora vazio/duplicado por nome). Retorna o nome normalizado salvo. */
+  addCustomExercise: (name: string) => string;
+  /** Remove um exercício customizado pelo id. */
+  removeCustomExercise: (id: string) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -238,6 +243,7 @@ const DEFAULT_STATE: AppState = {
   settings: DEFAULT_SETTINGS,
   bodyweightLog: [],
   programs: [],
+  customExercises: [],
 };
 
 const DEMO_ACCOUNT_EMAIL = 'leonardovalcesio@gmail.com';
@@ -507,6 +513,7 @@ function createDemoState(baseDate = new Date()): AppState {
         ],
       },
     ],
+    customExercises: [],
   };
 }
 
@@ -515,7 +522,8 @@ function hasMeaningfulUserData(state: AppState): boolean {
     state.history.length > 0 ||
     state.templates.some((template) => !template.isBuiltIn) ||
     state.bodyweightLog.length > 0 ||
-    state.programs.length > 0
+    state.programs.length > 0 ||
+    state.customExercises.length > 0
   );
 }
 
@@ -605,6 +613,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
         parsed.bodyweightLog = parsed.bodyweightLog || [];
         parsed.programs = (parsed as AppState).programs || [];
+        parsed.customExercises = (parsed as AppState).customExercises || [];
         return parsed;
       }
     } catch (e) {
@@ -1275,6 +1284,30 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     });
   }, []);
 
+  // Cria exercício customizado — ignora vazio e duplicado (case-insensitive pelo nome)
+  const addCustomExercise = useCallback((name: string): string => {
+    const trimmed = name.trim();
+    if (!trimmed) return '';
+    setState(prev => {
+      const exists = prev.customExercises.some(e => e.name.toLowerCase() === trimmed.toLowerCase());
+      if (exists) return prev;
+      const entry: CustomExercise = {
+        id: `cex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: trimmed,
+        createdAt: new Date().toISOString(),
+      };
+      return { ...prev, customExercises: [...prev.customExercises, entry] };
+    });
+    return trimmed;
+  }, []);
+
+  const removeCustomExercise = useCallback((id: string) => {
+    setState(prev => ({
+      ...prev,
+      customExercises: prev.customExercises.filter(e => e.id !== id),
+    }));
+  }, []);
+
   // Export entire state to stringified JSON
   const exportData = useCallback((): string => {
     return JSON.stringify(state, null, 2);
@@ -1294,6 +1327,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         bodyweightLog: parsed.bodyweightLog ?? [],
         programs: (parsed as AppState).programs ?? [],
+        customExercises: (parsed as { customExercises?: CustomExercise[] }).customExercises ?? [],
       };
       setState(normalized);
       return true;
@@ -1478,6 +1512,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       deleteHistorySession,
       addCustomPlate,
       removeCustomPlate,
+      addCustomExercise,
+      removeCustomExercise,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -1487,6 +1523,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
       updateHistorySession, deleteHistorySession, addCustomPlate, removeCustomPlate,
+      addCustomExercise, removeCustomExercise,
     ])}>
       {children}
     </WorkoutContext.Provider>

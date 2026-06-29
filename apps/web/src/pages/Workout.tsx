@@ -11,9 +11,20 @@ export const Workout: React.FC = () => {
     activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
     addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
     removeSetFromExercise, updateSet, updateWorkoutNotes, updateExerciseNotes, state, getMaxE1RM,
+    addCustomExercise,
   } = useWorkout();
-  const { settings, history } = state;
+  const { settings, history, customExercises } = state;
   const u = settings.units;
+
+  // Sugestões = exercícios embutidos + customizados do usuário (sem duplicar nome)
+  const exerciseOptions = React.useMemo(() => {
+    const seen = new Set(EXERCISE_OPTIONS.map((o) => o.toLowerCase()));
+    const merged = [...EXERCISE_OPTIONS];
+    for (const c of customExercises) {
+      if (!seen.has(c.name.toLowerCase())) { seen.add(c.name.toLowerCase()); merged.push(c.name); }
+    }
+    return merged;
+  }, [customExercises]);
 
   const [showAddExModal, setShowAddExModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,6 +175,11 @@ export const Workout: React.FC = () => {
     setSearchQuery('');
     setShowAddExModal(false);
   };
+  // Cria um exercício novo: persiste como customizado (reutilizável) e adiciona ao treino
+  const createAndAddExercise = (name: string) => {
+    const saved = addCustomExercise(name);
+    addExercise(saved || name.trim());
+  };
 
   return (
     <div style={styles.container}>
@@ -306,12 +322,12 @@ export const Workout: React.FC = () => {
             <input type="text" placeholder="Buscar ou digitar exercício..." value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)} style={styles.search} autoFocus />
             <div style={styles.suggestions}>
-              {searchQuery.trim() && !EXERCISE_OPTIONS.some((o) => o.toLowerCase() === searchQuery.toLowerCase()) && (
-                <button onClick={() => addExercise(searchQuery)} style={{ ...styles.suggestion, color: 'var(--accent)', fontWeight: 700 }}>
+              {searchQuery.trim() && !exerciseOptions.some((o) => o.toLowerCase() === searchQuery.toLowerCase()) && (
+                <button onClick={() => createAndAddExercise(searchQuery)} style={{ ...styles.suggestion, color: 'var(--accent)', fontWeight: 700 }}>
                   Criar "{searchQuery}"
                 </button>
               )}
-              {EXERCISE_OPTIONS.filter((o) => o.toLowerCase().includes(searchQuery.toLowerCase())).map((name) => (
+              {exerciseOptions.filter((o) => o.toLowerCase().includes(searchQuery.toLowerCase())).map((name) => (
                 <button key={name} onClick={() => addExercise(name)} style={styles.suggestion}>{name}</button>
               ))}
             </div>

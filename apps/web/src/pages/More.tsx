@@ -1,11 +1,11 @@
 import React from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
-import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, History as HistoryIcon } from 'lucide-react';
+import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, History as HistoryIcon, Dumbbell } from 'lucide-react';
 import { calculateDots, getStrengthComparison } from '../utils/powerlifting';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
-export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history';
+export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history' | 'exercises';
 
 interface MoreProps {
   onNavigate: (tab: MoreTab) => void;
@@ -53,6 +53,12 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
       label: 'Calculadoras',
       desc: 'Montagem de anilhas e pontuações Wilks/DOTS/IPF GL',
       icon: <Calculator size={22} />,
+    },
+    {
+      tab: 'exercises',
+      label: 'Exercícios',
+      desc: 'Crie e gerencie exercícios customizados reutilizáveis',
+      icon: <Dumbbell size={22} />,
     },
     {
       tab: 'settings',

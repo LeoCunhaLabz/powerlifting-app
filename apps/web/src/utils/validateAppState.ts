@@ -7,6 +7,7 @@
 
 import type {
   BodyweightEntry,
+  CustomExercise,
   ExerciseState,
   SetState,
   Settings,
@@ -136,6 +137,16 @@ function isValidBodyweightEntry(v: unknown): v is BodyweightEntry {
   return true;
 }
 
+// ─── CustomExercise ───────────────────────────────────────────────────────────
+
+function isValidCustomExercise(v: unknown): v is CustomExercise {
+  if (!isObject(v)) return false;
+  if (!isString(v.id) || v.id.trim() === '') return false;
+  if (!isString(v.name) || v.name.trim() === '') return false;
+  if (!isDateString(v.createdAt)) return false;
+  return true;
+}
+
 // ─── AppState ─────────────────────────────────────────────────────────────────
 
 /**
@@ -151,6 +162,7 @@ type ValidatedRawState = {
   templates: WorkoutTemplate[];
   settings: Partial<Settings>;
   bodyweightLog?: BodyweightEntry[];
+  customExercises?: CustomExercise[];
 };
 
 /**
@@ -181,6 +193,12 @@ export function isValidImportedState(parsed: unknown): parsed is ValidatedRawSta
   if (parsed.bodyweightLog !== undefined) {
     if (!isArray(parsed.bodyweightLog)) return false;
     if (!parsed.bodyweightLog.every(isValidBodyweightEntry)) return false;
+  }
+
+  // Validar customExercises (campo opcional)
+  if (parsed.customExercises !== undefined) {
+    if (!isArray(parsed.customExercises)) return false;
+    if (!parsed.customExercises.every(isValidCustomExercise)) return false;
   }
 
   return true;

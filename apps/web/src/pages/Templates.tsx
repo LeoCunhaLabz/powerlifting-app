@@ -82,8 +82,8 @@ const schemeSummary = (ex: TemplateExercise[]): string => {
 };
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
-  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram } = useWorkout();
-  const { templates } = state;
+  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise } = useWorkout();
+  const { templates, customExercises } = state;
   const programs = state.programs;
 
   // Top-level view: rotinas vs programas
@@ -136,6 +136,11 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     setExercises((prev) => [...prev, { name: exName, sets: [{ reps: 5, type: 'N', weightPercentage: prescription === 'percent' ? 100 : undefined, rpe: prescription === 'rpe' ? 8 : undefined }] }]);
     setSearchExercise('');
     setShowSuggestions(false);
+  };
+  // Cria um exercício customizado (reutilizável) e o adiciona à rotina em edição
+  const createAndAddEx = (exName: string) => {
+    const saved = addCustomExercise(exName);
+    addEx(saved || exName.trim());
   };
   const addSet = (exIdx: number) => {
     setExercises((prev) => {
@@ -455,13 +460,27 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
               <div style={styles.addExBox}>
                 <input type="text" value={searchExercise} onChange={(e) => { setSearchExercise(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} placeholder="Buscar ou adicionar exercício..." style={styles.searchEx} />
-                {searchExercise.trim() && !getAllSuggestedExercises().includes(searchExercise) && (
-                  <button onClick={() => addEx(searchExercise)} style={styles.addCustom}>Adicionar "{searchExercise}"</button>
+                {searchExercise.trim() &&
+                  !getAllSuggestedExercises().some((e) => e.toLowerCase() === searchExercise.trim().toLowerCase()) &&
+                  !customExercises.some((c) => c.name.toLowerCase() === searchExercise.trim().toLowerCase()) && (
+                  <button onClick={() => createAndAddEx(searchExercise)} style={styles.addCustom}>Adicionar "{searchExercise}"</button>
                 )}
-                {showSuggestions && (
+                {showSuggestions && (() => {
+                  const q = searchExercise.toLowerCase();
+                  const customMatches = customExercises.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 5);
+                  const anyBuiltIn = Object.values(EXERCISE_CATEGORIES).some((exercises) => exercises.some((e) => e.toLowerCase().includes(q)));
+                  return (
                   <div style={styles.suggestions}>
+                    {customMatches.length > 0 && (
+                      <div style={styles.categoryGroup}>
+                        <div style={styles.categoryHeader}>Meus exercícios</div>
+                        {customMatches.map((c) => (
+                          <button key={c.id} onClick={() => addEx(c.name)} style={styles.suggestion}>{c.name}</button>
+                        ))}
+                      </div>
+                    )}
                     {Object.entries(EXERCISE_CATEGORIES).map(([category, exercises]) => {
-                      const filtered = exercises.filter((e) => e.toLowerCase().includes(searchExercise.toLowerCase())).slice(0, 5);
+                      const filtered = exercises.filter((e) => e.toLowerCase().includes(q)).slice(0, 5);
                       if (filtered.length === 0) return null;
                       return (
                         <div key={category} style={styles.categoryGroup}>
@@ -472,11 +491,12 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                         </div>
                       );
                     })}
-                    {Object.entries(EXERCISE_CATEGORIES).every(([, exercises]) => exercises.filter((e) => e.toLowerCase().includes(searchExercise.toLowerCase())).length === 0) && (
+                    {!anyBuiltIn && customMatches.length === 0 && (
                       <div style={styles.noResults}>Nenhum exercício encontrado</div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>

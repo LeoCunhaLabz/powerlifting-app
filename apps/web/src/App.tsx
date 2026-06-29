@@ -9,20 +9,22 @@ import SettingsPage from './pages/Settings';
 import Analytics from './pages/Analytics';
 import Calendar from './pages/Calendar';
 import History from './pages/History';
+import CustomExercises from './pages/CustomExercises';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
 
-type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history';
+type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history' | 'exercises';
 
 // Abas que vivem dentro do hub "Mais" (Análises voltou para a barra inferior)
-const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar', 'history'];
+const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar', 'history', 'exercises'];
 const MORE_LABELS: Record<MoreTab, string> = {
   calculators: 'Calculadoras',
   settings: 'Configurações',
   calendar: 'Calendário',
   history: 'Histórico',
+  exercises: 'Exercícios',
 };
 
 const AppContent: React.FC = () => {
@@ -50,7 +52,7 @@ const AppContent: React.FC = () => {
     prevSync.current = syncStatus;
   }, [syncStatus]);
 
-  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar' || currentTab === 'history';
+  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar' || currentTab === 'history' || currentTab === 'exercises';
   const moreActive = MORE_TABS.includes(currentTab);
 
   const renderActiveTab = () => {
@@ -73,6 +75,8 @@ const AppContent: React.FC = () => {
         return <Calendar onStartWorkoutTab={() => setCurrentTab('workout')} />;
       case 'history':
         return <History onRepeat={(s) => { repeatWorkout(s); setCurrentTab('workout'); }} />;
+      case 'exercises':
+        return <CustomExercises />;
       default:
         return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} />;
     }

@@ -11,4 +11,5 @@ export type {
   SyncStatus,
   Program,
   WeekOverride,
+  CustomExercise,
 } from './workout';
