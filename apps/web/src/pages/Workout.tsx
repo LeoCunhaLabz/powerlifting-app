@@ -2,12 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
-
-const EXERCISE_OPTIONS = [
-  'Agachamento', 'Supino Reto', 'Levantamento Terra', 'Desenvolvimento Militar',
-  'Remada Curvada', 'Barra Fixa', 'Agachamento Frontal', 'Supino Inclinado',
-  'Terra Romeno', 'Elevação Lateral', 'Tríceps Testa', 'Rosca Direta',
-];
+import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 
 const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D: 'N' };
 
