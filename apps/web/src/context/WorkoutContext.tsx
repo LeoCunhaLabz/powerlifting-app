@@ -1175,12 +1175,25 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     });
   }, []);
 
-  // Delete a template
+  // Delete a template.
+  // Se a rotina pertence a algum programa, faz soft-delete (preserva snapshot para
+  // não quebrar a sequência do programa / mostrar "(rotina removida)"). Caso contrário,
+  // remove de fato. Built-ins nunca são removidos.
   const deleteTemplate = useCallback((templateId: string) => {
-    setState(prev => ({
-      ...prev,
-      templates: prev.templates.filter(t => t.id !== templateId || t.isBuiltIn) // Cannot delete built-ins
-    }));
+    setState(prev => {
+      const target = prev.templates.find(t => t.id === templateId);
+      if (!target || target.isBuiltIn) return prev;
+      const referencedByProgram = prev.programs.some(p => p.templateIds.includes(templateId));
+      if (referencedByProgram) {
+        return {
+          ...prev,
+          templates: prev.templates.map(t =>
+            t.id === templateId ? { ...t, deleted: true, archived: false } : t
+          ),
+        };
+      }
+      return { ...prev, templates: prev.templates.filter(t => t.id !== templateId) };
+    });
   }, []);
 
   // Archive / unarchive a template
@@ -1400,15 +1413,23 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       } else {
         deactivated.push(program);
       }
-      return { ...prev, programs: deactivated };
+      // Cleanup: remove rotinas soft-deleted que não são mais referenciadas por programa algum.
+      const prunedTemplates = prev.templates.filter(
+        t => !t.deleted || deactivated.some(p => p.templateIds.includes(t.id)),
+      );
+      return { ...prev, programs: deactivated, templates: prunedTemplates };
     });
   }, []);
 
   const deleteProgram = useCallback((programId: string) => {
-    setState(prev => ({
-      ...prev,
-      programs: prev.programs.filter(p => p.id !== programId),
-    }));
+    setState(prev => {
+      const newPrograms = prev.programs.filter(p => p.id !== programId);
+      // Cleanup: rotinas soft-deleted que ficaram órfãs (sem programa) são removidas de vez.
+      const prunedTemplates = prev.templates.filter(
+        t => !t.deleted || newPrograms.some(p => p.templateIds.includes(t.id)),
+      );
+      return { ...prev, programs: newPrograms, templates: prunedTemplates };
+    });
   }, []);
 
   /** Próximo template baseado no programa ativo + histórico de sessões. */
@@ -1432,7 +1453,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
     const activeProgram = state.programs.find(p => p.isActive);
     if (activeProgram && activeProgram.templateIds.length > 0) {
-      const validTemplateIds = activeProgram.templateIds.filter(id => state.templates.some(t => t.id === id && !t.archived));
+      const validTemplateIds = activeProgram.templateIds.filter(id => state.templates.some(t => t.id === id && !t.archived && !t.deleted));
       if (validTemplateIds.length === 0) return undefined;
 
       // Encontra o último template executado que pertence ao programa
@@ -1449,8 +1470,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       }
     }
     // Fallback sem programa: rotaciona entre templates customizados por histórico
-    const myTemplates = state.templates.filter(t => !t.isBuiltIn && !t.archived);
-    if (myTemplates.length === 0) return state.templates.find(t => !t.archived);
+    const myTemplates = state.templates.filter(t => !t.isBuiltIn && !t.archived && !t.deleted);
+    if (myTemplates.length === 0) return state.templates.find(t => !t.archived && !t.deleted);
     if (myTemplates.length === 1) return myTemplates[0];
 
     // Encontra o último treino que usou um desses templates

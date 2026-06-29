@@ -146,7 +146,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [confirmDeleteProgId, setConfirmDeleteProgId] = useState<string | null>(null);
 
   const filtered = templates.filter((t) => (
-    filter === 'builtin' ? t.isBuiltIn : (!t.isBuiltIn && (showArchived ? t.archived : !t.archived))
+    filter === 'builtin' ? t.isBuiltIn : (!t.isBuiltIn && !t.deleted && (showArchived ? t.archived : !t.archived))
   ));
 
   const handleStart = (id: string) => {
@@ -549,7 +549,10 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                   return (
                     <div key={tid} style={styles.progSeqItem}>
                       <span style={styles.progSeqNum}>{idx + 1}</span>
-                      <span style={styles.progSeqName}>{tpl?.name ?? '(rotina removida)'}</span>
+                      <span style={styles.progSeqName}>
+                        {tpl?.name ?? '(rotina removida)'}
+                        {tpl?.deleted && <span style={styles.removedTag}> · removida</span>}
+                      </span>
                     </div>
                   );
                 })}
@@ -641,12 +644,12 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               )}
 
               <div style={styles.prescLabel}>Adicionar rotinas</div>
-              {templates.filter(t => !t.isBuiltIn && !progTemplateIds.includes(t.id)).map(tpl => (
+              {templates.filter(t => !t.isBuiltIn && !t.deleted && !progTemplateIds.includes(t.id)).map(tpl => (
                 <button key={tpl.id} onClick={() => toggleProgTemplate(tpl.id)} style={styles.addTplBtn}>
                   <Plus size={13} /> {tpl.name}
                 </button>
               ))}
-              {templates.filter(t => !t.isBuiltIn).length === 0 && (
+              {templates.filter(t => !t.isBuiltIn && !t.deleted).length === 0 && (
                 <div style={{ ...styles.empty, padding: '12px', border: 'none', fontSize: '12px' }}>Crie rotinas customizadas primeiro.</div>
               )}
 
@@ -797,6 +800,7 @@ const styles: Record<string, React.CSSProperties> = {
   progSeqItem: { display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0', borderBottom: '1px solid var(--border-color)' },
   progSeqNum: { width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 } as React.CSSProperties,
   progSeqName: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' },
+  removedTag: { fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', fontStyle: 'italic' },
   progActiveRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' },
   toggleBtn: { width: '44px', height: '24px', padding: 0, borderRadius: '999px', border: '1px solid', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0, cursor: 'pointer' } as React.CSSProperties,
   toggleKnob: { position: 'absolute', top: '2px', left: 0, width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#fff', transition: 'transform 0.2s' } as React.CSSProperties,
