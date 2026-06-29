@@ -992,7 +992,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
     setState(prev => ({
       ...prev,
-      history: [completedSession, ...prev.history] // Newest first
+      history: [completedSession, ...prev.history]
+        .sort((a, b) => b.date.localeCompare(a.date))
     }));
 
     setActiveWorkout(null);

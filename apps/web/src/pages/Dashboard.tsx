@@ -116,6 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)} min`;
 
   const suggestedTemplate = getNextTemplate();
+  const recentHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
   const handleResume = () => {
     if (!activeWorkout && suggestedTemplate) startWorkout(suggestedTemplate.id);
@@ -266,11 +267,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab }) => {
       </div>
 
       {/* Recent history */}
-      {history.length > 0 && (
+      {recentHistory.length > 0 && (
         <>
           <div style={styles.sectionLabel}>Histórico recente</div>
           <div style={styles.historyList}>
-            {history.slice(0, 4).map((s) => {
+            {recentHistory.slice(0, 4).map((s) => {
               const hasPr = s.exercises.some((ex) => ex.sets.some((set) => set.isPr));
               return (
                 <button key={s.id} onClick={() => setSelectedSession(s)} style={styles.historyCard}>
