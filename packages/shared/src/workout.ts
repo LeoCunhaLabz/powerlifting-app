@@ -33,6 +33,8 @@ export interface TemplateExercise {
   name: string;
   notes?: string;
   restSeconds?: number;
+  /** Peso esperado (na unidade corrente) para pré-preencher as séries ao iniciar o treino. */
+  expectedWeight?: number;
   sets: {
     reps: number;
     rpe?: number;

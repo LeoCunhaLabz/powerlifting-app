@@ -249,6 +249,10 @@ export const Workout: React.FC = () => {
         />
       )}
 
+      <p style={styles.typeLegend}>
+        Toque no nº da série para alternar: <strong style={{ color: 'var(--text-secondary)' }}>N</strong> normal · <strong style={{ color: 'var(--accent)' }}>W</strong> aquec. · <strong style={{ color: 'var(--accent)' }}>D</strong> drop
+      </p>
+
       {/* Exercises */}
       <div style={styles.exList}>
         {activeWorkout.exercises.map((ex, exIdx) => (
@@ -476,6 +480,7 @@ const styles: Record<string, React.CSSProperties> = {
   finishBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '8px 18px', fontSize: '12px', fontWeight: 800, borderRadius: '999px' },
   metaRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
   metaItem: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 },
+  typeLegend: { fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 10px', lineHeight: 1.4 },
   notesToggle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' },
   notes: { width: '100%', height: '54px', resize: 'none', marginBottom: '14px', backgroundColor: 'var(--bg-secondary)' },
   exList: { display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '14px' },

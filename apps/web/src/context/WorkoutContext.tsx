@@ -823,6 +823,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
                 calculatedWeight = (maxE1RM * set.weightPercentage) / 100;
                 // Round to nearest 2.5 kg/lbs
                 calculatedWeight = Math.round(calculatedWeight / 2.5) * 2.5;
+              } else if (ex.expectedWeight && ex.expectedWeight > 0) {
+                // Sem %1RM: usa o peso esperado definido na rotina
+                calculatedWeight = ex.expectedWeight;
               }
               return {
                 id: `set-${exIdx}-${setIdx}-${Date.now()}`,
