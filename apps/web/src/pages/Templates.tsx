@@ -81,6 +81,28 @@ const schemeSummary = (ex: TemplateExercise[]): string => {
   return ex.length ? `${ex.length} ex · ${total} séries${reps ? ` · ${reps} reps` : ''}` : 'Sem exercícios';
 };
 
+// Descanso: exibe segundos como m:ss e interpreta a entrada do usuário de volta em segundos.
+const secondsToMMSS = (s: number): string => {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+};
+
+/** Converte "m:ss" (ou só dígitos) em segundos. Retorna undefined para entrada vazia. */
+const parseRestInput = (raw: string): number | undefined => {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.includes(':')) {
+    const [m, s] = trimmed.split(':');
+    const mins = Number(m) || 0;
+    const secs = Number(s) || 0;
+    return Math.max(0, mins * 60 + Math.min(secs, 59));
+  }
+  // Apenas dígitos: interpreta como total de segundos.
+  const n = Number(trimmed.replace(/\D/g, ''));
+  return Number.isFinite(n) ? Math.max(0, n) : undefined;
+};
+
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise } = useWorkout();
   const { templates, customExercises } = state;
@@ -417,17 +439,16 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                     style={{ ...styles.inp, width: '100%', marginBottom: 6, boxSizing: 'border-box' }}
                   />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>DESCANSO (s)</label>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>DESCANSO (m:ss)</label>
                     <input
-                      type="number"
+                      key={ex.restSeconds ?? 'empty'}
+                      type="text"
                       inputMode="numeric"
-                      placeholder="padrão global"
-                      value={ex.restSeconds ?? ''}
-                      min={0}
-                      step={15}
-                      onChange={(e) =>
+                      placeholder="1:30"
+                      defaultValue={ex.restSeconds != null ? secondsToMMSS(ex.restSeconds) : ''}
+                      onBlur={(e) =>
                         setExercises(prev => prev.map((x, i) =>
-                          i === exIdx ? { ...x, restSeconds: e.target.value ? Math.max(0, Number(e.target.value)) : undefined } : x
+                          i === exIdx ? { ...x, restSeconds: parseRestInput(e.target.value) } : x
                         ))
                       }
                       style={{ ...styles.inp, width: 100 }}
