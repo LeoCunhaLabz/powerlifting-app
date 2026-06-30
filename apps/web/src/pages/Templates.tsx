@@ -9,6 +9,9 @@ interface TemplatesProps {
   onStartWorkoutTab: () => void;
 }
 
+// Ciclo do tipo de série ao tocar no número: Normal → Aquecimento → Drop.
+const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D: 'N' };
+
 const EXERCISE_CATEGORIES = {
   'Powerlifting (Básicos)': [
     'Agachamento', 'Supino Reto', 'Levantamento Terra',
@@ -557,6 +560,10 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                 </div>
               </div>
 
+              {exercises.length > 0 && (
+                <p style={styles.typeLegend}>Toque no número da série para mudar o tipo · <b>N</b> normal · <b>W</b> aquecimento · <b>D</b> drop</p>
+              )}
+
               {exercises.map((ex, exIdx) => (
                 <div key={exIdx} style={replaceExIdx === exIdx ? { ...styles.exBlock, borderColor: 'var(--accent)' } : styles.exBlock}>
                   <div style={styles.exBlockHead}>
@@ -623,14 +630,17 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                     />
                   </div>
                   <div style={styles.setHead}>
-                    <span>SÉRIE</span><span style={styles.cC}>TIPO</span><span style={styles.cC}>REPS</span><span style={styles.cC}>{prescription === 'percent' ? '%1RM' : 'RPE'}</span><span></span>
+                    <span>SÉRIE</span><span style={styles.cC}>REPS</span><span style={styles.cC}>{prescription === 'percent' ? '%1RM' : 'RPE'}</span><span></span>
                   </div>
                   {ex.sets.map((set, setIdx) => (
                     <div key={setIdx} style={styles.setRow}>
-                      <span style={styles.setIdx}>{setIdx + 1}</span>
-                      <select value={set.type} onChange={(e) => updateSet(exIdx, setIdx, { type: e.target.value as 'W' | 'N' | 'D' })} style={styles.sel}>
-                        <option value="N">N</option><option value="W">W</option><option value="D">D</option>
-                      </select>
+                      <button
+                        onClick={() => updateSet(exIdx, setIdx, { type: TYPE_CYCLE[set.type] })}
+                        style={{ ...styles.typeChip, color: set.type === 'N' ? 'var(--text-secondary)' : 'var(--accent)', borderColor: set.type === 'N' ? 'transparent' : 'var(--accent-border)' }}
+                        title="Toque para alternar: N normal · W aquecimento · D drop"
+                      >
+                        {set.type === 'N' ? setIdx + 1 : set.type}
+                      </button>
                       <input type="number" inputMode="numeric" value={set.reps} onChange={(e) => updateSet(exIdx, setIdx, { reps: Math.max(1, Number(e.target.value)) })} style={styles.inp} />
                       {prescription === 'percent' ? (
                         <input type="number" inputMode="numeric" placeholder="100" value={set.weightPercentage ?? ''} onChange={(e) => updateSet(exIdx, setIdx, { weightPercentage: Number(e.target.value) || undefined })} style={styles.inp} />
@@ -977,11 +987,11 @@ const styles: Record<string, React.CSSProperties> = {
   exBlockName: { fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' },
   removeExText: { color: 'var(--error)', fontSize: '11px', fontWeight: 700 },
   cancelReplace: { width: '100%', height: '34px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, marginTop: '8px' },
-  setHead: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 1fr 30px', gap: '7px', fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', paddingBottom: '7px' },
+  setHead: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 30px', gap: '7px', fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', paddingBottom: '7px' },
   cC: { textAlign: 'center' },
-  setRow: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 1fr 30px', gap: '7px', alignItems: 'center', marginBottom: '7px' },
-  setIdx: { textAlign: 'center', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' },
-  sel: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center', fontSize: '13px', width: '100%', minWidth: 0 },
+  setRow: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 30px', gap: '7px', alignItems: 'center', marginBottom: '7px' },
+  typeChip: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid', borderRadius: '8px', fontSize: '13px', fontWeight: 700, width: '100%', minWidth: 0, cursor: 'pointer' },
+  typeLegend: { fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 4px', lineHeight: 1.4 },
   inp: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center', fontSize: '14px', fontWeight: 700, width: '100%', padding: '0 2px', minWidth: 0 },
   delSetBtn: { color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px' },
   addSetBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%', justifyContent: 'center', height: '34px', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, marginTop: '4px' },
