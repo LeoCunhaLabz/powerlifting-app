@@ -877,9 +877,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
               ...ex,
               sets: baseSets.map((set, setIdx) => {
                 const ovPct = ov.weightPercentage;
-                const ovWeight = ovPct
-                  ? Math.round((maxE1RM * ovPct / 100) / 2.5) * 2.5
-                  : set.weight;
+                // Prioridade do peso: peso absoluto do override → %1RM → peso base.
+                const ovWeight = ov.weight && ov.weight > 0
+                  ? ov.weight
+                  : ovPct
+                    ? Math.round((maxE1RM * ovPct / 100) / 2.5) * 2.5
+                    : set.weight;
                 return {
                   ...set,
                   id: `set-${ex.id}-${setIdx}-${Date.now()}`,
@@ -1418,6 +1421,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         trainingDays: programData.trainingDays,
         weekCount: programData.weekCount,
         weekOverrides: programData.weekOverrides,
+        archived: programData.archived,
         createdAt: existingIndex > -1 ? prev.programs[existingIndex].createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

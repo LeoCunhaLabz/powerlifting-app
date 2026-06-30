@@ -96,6 +96,8 @@ export interface WeekOverride {
   reps?: number;
   weightPercentage?: number;
   rpe?: number;
+  /** Peso absoluto (na unidade corrente) — alternativa ao %1RM. */
+  weight?: number;
   /** Número de séries de trabalho (substituem a contagem do template). */
   sets?: number;
 }
@@ -122,6 +124,8 @@ export interface Program {
   weekCount?: number;
   /** Sobrescritas de prescrição por semana e exercício. */
   weekOverrides?: WeekOverride[];
+  /** Programa arquivado: some das listas ativas, mas é preservado. */
+  archived?: boolean;
 }
 
 /**

@@ -105,7 +105,7 @@ const parseRestInput = (raw: string): number | undefined => {
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise } = useWorkout();
-  const { templates, customExercises } = state;
+  const { templates, customExercises, settings } = state;
   const programs = state.programs;
 
   // Top-level view: rotinas vs programas
@@ -145,6 +145,8 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [progWeekOverrides, setProgWeekOverrides] = useState<WeekOverride[]>([]);
   const [selectedOverrideWeek, setSelectedOverrideWeek] = useState(0);
   const [confirmDeleteProgId, setConfirmDeleteProgId] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [showArchivedPrograms, setShowArchivedPrograms] = useState(false);
 
   const filtered = templates.filter((t) => (
     filter === 'builtin' ? t.isBuiltIn : (!t.isBuiltIn && !t.deleted && (showArchived ? t.archived : !t.archived))
@@ -284,7 +286,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
         next[existing] = { ...next[existing], [field]: value };
         // Remover override se todos os campos opcionais estiverem undefined
         const ov = next[existing];
-        if (ov.reps === undefined && ov.weightPercentage === undefined && ov.rpe === undefined && ov.sets === undefined) {
+        if (ov.reps === undefined && ov.weightPercentage === undefined && ov.rpe === undefined && ov.sets === undefined && ov.weight === undefined) {
           return next.filter((_, i) => i !== existing);
         }
         return next;
@@ -296,6 +298,59 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
   const getOverrideVal = (weekIndex: number, exerciseName: string, field: keyof Omit<WeekOverride, 'weekIndex' | 'exerciseName'>): number | undefined =>
     progWeekOverrides.find(o => o.weekIndex === weekIndex && o.exerciseName === exerciseName)?.[field];
+
+  // Prescrição base de um exercício (da primeira rotina do programa que o contém).
+  const baseOfExercise = (exName: string) => {
+    for (const tid of progTemplateIds) {
+      const tpl = templates.find(t => t.id === tid);
+      const ex = tpl?.exercises.find(e => e.name === exName);
+      if (ex) {
+        const working = ex.sets.find(s => s.type === 'N') ?? ex.sets[0];
+        const usesRpe = ex.sets.some(s => s.rpe !== undefined);
+        return { reps: working?.reps, weightPercentage: working?.weightPercentage, rpe: working?.rpe, sets: ex.sets.length, usesRpe };
+      }
+    }
+    return null;
+  };
+
+  // Rotinas do programa agrupadas (para colapsar a periodização por rotina).
+  const programGroups = progTemplateIds
+    .map(tid => templates.find(t => t.id === tid))
+    .filter((t): t is WorkoutTemplate => !!t);
+
+  const allProgExercises = (): string[] => {
+    const names: string[] = [];
+    programGroups.forEach(tpl => tpl.exercises.forEach(ex => { if (!names.includes(ex.name)) names.push(ex.name); }));
+    return names;
+  };
+
+  const toggleGroup = (id: string) =>
+    setCollapsedGroups(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  // Ações em lote por semana
+  const clearWeek = (week: number) =>
+    setProgWeekOverrides(prev => prev.filter(o => o.weekIndex !== week));
+
+  const prefillWeek = (week: number, onlyEmpty: boolean) =>
+    setProgWeekOverrides(prev => {
+      const next = [...prev];
+      allProgExercises().forEach(name => {
+        const base = baseOfExercise(name);
+        if (!base) return;
+        const idx = next.findIndex(o => o.weekIndex === week && o.exerciseName === name);
+        if (onlyEmpty && idx > -1) return;
+        const ov: WeekOverride = {
+          weekIndex: week,
+          exerciseName: name,
+          reps: base.reps,
+          sets: base.sets,
+          weightPercentage: base.usesRpe ? undefined : base.weightPercentage,
+          rpe: base.usesRpe ? base.rpe : undefined,
+        };
+        if (idx > -1) next[idx] = ov; else next.push(ov);
+      });
+      return next;
+    });
 
   return (
     <div style={styles.container}>
@@ -546,10 +601,15 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       {/* ---- PROGRAMS VIEW ---- */}
       {mainView === 'programas' && (
         <div style={styles.list}>
-          {programs.length === 0 && (
-            <div style={styles.empty}>Nenhum programa ainda. Toque em "Novo" para criar um.</div>
+          {programs.some((p) => p.archived) && (
+            <button onClick={() => setShowArchivedPrograms((v) => !v)} style={styles.archiveToggle}>
+              {showArchivedPrograms ? 'Ocultar arquivados' : `Ver arquivados (${programs.filter((p) => p.archived).length})`}
+            </button>
           )}
-          {programs.map((prog) => (
+          {programs.filter((p) => (showArchivedPrograms ? p.archived : !p.archived)).length === 0 && (
+            <div style={styles.empty}>{showArchivedPrograms ? 'Nenhum programa arquivado.' : 'Nenhum programa ainda. Toque em "Novo" para criar um.'}</div>
+          )}
+          {programs.filter((p) => (showArchivedPrograms ? p.archived : !p.archived)).map((prog) => (
             <div key={prog.id} style={{ ...styles.row, borderColor: prog.isActive ? 'var(--accent-border)' : undefined }}>
               <div style={styles.rowHead}>
                 <span style={{ ...styles.avatar, backgroundColor: prog.isActive ? 'var(--accent)' : 'var(--bg-tertiary)', color: prog.isActive ? 'var(--accent-ink)' : 'var(--text-secondary)' }}>
@@ -583,6 +643,9 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                   <button onClick={() => saveProgram({ ...prog, isActive: false })} style={styles.editBtn}>Desativar</button>
                 )}
                 <button onClick={() => startEditProgram(prog)} style={styles.editBtn}><Pencil size={14} /> Editar</button>
+                {prog.archived
+                  ? <button onClick={() => saveProgram({ ...prog, archived: false })} style={styles.editBtn}><ArchiveX size={14} /> Desarquivar</button>
+                  : <button onClick={() => saveProgram({ ...prog, archived: true, isActive: false })} style={styles.editBtn}><Archive size={14} /> Arquivar</button>}
                 <button onClick={() => setConfirmDeleteProgId(prog.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
               </div>
             </div>
@@ -672,67 +735,85 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               )}
 
               {/* ---- Periodização por semana ---- */}
-              {progTemplateIds.length > 0 && (() => {
-                // Deduplica exercícios dos templates selecionados
-                const exNames: string[] = [];
-                progTemplateIds.forEach(tid => {
-                  const tpl = templates.find(t => t.id === tid);
-                  tpl?.exercises.forEach(ex => { if (!exNames.includes(ex.name)) exNames.push(ex.name); });
-                });
-                return (
-                  <div>
-                    <div style={{ ...styles.prescLabel, marginBottom: 8 }}>Periodização por semana</div>
-                    <div style={styles.progActiveRow}>
-                      <span style={styles.prescLabel}>Nº de semanas</span>
-                      <input type="number" inputMode="numeric" min={1} max={52} value={progWeekCount}
-                        onChange={(e) => { const v = Math.max(1, Math.min(52, Number(e.target.value))); setProgWeekCount(v); setSelectedOverrideWeek(w => Math.min(w, v - 1)); }}
-                        style={{ ...styles.inp, width: 64, height: 36 }} />
-                    </div>
-                    {/* Week tabs */}
-                    <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4, marginBottom: 8 }}>
-                      {Array.from({ length: progWeekCount }, (_, i) => (
-                        <button key={i} onClick={() => setSelectedOverrideWeek(i)}
-                          style={{ flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
-                            backgroundColor: selectedOverrideWeek === i ? 'var(--accent)' : 'var(--bg-tertiary)',
-                            color: selectedOverrideWeek === i ? 'var(--accent-ink)' : 'var(--text-secondary)',
-                            border: '1px solid var(--border-color)' }}>
-                          S{i + 1}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Exercise overrides for selected week */}
-                    {exNames.map(exName => {
-                      const reps = getOverrideVal(selectedOverrideWeek, exName, 'reps');
-                      const pct  = getOverrideVal(selectedOverrideWeek, exName, 'weightPercentage');
-                      const rpe  = getOverrideVal(selectedOverrideWeek, exName, 'rpe');
-                      const sets = getOverrideVal(selectedOverrideWeek, exName, 'sets');
-                      return (
-                        <div key={exName} style={{ ...styles.exBlock, marginBottom: 8 }}>
-                          <div style={{ ...styles.exBlockHead, marginBottom: 6 }}>
-                            <span style={{ ...styles.exBlockName, fontSize: 12 }}>{exName}</span>
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>S{selectedOverrideWeek + 1}</span>
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
-                            {[
-                              { label: 'Séries', field: 'sets' as const, val: sets },
-                              { label: 'Reps', field: 'reps' as const, val: reps },
-                              { label: '%1RM', field: 'weightPercentage' as const, val: pct },
-                              { label: 'RPE', field: 'rpe' as const, val: rpe },
-                            ].map(({ label, field, val }) => (
-                              <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-muted)' }}>{label}</span>
-                                <input type="number" inputMode="decimal" placeholder="—" value={val ?? ''}
-                                  onChange={(e) => updateWeekOverride(selectedOverrideWeek, exName, field, e.target.value === '' ? undefined : Number(e.target.value))}
-                                  style={{ ...styles.inp, height: 32, fontSize: 12 }} />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+              {progTemplateIds.length > 0 && (
+                <div>
+                  <div style={{ ...styles.prescLabel, marginBottom: 8 }}>Periodização por semana</div>
+                  <div style={styles.progActiveRow}>
+                    <span style={styles.prescLabel}>Nº de semanas</span>
+                    <input type="number" inputMode="numeric" min={1} max={52} value={progWeekCount}
+                      onChange={(e) => { const v = Math.max(1, Math.min(52, Number(e.target.value))); setProgWeekCount(v); setSelectedOverrideWeek(w => Math.min(w, v - 1)); }}
+                      style={{ ...styles.inp, width: 64, height: 36 }} />
                   </div>
-                );
-              })()}
+                  {/* Week tabs */}
+                  <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4, marginBottom: 8 }}>
+                    {Array.from({ length: progWeekCount }, (_, i) => (
+                      <button key={i} onClick={() => setSelectedOverrideWeek(i)}
+                        style={{ flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+                          backgroundColor: selectedOverrideWeek === i ? 'var(--accent)' : 'var(--bg-tertiary)',
+                          color: selectedOverrideWeek === i ? 'var(--accent-ink)' : 'var(--text-secondary)',
+                          border: '1px solid var(--border-color)' }}>
+                        S{i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Batch actions for the selected week */}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                    <button onClick={() => prefillWeek(selectedOverrideWeek, false)} style={styles.batchBtn}>Pré-preencher da rotina</button>
+                    <button onClick={() => prefillWeek(selectedOverrideWeek, true)} style={styles.batchBtn}>Preencher restante</button>
+                    <button onClick={() => clearWeek(selectedOverrideWeek)} style={styles.batchBtnDanger}>Limpar semana</button>
+                  </div>
+                  {/* Exercise overrides grouped by rotina (collapsible) */}
+                  {programGroups.map((tpl) => {
+                    const groupKey = tpl.id;
+                    const collapsed = collapsedGroups.has(groupKey);
+                    return (
+                      <div key={groupKey} style={{ marginBottom: 10 }}>
+                        <button onClick={() => toggleGroup(groupKey)} style={styles.groupHeader}>
+                          <ChevronRight size={14} style={{ transform: collapsed ? 'none' : 'rotate(90deg)', transition: 'transform 0.15s' }} />
+                          {tpl.name}
+                        </button>
+                        {!collapsed && tpl.exercises.map((ex) => {
+                          const exName = ex.name;
+                          const base = baseOfExercise(exName);
+                          const usesRpe = base?.usesRpe ?? false;
+                          const reps = getOverrideVal(selectedOverrideWeek, exName, 'reps');
+                          const pct  = getOverrideVal(selectedOverrideWeek, exName, 'weightPercentage');
+                          const rpe  = getOverrideVal(selectedOverrideWeek, exName, 'rpe');
+                          const weight = getOverrideVal(selectedOverrideWeek, exName, 'weight');
+                          const sets = getOverrideVal(selectedOverrideWeek, exName, 'sets');
+                          // %1RM ou RPE conforme a prescrição da rotina + sempre Peso.
+                          const fields = [
+                            { label: 'Séries', field: 'sets' as const, val: sets, ph: String(base?.sets ?? '') },
+                            { label: 'Reps', field: 'reps' as const, val: reps, ph: String(base?.reps ?? '') },
+                            usesRpe
+                              ? { label: 'RPE', field: 'rpe' as const, val: rpe, ph: String(base?.rpe ?? '') }
+                              : { label: '%1RM', field: 'weightPercentage' as const, val: pct, ph: String(base?.weightPercentage ?? '') },
+                            { label: `Peso (${settings.units})`, field: 'weight' as const, val: weight, ph: '—' },
+                          ];
+                          return (
+                            <div key={exName} style={{ ...styles.exBlock, marginBottom: 8 }}>
+                              <div style={{ ...styles.exBlockHead, marginBottom: 6 }}>
+                                <span style={{ ...styles.exBlockName, fontSize: 12 }}>{exName}</span>
+                                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>S{selectedOverrideWeek + 1}</span>
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
+                                {fields.map(({ label, field, val, ph }) => (
+                                  <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-muted)' }}>{label}</span>
+                                    <input type="number" inputMode="decimal" placeholder={ph || '—'} value={val ?? ''}
+                                      onChange={(e) => updateWeekOverride(selectedOverrideWeek, exName, field, e.target.value === '' ? undefined : Number(e.target.value))}
+                                      style={{ ...styles.inp, height: 32, fontSize: 12 }} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -826,6 +907,10 @@ const styles: Record<string, React.CSSProperties> = {
   progOrderItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
   reorderBtn: { color: 'var(--text-muted)', padding: '2px', display: 'flex', alignItems: 'center' },
   addTplBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', width: '100%', padding: '11px 14px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 },
+  batchBtn: { padding: '7px 10px', fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' },
+  batchBtnDanger: { padding: '7px 10px', fontSize: '11px', fontWeight: 700, color: 'var(--error)', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' },
+  groupHeader: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', textAlign: 'left', padding: '8px 4px', fontSize: '12px', fontWeight: 800, color: 'var(--text-secondary)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  archiveToggle: { alignSelf: 'flex-start', padding: '6px 12px', marginBottom: '4px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '999px' },
 };
 
 export default Templates;
