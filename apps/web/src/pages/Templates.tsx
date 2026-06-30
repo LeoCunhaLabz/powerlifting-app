@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { TemplateExercise, WorkoutTemplate, Program, WeekOverride } from '@powerlifting/shared';
-import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown, Archive, ArchiveX } from 'lucide-react';
+import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown, Archive, ArchiveX, History as HistoryIcon } from 'lucide-react';
+import History from './History';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -104,12 +105,12 @@ const parseRestInput = (raw: string): number | undefined => {
 };
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
-  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise } = useWorkout();
+  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise, repeatWorkout } = useWorkout();
   const { templates, customExercises, settings } = state;
   const programs = state.programs;
 
-  // Top-level view: rotinas vs programas
-  const [mainView, setMainView] = useState<'rotinas' | 'programas'>('rotinas');
+  // Top-level view: rotinas / programas / histórico
+  const [mainView, setMainView] = useState<'rotinas' | 'programas' | 'historico'>('rotinas');
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'mine' | 'builtin'>('mine');
@@ -355,18 +356,21 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   return (
     <div style={styles.container}>
       <div style={styles.headerRow}>
-        <h1 style={styles.pageTitle}>{mainView === 'rotinas' ? 'ROTINAS' : 'PROGRAMAS'}</h1>
-        {mainView === 'rotinas'
-          ? <button onClick={() => setIsCreating(true)} style={styles.newBtn}><Plus size={15} /> Nova</button>
-          : <button onClick={() => setIsProgramForm(true)} style={styles.newBtn}><Plus size={15} /> Novo</button>
-        }
+        <h1 style={styles.pageTitle}>BIBLIOTECA</h1>
+        {mainView === 'rotinas' && <button onClick={() => setIsCreating(true)} style={styles.newBtn}><Plus size={16} /> Nova rotina</button>}
+        {mainView === 'programas' && <button onClick={() => setIsProgramForm(true)} style={styles.newBtn}><Plus size={16} /> Novo programa</button>}
       </div>
 
       {/* Main view toggle */}
       <div style={styles.segmented}>
         <button onClick={() => setMainView('rotinas')} style={mainView === 'rotinas' ? styles.segOn : styles.segOff}>Rotinas</button>
         <button onClick={() => setMainView('programas')} style={mainView === 'programas' ? styles.segOn : styles.segOff}><ListOrdered size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />Programas</button>
+        <button onClick={() => setMainView('historico')} style={mainView === 'historico' ? styles.segOn : styles.segOff}><HistoryIcon size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />Histórico</button>
       </div>
+
+      {mainView === 'historico' && (
+        <History onRepeat={(s) => { repeatWorkout(s); onStartWorkoutTab(); }} />
+      )}
 
       {mainView === 'rotinas' && (<>
         {/* Sub-filter: Minhas / Embutidas + Arquivadas */}
