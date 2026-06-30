@@ -179,7 +179,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     if (!showSuggestions) return;
     let raf = 0;
     // Mede o layout fora do corpo do efeito (rAF/listeners) para não setar estado de forma síncrona.
-    const measure = () => { raf = requestAnimationFrame(updateSuggestPos); };
+    const measure = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(updateSuggestPos); };
     measure();
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, true);
@@ -251,6 +251,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
   const resetForm = () => {
     setName(''); setDescription(''); setRoutineNotes(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
+    setSearchExercise(''); setShowSuggestions(false);
   };
 
   const startEdit = (tpl: WorkoutTemplate, duplicate = false) => {
