@@ -86,6 +86,18 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
     });
   };
 
+  const toggleDraftSetCompleted = (exIdx: number, setIdx: number) => {
+    setEditDraft(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.map((ex, ei) =>
+        ei !== exIdx
+          ? ex
+          : { ...ex, sets: ex.sets.map((s, si) => (si !== setIdx ? s : { ...s, completed: !s.completed })) },
+      );
+      return { ...prev, exercises };
+    });
+  };
+
   const updateDraftSetType = (exIdx: number, setIdx: number, type: 'W' | 'N' | 'D') => {
     if (!editDraft) return;
     setEditDraft(prev => {
@@ -276,6 +288,12 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
               {!editMode ? (
                 // Read-only view
                 <>
+                  {(() => {
+                    const routineNote = selected.templateId
+                      ? state.templates.find((t) => t.id === selected.templateId)?.notes
+                      : undefined;
+                    return routineNote ? <div style={styles.routineNote}>Nota da rotina: {routineNote}</div> : null;
+                  })()}
                   {selected.exercises.map((ex) => (
                     <div key={ex.id} style={styles.exBlock}>
                       <div style={styles.exName}>{ex.name}</div>
@@ -289,9 +307,10 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
                             {set.rpe ? ` · RPE ${set.rpe}` : ''}
                             {set.type !== 'N' ? ` · ${set.type === 'W' ? 'Aquec.' : 'Drop'}` : ''}
                           </span>
-                          {!set.completed && <span style={styles.skipped}>não conclufda</span>}
+                          {!set.completed && <span style={styles.skipped}>não concluída</span>}
                         </div>
                       ))}
+                      {ex.notes && <div style={styles.exNote}>{ex.notes}</div>}
                     </div>
                   ))}
                   {selected.notes && (
@@ -329,6 +348,7 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
                         <span style={{ flex: 1 }}>{u}</span>
                         <span style={{ flex: 1 }}>Reps</span>
                         <span style={{ flex: 1 }}>RPE</span>
+                        <span style={{ flex: '0 0 28px' }} />
                         <span style={{ flex: '0 0 28px' }} />
                       </div>
                       {ex.sets.map((set, setIdx) => (
@@ -369,6 +389,16 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
                             onBlur={(e) => updateDraftSet(exIdx, setIdx, 'rpe', e.target.value)}
                             style={styles.editInput}
                           />
+                          <button
+                            type="button"
+                            onClick={() => toggleDraftSetCompleted(exIdx, setIdx)}
+                            style={{ ...styles.completedToggle, color: set.completed ? 'var(--accent)' : 'var(--text-muted)', borderColor: set.completed ? 'var(--accent-border)' : 'var(--border-color)' }}
+                            title={set.completed ? 'Concluída — toque para desmarcar' : 'Não concluída — toque para marcar'}
+                            aria-label="Alternar conclusão da série"
+                            aria-pressed={set.completed}
+                          >
+                            <Check size={14} />
+                          </button>
                           <button
                             onClick={() => removeDraftSet(exIdx, setIdx)}
                             disabled={ex.sets.length <= 1}
@@ -486,7 +516,9 @@ const styles: Record<string, React.CSSProperties> = {
   setRow: { display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 3 },
   setNum: { fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', minWidth: 20, display: 'flex', alignItems: 'center', gap: 4 },
   skipped: { fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' },
-  notes: { fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0', borderTop: '1px solid var(--border-color)', marginTop: 4 },
+  exNote: { fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: 6, whiteSpace: 'pre-wrap' },
+  routineNote: { fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', marginBottom: 10, whiteSpace: 'pre-wrap' },
+  notes: { fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0', borderTop: '1px solid var(--border-color)', marginTop: 4, whiteSpace: 'pre-wrap' },
   repeatBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '7px 12px', borderRadius: 'var(--radius-sm)' },
   editBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   deleteBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
@@ -496,6 +528,7 @@ const styles: Record<string, React.CSSProperties> = {
   exHeadEdit: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 },
   removeExBtn: { width: 30, height: 30, borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   removeSetBtn: { flex: '0 0 28px', height: 34, borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  completedToggle: { flex: '0 0 28px', height: 34, borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   addSetBtn: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '6px 10px', marginTop: 6 },
   exNotesInput: { width: '100%', minHeight: 36, marginTop: 8, padding: '8px 10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' },
   addExBtn: { width: '100%', height: 42, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', background: 'var(--bg-tertiary)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)' },
