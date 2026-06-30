@@ -3,6 +3,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import { calculateE1RM, calculateDots, calculateWilks, calculateWilks2020, getExerciseMuscles, getBodyweightSeriesInRange, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { Award } from 'lucide-react';
+import BodyweightLogList from '../components/BodyweightLogList';
 
 type Period = '4w' | '12w' | 'year' | 'all' | 'custom';
 
@@ -140,6 +141,7 @@ export const Analytics: React.FC = () => {
   const [topExExpanded, setTopExExpanded] = useState(false);
   const [prFilter, setPrFilter] = useState<'sbd' | 'all'>('all');
   const [rpeScope, setRpeScope] = useState<'all' | 'sbd'>('all');
+  const [bwView, setBwView] = useState<'evo' | 'list'>('evo');
   const [prExpanded, setPrExpanded] = useState(false);
   const [heatmapHoverIdx, setHeatmapHoverIdx] = useState<number | null>(null);
   const heatmapDayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
@@ -606,13 +608,18 @@ export const Analytics: React.FC = () => {
       <div style={styles.card}>
         <div style={styles.cardHead}>
           <span style={styles.cardTitle}>Peso corporal</span>
-          <span style={styles.cardMeta}>
-            {bwSeries.length ? `${bwSeries[bwSeries.length - 1]} ${u}` : '—'}
-            {bwDelta !== 0 ? ` · ${bwDelta > 0 ? '↑' : '↓'} ${Math.abs(bwDelta)}` : ''}
-          </span>
+          <div style={styles.legend}>
+            <button onClick={() => setBwView('evo')} style={bwView === 'evo' ? styles.segOn : styles.segOff}>Evolução</button>
+            <button onClick={() => setBwView('list')} style={bwView === 'list' ? styles.segOn : styles.segOff}>Registros</button>
+          </div>
         </div>
-        {bwSeries.length >= 2 ? (
+        {bwView === 'list' ? (
+          <BodyweightLogList />
+        ) : bwSeries.length >= 2 ? (
           <>
+            <div style={styles.cardMeta}>
+              {`${bwSeries[bwSeries.length - 1]} ${u}`}{bwDelta !== 0 ? ` · ${bwDelta > 0 ? '↑' : '↓'} ${Math.abs(bwDelta)}` : ''}
+            </div>
             <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" preserveAspectRatio="none" style={{ cursor: 'pointer' }}
               onClick={(e) => { const i = nearestIndexFromTap(e, bwSeries.length); setActiveTooltip({ chartId: 'bw', label: `${bwSeries[i]} ${u}`, date: bwEntries[i]?.date ?? '' }); }}>
               <polyline points={linePoints(bwSeries, 300, 80, 8)} stroke="#cfcfd4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />

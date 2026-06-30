@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { calculateE1RM, calculateDots } from '../utils/powerlifting';
-import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw, Pencil, Trash2, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw, Pencil, Trash2, AlertTriangle, ChevronRight, List } from 'lucide-react';
+import BodyweightLogList from '../components/BodyweightLogList';
 
 interface DashboardProps {
   onStartWorkoutTab: () => void;
@@ -21,6 +22,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const [confirmDelete, setConfirmDelete] = useState<WorkoutSession | null>(null);
   const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
   const [showWeightInput, setShowWeightInput] = useState(false);
+  const [showBwList, setShowBwList] = useState(false);
   const [weightInput, setWeightInput] = useState('');
   const [isEvoHovered, setIsEvoHovered] = useState(false);
 
@@ -204,6 +206,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
               <polyline points={polyline(bwVals, 74, 34, 4)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
+          {bwVals.length > 0 && (
+            <button onClick={() => setShowBwList((v) => !v)} style={styles.bwAdd} aria-label="Ver registros de peso">
+              <List size={18} />
+            </button>
+          )}
           <button onClick={() => setShowWeightInput((v) => !v)} style={styles.bwAdd} aria-label="Registrar peso">
             <Plus size={18} />
           </button>
@@ -221,6 +228,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
             style={styles.weightInput}
           />
           <button onClick={saveWeight} style={styles.weightSave}>Registrar</button>
+        </div>
+      )}
+      {showBwList && (
+        <div style={{ marginBottom: 14 }}>
+          <BodyweightLogList />
         </div>
       )}
 
