@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AuthApiError, forgotPassword, resetPassword } from '../services/authApi';
 import { Eye, EyeOff, Dumbbell, ArrowLeft } from 'lucide-react';
+import { ErrorBox } from '../components/ErrorBox';
 
 // Declaração mínima do Google Identity Services (carregado via script externo)
 declare const google: {
@@ -249,7 +250,7 @@ export const Auth: React.FC = () => {
                 style={styles.input}
               />
             </div>
-            {error && <div style={styles.errorBox} role="alert">{error}</div>}
+            {error && <ErrorBox>{error}</ErrorBox>}
             {info && <div style={styles.infoBox} role="status">{info}</div>}
             <button type="submit" style={styles.submitBtn} disabled={loading}>
               {loading ? 'Aguarde…' : 'Enviar link'}
@@ -296,7 +297,7 @@ export const Auth: React.FC = () => {
                 style={styles.input}
               />
             </div>
-            {error && <div style={styles.errorBox} role="alert">{error}</div>}
+            {error && <ErrorBox>{error}</ErrorBox>}
             <button type="submit" style={styles.submitBtn} disabled={loading}>
               {loading ? 'Aguarde…' : 'Redefinir senha'}
             </button>
@@ -366,11 +367,7 @@ export const Auth: React.FC = () => {
             </button>
           )}
 
-          {error && (
-            <div style={styles.errorBox} role="alert">
-              {error}
-            </div>
-          )}
+          {error && <ErrorBox>{error}</ErrorBox>}
           {info && (
             <div style={styles.infoBox} role="status">
               {info}
@@ -513,16 +510,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px',
     display: 'flex',
     alignItems: 'center',
-  },
-  errorBox: {
-    background: 'rgba(229, 84, 75, 0.12)',
-    border: '1px solid rgba(229, 84, 75, 0.35)',
-    borderRadius: 'var(--radius-md)',
-    color: 'var(--error)',
-    fontSize: '13px',
-    padding: '10px 14px',
-    fontWeight: 500,
-    textAlign: 'center',
   },
   infoBox: {
     background: 'var(--accent-soft)',
