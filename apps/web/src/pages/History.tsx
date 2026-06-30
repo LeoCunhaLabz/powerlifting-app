@@ -390,10 +390,12 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
                             style={styles.editInput}
                           />
                           <button
+                            type="button"
                             onClick={() => toggleDraftSetCompleted(exIdx, setIdx)}
                             style={{ ...styles.completedToggle, color: set.completed ? 'var(--accent)' : 'var(--text-muted)', borderColor: set.completed ? 'var(--accent-border)' : 'var(--border-color)' }}
                             title={set.completed ? 'Concluída — toque para desmarcar' : 'Não concluída — toque para marcar'}
                             aria-label="Alternar conclusão da série"
+                            aria-pressed={set.completed}
                           >
                             <Check size={14} />
                           </button>
@@ -514,9 +516,9 @@ const styles: Record<string, React.CSSProperties> = {
   setRow: { display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 3 },
   setNum: { fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', minWidth: 20, display: 'flex', alignItems: 'center', gap: 4 },
   skipped: { fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' },
-  exNote: { fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: 6 },
-  routineNote: { fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', marginBottom: 10 },
-  notes: { fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0', borderTop: '1px solid var(--border-color)', marginTop: 4 },
+  exNote: { fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: 6, whiteSpace: 'pre-wrap' },
+  routineNote: { fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', marginBottom: 10, whiteSpace: 'pre-wrap' },
+  notes: { fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0', borderTop: '1px solid var(--border-color)', marginTop: 4, whiteSpace: 'pre-wrap' },
   repeatBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '7px 12px', borderRadius: 'var(--radius-sm)' },
   editBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   deleteBtn: { width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
