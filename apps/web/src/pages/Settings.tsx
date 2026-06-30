@@ -12,13 +12,15 @@ const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = 
 ];
 
 export const Settings: React.FC = () => {
-  const { state, updateSettings, exportData, importData, logBodyweight, addCustomPlate, removeCustomPlate } = useWorkout();
-  const { user, logout } = useAuth();
+  const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData } = useWorkout();
+  const { user, logout, deleteAccount } = useAuth();
   const { settings } = state;
 
   const [importText, setImportText] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [showConfirmDeleteAccount, setShowConfirmDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [customPlateInput, setCustomPlateInput] = useState('');
 
   const handleUnitChange = (units: 'kg' | 'lbs') => {
@@ -82,10 +84,20 @@ export const Settings: React.FC = () => {
   };
 
   const handleResetData = () => {
-    localStorage.removeItem('powerlifting_app_state');
-    localStorage.removeItem('powerlifting_active_workout');
-    localStorage.removeItem('powerlifting_rest_timer_end');
-    window.location.reload();
+    resetAllData();
+    setShowConfirmReset(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount();
+      // Sessão limpa pelo AuthContext → AuthGate volta para a tela de login.
+    } catch (e) {
+      console.error('Falha ao excluir conta:', e);
+      setDeletingAccount(false);
+      setShowConfirmDeleteAccount(false);
+    }
   };
 
   const availablePlatesPool = settings.units === 'kg' ? DEFAULT_PLATES_KG : DEFAULT_PLATES_LBS;
@@ -160,20 +172,6 @@ export const Settings: React.FC = () => {
               LBS
             </button>
           </div>
-        </div>
-
-        <div style={styles.settingRow}>
-          <div style={styles.settingInfo}>
-            <div style={styles.settingLabel}>Peso Corporal ({settings.units.toUpperCase()})</div>
-            <div style={styles.settingDesc}>Usado no cálculo de Wilks/Dots</div>
-          </div>
-          <input
-            type="number"
-            value={settings.bodyweight}
-            onChange={(e) => updateSettings({ bodyweight: Math.max(1, Number(e.target.value)) })}
-            onBlur={(e) => { const v = Math.max(1, Number(e.target.value)); if (v > 0) logBodyweight(v); }}
-            style={styles.numberInput}
-          />
         </div>
 
         <div style={styles.settingRow}>
@@ -333,6 +331,28 @@ export const Settings: React.FC = () => {
               Sair
             </button>
           </div>
+        )}
+        {user && (
+          showConfirmDeleteAccount ? (
+            <div style={styles.confirmBox}>
+              <div style={styles.confirmText}>
+                <AlertTriangle size={20} color="var(--error)" />
+                Excluir a conta apaga permanentemente todos os seus dados do servidor (treinos, rotinas, programas). Esta ação não pode ser desfeita.
+              </div>
+              <div style={styles.confirmButtons}>
+                <button onClick={() => setShowConfirmDeleteAccount(false)} style={styles.cancelBtn} disabled={deletingAccount}>
+                  Cancelar
+                </button>
+                <button onClick={handleDeleteAccount} style={styles.confirmDeleteBtn} disabled={deletingAccount}>
+                  {deletingAccount ? 'Excluindo…' : 'Sim, excluir conta'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowConfirmDeleteAccount(true)} style={{ ...styles.btn, ...styles.btnDelete, marginTop: '10px' }}>
+              <Trash2 size={16} /> Excluir minha conta
+            </button>
+          )
         )}
       </div>
 

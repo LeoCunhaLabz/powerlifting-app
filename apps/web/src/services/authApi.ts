@@ -114,3 +114,13 @@ export async function getMe(accessToken: string): Promise<AuthUser> {
   });
   return handleResponse<AuthUser>(res);
 }
+
+export async function deleteAccount(accessToken: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    throw new AuthApiError(`Erro ${res.status}`, res.status);
+  }
+}

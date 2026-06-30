@@ -270,6 +270,27 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   )
 
   // ---------------------------------------------------------------------------
+  // DELETE /auth/me — exclui a conta do usuário autenticado (cascade remove
+  // sessões, workouts, templates e tokens de redefinição via FKs onDelete).
+  // ---------------------------------------------------------------------------
+  app.delete(
+    '/auth/me',
+    {
+      preHandler: app.authenticate,
+      schema: {
+        response: {
+          204: z.undefined(),
+          401: messageSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      await app.db.delete(users).where(eq(users.id, request.user.sub))
+      return reply.code(204).send()
+    },
+  )
+
+  // ---------------------------------------------------------------------------
   // POST /auth/google — verifica id_token do Google, cria/vincula usuário
   // ---------------------------------------------------------------------------
   app.post(
