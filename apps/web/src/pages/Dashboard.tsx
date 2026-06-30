@@ -192,9 +192,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
       {/* Week summary */}
       <div style={styles.sectionLabel}>Esta semana</div>
       <div style={styles.statGrid}>
-        <div style={styles.statTile} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
-        <div style={styles.statTile} title="Tonelagem total levantada nesta semana"><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
-        <div style={styles.statTile} title="Média de treinos por semana (últimas 4 semanas)"><div style={styles.statVal}>{freq}<span style={styles.unit}>/sem</span></div><div style={styles.statLbl}>FREQUÊNCIA</div></div>
+        <div style={styles.statTile} role="group" aria-label={`Sessões: ${weekSessions.length} treinos concluídos nesta semana`} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
+        <div style={styles.statTile} role="group" aria-label={`Tonelagem: ${(weekTonnage / 1000).toFixed(1)} toneladas levantadas nesta semana`} title="Tonelagem total levantada nesta semana"><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
+        <div style={styles.statTile} role="group" aria-label={`Frequência: ${freq} treinos por semana, média das últimas 4 semanas`} title="Média de treinos por semana (últimas 4 semanas)"><div style={styles.statVal}>{freq}<span style={styles.unit}>/sem</span></div><div style={styles.statLbl}>FREQUÊNCIA</div></div>
       </div>
       <div style={styles.statCaption}>Frequência: média de treinos por semana nas últimas 4 semanas</div>
 
