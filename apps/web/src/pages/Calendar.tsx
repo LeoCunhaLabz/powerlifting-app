@@ -188,6 +188,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
 
   const today = toLocalDate(new Date());
   const selectedDay = days?.find(d => d.date === selectedDate);
+  const u = state.settings.units;
+  // Treinos realizados no dia selecionado (detalhe do treino concluído).
+  const daySessions = selectedDay
+    ? state.history.filter(s => s.date.slice(0, 10) === selectedDay.date)
+    : [];
 
   const handleDayPress = (day: CalendarDay) => {
     if (!day.isCurrentMonth || !day.isTrainingDay) return;
@@ -299,6 +304,26 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
                   )}
                 </>
               )}
+
+              {/* Detalhe do(s) treino(s) realizado(s) no dia */}
+              {daySessions.length > 0 && (
+                <div style={styles.realized}>
+                  <div style={styles.realizedTitle}>Treino realizado</div>
+                  {daySessions.map((s) => (
+                    <div key={s.id} style={styles.realizedSession}>
+                      <div style={styles.realizedName}>{s.name}</div>
+                      {s.exercises.map((ex) => (
+                        <div key={ex.id} style={styles.realizedEx}>
+                          <span style={styles.realizedExName}>{ex.name}</span>
+                          <span style={styles.realizedSets}>
+                            {ex.sets.filter((set) => set.completed).map((set) => `${set.weight}${u}×${set.reps}`).join(' · ') || '—'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>
@@ -315,6 +340,13 @@ const styles: Record<string, React.CSSProperties> = {
   progBadgeDot: { width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--accent)', flexShrink: 0 } as React.CSSProperties,
   progBadgeName: { fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', flex: 1 },
   progBadgeSub: { fontSize: 11, color: 'var(--text-muted)' },
+  realized: { marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 8 },
+  realizedTitle: { fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' },
+  realizedSession: { display: 'flex', flexDirection: 'column', gap: 4 },
+  realizedName: { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' },
+  realizedEx: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 2 },
+  realizedExName: { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' },
+  realizedSets: { fontSize: 12, color: 'var(--text-muted)' },
   monthNav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   navBtn: { width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   monthLabel: { fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' },
