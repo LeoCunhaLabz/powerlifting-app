@@ -123,6 +123,15 @@ export function calculateWilks2020(bodyweight: number, total: number, isMale: bo
 }
 
 /**
+ * Força relativa: total levantado dividido pelo peso corporal (múltiplos do PC).
+ * Retorna 0 para entradas inválidas. Arredonda para 2 casas.
+ */
+export function relativeStrength(total: number, bodyweight: number): number {
+  if (!(bodyweight > 0) || !(total > 0)) return 0;
+  return Math.round((total / bodyweight) * 100) / 100;
+}
+
+/**
  * DOTS Formula (standardized weight comparison)
  */
 export function calculateDots(bodyweight: number, total: number, isMale: boolean): number {
