@@ -255,7 +255,15 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       return next;
     });
   };
-  const removeEx = (exIdx: number) => setExercises((prev) => prev.filter((_, i) => i !== exIdx));
+  const removeEx = (exIdx: number) => {
+    setExercises((prev) => prev.filter((_, i) => i !== exIdx));
+    // Mantém o modo de troca coerente: ajusta o índice ou cancela se o alvo foi removido.
+    setReplaceExIdx((cur) => {
+      if (cur === null) return null;
+      if (cur === exIdx) return null;
+      return cur > exIdx ? cur - 1 : cur;
+    });
+  };
 
   const resetForm = () => {
     setName(''); setDescription(''); setRoutineNotes(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
