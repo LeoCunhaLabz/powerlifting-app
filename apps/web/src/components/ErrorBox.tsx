@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react';
  * Caixa de erro padronizada do app: ícone + mensagem centralizados horizontalmente.
  * Centraliza a exibição de erros em todas as telas (Auth, Configurações, etc.).
  */
-export const ErrorBox: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
+export const ErrorBox: React.FC<{ children: string; style?: React.CSSProperties }> = ({ children, style }) => (
   <div role="alert" style={{ ...boxStyle, ...style }}>
     <AlertTriangle size={16} style={{ flexShrink: 0 }} />
     <span>{children}</span>
