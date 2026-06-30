@@ -6,6 +6,7 @@ import {
   refreshTokens as apiRefresh,
   getMe,
   loginWithGoogle as apiLoginWithGoogle,
+  deleteAccount as apiDeleteAccount,
 } from '../services/authApi';
 import type { AuthUser } from '../services/authApi';
 
@@ -22,6 +23,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: (credential: string) => Promise<void>;
+  /** Exclui a conta no servidor e limpa a sessão local. */
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -116,6 +119,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.user);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    if (accessToken) {
+      await apiDeleteAccount(accessToken);
+    }
+    clearTokens();
+    setAccessToken(null);
+    setUser(null);
+  }, [accessToken]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -127,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         loginWithGoogle,
+        deleteAccount,
       }}
     >
       {children}

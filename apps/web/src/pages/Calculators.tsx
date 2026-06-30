@@ -133,7 +133,7 @@ export const Calculators: React.FC = () => {
               <PlateVisualizer
                 weight={targetWeight}
                 barWeight={barWeight}
-                availablePlates={settings.availablePlates}
+                availablePlates={[...new Set([...settings.availablePlates, ...settings.customPlates])].sort((a, b) => b - a)}
                 units={settings.units}
               />
             </div>

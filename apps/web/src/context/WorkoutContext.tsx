@@ -109,6 +109,8 @@ interface WorkoutContextType {
   addCustomExercise: (name: string) => string;
   /** Remove um exercício customizado pelo id. */
   removeCustomExercise: (id: string) => void;
+  /** Reseta o app para uma conta em branco (histórico, rotinas custom, programas, peso, exercícios). */
+  resetAllData: () => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -1325,6 +1327,13 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     }));
   }, []);
 
+  // Reseta para conta em branco: zera dados do usuário, preservando as preferências (settings).
+  const resetAllData = useCallback(() => {
+    setState(prev => ({ ...DEFAULT_STATE, settings: prev.settings }));
+    setActiveWorkout(null);
+    stopRestTimer();
+  }, [stopRestTimer]);
+
   // Export entire state to stringified JSON
   const exportData = useCallback((): string => {
     return JSON.stringify(state, null, 2);
@@ -1539,6 +1548,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       removeCustomPlate,
       addCustomExercise,
       removeCustomExercise,
+      resetAllData,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -1548,7 +1558,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
       updateHistorySession, deleteHistorySession, addCustomPlate, removeCustomPlate,
-      addCustomExercise, removeCustomExercise,
+      addCustomExercise, removeCustomExercise, resetAllData,
     ])}>
       {children}
     </WorkoutContext.Provider>
