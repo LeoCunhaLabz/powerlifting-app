@@ -475,7 +475,7 @@ const styles: Record<string, React.CSSProperties> = {
   historyCard: { textAlign: 'left', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' },
   historyTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
   historyName: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  prTag: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '8px', fontWeight: 800, padding: '1px 5px', borderRadius: '3px' },
+  prTag: { display: 'inline-block', marginLeft: '6px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '8px', fontWeight: 800, letterSpacing: '0.05em', padding: '2px 5px', borderRadius: '3px', verticalAlign: 'middle' },
   historyStats: { display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--text-secondary)' },
   hStat: { display: 'inline-flex', alignItems: 'center', gap: '4px' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 1000, backdropFilter: 'blur(4px)' },
