@@ -192,10 +192,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
       {/* Week summary */}
       <div style={styles.sectionLabel}>Esta semana</div>
       <div style={styles.statGrid}>
-        <div style={styles.statTile}><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
-        <div style={styles.statTile}><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
-        <div style={styles.statTile}><div style={styles.statVal}>{freq}<span style={styles.unit}>/sem</span></div><div style={styles.statLbl}>FREQUÊNCIA</div></div>
+        <div style={styles.statTile} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
+        <div style={styles.statTile} title="Tonelagem total levantada nesta semana"><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
+        <div style={styles.statTile} title="Média de treinos por semana (últimas 4 semanas)"><div style={styles.statVal}>{freq}<span style={styles.unit}>/sem</span></div><div style={styles.statLbl}>FREQUÊNCIA</div></div>
       </div>
+      <div style={styles.statCaption}>Frequência: média de treinos por semana nas últimas 4 semanas</div>
 
       {/* Bodyweight */}
       <div style={styles.bwCard}>
@@ -457,6 +458,7 @@ const styles: Record<string, React.CSSProperties> = {
   statVal: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' },
   unit: { fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 },
   statLbl: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginTop: '2px' },
+  statCaption: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4 },
   bwCard: { ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
   bwLeft: {},
   bwLabel: { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' },
