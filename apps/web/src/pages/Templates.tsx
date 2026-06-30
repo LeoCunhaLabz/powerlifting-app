@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useWorkout } from '../context/WorkoutContext';
 import type { TemplateExercise, WorkoutTemplate, Program, WeekOverride } from '@powerlifting/shared';
 import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown, Archive, ArchiveX, History as HistoryIcon } from 'lucide-react';
@@ -147,8 +148,47 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [exercises, setExercises] = useState<TemplateExercise[]>([]);
   const [searchExercise, setSearchExercise] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Posição (fixed) da lista de sugestões — renderizada via portal para não ser
+  // recortada pelo overflow do formulário (escapa do contexto de scroll/clipping).
+  const searchExRef = useRef<HTMLInputElement>(null);
+  const [suggestStyle, setSuggestStyle] = useState<React.CSSProperties | null>(null);
   // Rascunho do campo de descanso em edição (preserva a digitação livre antes de virar restSeconds).
   const [restDraft, setRestDraft] = useState<{ idx: number; raw: string } | null>(null);
+
+  const updateSuggestPos = useCallback(() => {
+    const el = searchExRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const gap = 6;
+    const margin = 8;
+    const spaceBelow = window.innerHeight - r.bottom - gap - margin;
+    const spaceAbove = r.top - gap - margin;
+    // Abre para cima quando há pouco espaço abaixo e mais espaço acima.
+    const openUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(140, Math.min(320, openUp ? spaceAbove : spaceBelow));
+    setSuggestStyle({
+      position: 'fixed',
+      left: r.left,
+      width: r.width,
+      maxHeight,
+      ...(openUp ? { bottom: window.innerHeight - r.top + gap } : { top: r.bottom + gap }),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showSuggestions) return;
+    let raf = 0;
+    // Mede o layout fora do corpo do efeito (rAF/listeners) para não setar estado de forma síncrona.
+    const measure = () => { raf = requestAnimationFrame(updateSuggestPos); };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showSuggestions, searchExercise, updateSuggestPos]);
 
   // Program form state
   const [isProgramForm, setIsProgramForm] = useState(false);
@@ -577,18 +617,18 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               ))}
 
               <div style={styles.addExBox}>
-                <input type="text" value={searchExercise} onChange={(e) => { setSearchExercise(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} placeholder="Buscar ou adicionar exercício..." style={styles.searchEx} />
+                <input ref={searchExRef} type="text" value={searchExercise} onChange={(e) => { setSearchExercise(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} placeholder="Buscar ou adicionar exercício..." style={styles.searchEx} />
                 {searchExercise.trim() &&
                   !getAllSuggestedExercises().some((e) => e.toLowerCase() === searchExercise.trim().toLowerCase()) &&
                   !customExercises.some((c) => c.name.toLowerCase() === searchExercise.trim().toLowerCase()) && (
                   <button onClick={() => createAndAddEx(searchExercise)} style={styles.addCustom}>Adicionar "{searchExercise}"</button>
                 )}
-                {showSuggestions && (() => {
+                {showSuggestions && suggestStyle && (() => {
                   const q = searchExercise.toLowerCase();
                   const customMatches = customExercises.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 5);
                   const anyBuiltIn = Object.values(EXERCISE_CATEGORIES).some((exercises) => exercises.some((e) => e.toLowerCase().includes(q)));
-                  return (
-                  <div style={styles.suggestions}>
+                  return createPortal(
+                  <div style={{ ...styles.suggestions, ...suggestStyle }}>
                     {customMatches.length > 0 && (
                       <div style={styles.categoryGroup}>
                         <div style={styles.categoryHeader}>Meus exercícios</div>
@@ -612,7 +652,8 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                     {!anyBuiltIn && customMatches.length === 0 && (
                       <div style={styles.noResults}>Nenhum exercício encontrado</div>
                     )}
-                  </div>
+                  </div>,
+                  document.body
                   );
                 })()}
               </div>
@@ -912,7 +953,7 @@ const styles: Record<string, React.CSSProperties> = {
   addExBox: { position: 'relative' },
   searchEx: { width: '100%', height: '46px' },
   addCustom: { width: '100%', height: '38px', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, marginTop: '8px' },
-  suggestions: { position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '100%', maxHeight: '300px', overflowY: 'auto', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', zIndex: 40, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' },
+  suggestions: { overflowY: 'auto', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', zIndex: 1100, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' },
   categoryGroup: { borderBottom: '1px solid var(--border-color)' },
   categoryHeader: { padding: '8px 14px 6px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent)', letterSpacing: '0.05em', backgroundColor: 'rgba(255,255,255,0.02)' },
   suggestion: { display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: '13px', color: 'var(--text-primary)', borderBottom: '1px solid rgba(255,255,255,0.03)', background: 'none' },
