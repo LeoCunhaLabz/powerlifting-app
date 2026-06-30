@@ -148,6 +148,8 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [exercises, setExercises] = useState<TemplateExercise[]>([]);
   const [searchExercise, setSearchExercise] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Índice do exercício sendo trocado (modo "substituir" da busca); null = adicionar normalmente.
+  const [replaceExIdx, setReplaceExIdx] = useState<number | null>(null);
   // Posição (fixed) da lista de sugestões — renderizada via portal para não ser
   // recortada pelo overflow do formulário (escapa do contexto de scroll/clipping).
   const searchExRef = useRef<HTMLInputElement>(null);
@@ -216,7 +218,13 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   };
 
   const addEx = (exName: string) => {
-    setExercises((prev) => [...prev, { name: exName, sets: [{ reps: 5, type: 'N', weightPercentage: prescription === 'percent' ? 100 : undefined, rpe: prescription === 'rpe' ? 8 : undefined }] }]);
+    if (replaceExIdx !== null) {
+      // Modo "trocar": substitui só o nome, preservando séries/notas/descanso/peso já preenchidos.
+      setExercises((prev) => prev.map((x, i) => (i === replaceExIdx ? { ...x, name: exName } : x)));
+      setReplaceExIdx(null);
+    } else {
+      setExercises((prev) => [...prev, { name: exName, sets: [{ reps: 5, type: 'N', weightPercentage: prescription === 'percent' ? 100 : undefined, rpe: prescription === 'rpe' ? 8 : undefined }] }]);
+    }
     setSearchExercise('');
     setShowSuggestions(false);
   };
@@ -251,7 +259,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
   const resetForm = () => {
     setName(''); setDescription(''); setRoutineNotes(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
-    setSearchExercise(''); setShowSuggestions(false);
+    setSearchExercise(''); setShowSuggestions(false); setReplaceExIdx(null);
   };
 
   const startEdit = (tpl: WorkoutTemplate, duplicate = false) => {
@@ -542,10 +550,24 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               </div>
 
               {exercises.map((ex, exIdx) => (
-                <div key={exIdx} style={styles.exBlock}>
+                <div key={exIdx} style={replaceExIdx === exIdx ? { ...styles.exBlock, borderColor: 'var(--accent)' } : styles.exBlock}>
                   <div style={styles.exBlockHead}>
                     <span style={styles.exBlockName}>{ex.name}</span>
-                    <button onClick={() => removeEx(exIdx)} style={styles.removeExText}>Remover</button>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        onClick={() => {
+                          setReplaceExIdx(exIdx);
+                          setSearchExercise('');
+                          setShowSuggestions(true);
+                          requestAnimationFrame(() => {
+                            searchExRef.current?.scrollIntoView({ block: 'center' });
+                            searchExRef.current?.focus();
+                          });
+                        }}
+                        style={styles.removeExText}
+                      >Trocar</button>
+                      <button onClick={() => removeEx(exIdx)} style={styles.removeExText}>Remover</button>
+                    </div>
                   </div>
                   <input
                     type="text"
@@ -618,7 +640,10 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
               ))}
 
               <div style={styles.addExBox}>
-                <input ref={searchExRef} type="text" value={searchExercise} onChange={(e) => { setSearchExercise(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} placeholder="Buscar ou adicionar exercício..." style={styles.searchEx} />
+                <input ref={searchExRef} type="text" value={searchExercise} onChange={(e) => { setSearchExercise(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} placeholder={replaceExIdx !== null ? `Trocar "${exercises[replaceExIdx]?.name ?? ''}" por...` : 'Buscar ou adicionar exercício...'} style={styles.searchEx} />
+                {replaceExIdx !== null && (
+                  <button onClick={() => { setReplaceExIdx(null); setSearchExercise(''); setShowSuggestions(false); }} style={styles.cancelReplace}>Cancelar troca</button>
+                )}
                 {searchExercise.trim() &&
                   !getAllSuggestedExercises().some((e) => e.toLowerCase() === searchExercise.trim().toLowerCase()) &&
                   !customExercises.some((c) => c.name.toLowerCase() === searchExercise.trim().toLowerCase()) && (
@@ -943,6 +968,7 @@ const styles: Record<string, React.CSSProperties> = {
   exBlockHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
   exBlockName: { fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' },
   removeExText: { color: 'var(--error)', fontSize: '11px', fontWeight: 700 },
+  cancelReplace: { width: '100%', height: '34px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, marginTop: '8px' },
   setHead: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 1fr 30px', gap: '7px', fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', paddingBottom: '7px' },
   cC: { textAlign: 'center' },
   setRow: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 1fr 30px', gap: '7px', alignItems: 'center', marginBottom: '7px' },
