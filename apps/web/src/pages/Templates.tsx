@@ -106,15 +106,17 @@ const parseRestInput = (raw: string): number | undefined => {
 
 /**
  * Máscara m:ss aplicada enquanto o usuário digita — insere o ":" sozinho.
- * Considera apenas os dígitos (máx. 4) com os 2 últimos como segundos:
- * "1" → "0:01", "130" → "1:30", "1300" → "13:00". Vazio permanece vazio.
+ * Considera apenas os dígitos (máx. 4) com os 2 últimos como segundos.
+ * Até 2 dígitos permanecem sem ":" (permite apagar dígito a dígito até vazio);
+ * a partir do 3º insere o ":" e normaliza o overflow de segundos para minutos.
+ * Ex.: "13" → "13", "130" → "1:30", "90" → "90" (vira "1:30" ao sair), "175" → "2:15".
  */
 const maskRestInput = (raw: string): string => {
   const digits = raw.replace(/\D/g, '').slice(0, 4);
-  if (!digits) return '';
-  const secs = digits.slice(-2).padStart(2, '0');
-  const mins = digits.length > 2 ? Number(digits.slice(0, -2)) : 0;
-  return `${mins}:${secs}`;
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  const total = Number(digits.slice(0, -2)) * 60 + Number(digits.slice(-2));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 };
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
@@ -145,6 +147,8 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const [exercises, setExercises] = useState<TemplateExercise[]>([]);
   const [searchExercise, setSearchExercise] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Rascunho do campo de descanso em edição (preserva a digitação livre antes de virar restSeconds).
+  const [restDraft, setRestDraft] = useState<{ idx: number; raw: string } | null>(null);
 
   // Program form state
   const [isProgramForm, setIsProgramForm] = useState(false);
@@ -519,12 +523,16 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                       type="text"
                       inputMode="numeric"
                       placeholder="1:30"
-                      value={ex.restSeconds != null ? secondsToMMSS(ex.restSeconds) : ''}
-                      onChange={(e) =>
+                      value={restDraft?.idx === exIdx ? restDraft.raw : (ex.restSeconds != null ? secondsToMMSS(ex.restSeconds) : '')}
+                      onFocus={() => setRestDraft({ idx: exIdx, raw: ex.restSeconds != null ? secondsToMMSS(ex.restSeconds) : '' })}
+                      onChange={(e) => {
+                        const masked = maskRestInput(e.target.value);
+                        setRestDraft({ idx: exIdx, raw: masked });
                         setExercises(prev => prev.map((x, i) =>
-                          i === exIdx ? { ...x, restSeconds: parseRestInput(maskRestInput(e.target.value)) } : x
-                        ))
-                      }
+                          i === exIdx ? { ...x, restSeconds: parseRestInput(masked) } : x
+                        ));
+                      }}
+                      onBlur={() => setRestDraft(null)}
                       style={{ ...styles.inp, width: 80 }}
                     />
                     <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>PESO ESPERADO</label>
