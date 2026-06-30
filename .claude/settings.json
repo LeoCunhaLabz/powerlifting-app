@@ -1,3 +1,5 @@
 {
-  "permissionMode": "bypassPermissions"
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  }
 }
