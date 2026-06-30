@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
-import { calculateE1RM, calculateDots } from '../utils/powerlifting';
+import { calculateE1RM, calculateDots, relativeStrength } from '../utils/powerlifting';
 import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw, Pencil, Trash2, AlertTriangle, ChevronRight, List } from 'lucide-react';
 import BodyweightLogList from '../components/BodyweightLogList';
 
@@ -20,7 +20,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [confirmRepeat, setConfirmRepeat] = useState<WorkoutSession | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<WorkoutSession | null>(null);
-  const [metric, setMetric] = useState<'e1rm' | 'dots'>('e1rm');
+  const [metric, setMetric] = useState<'e1rm' | 'rel'>('e1rm');
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [showBwList, setShowBwList] = useState(false);
   const [weightInput, setWeightInput] = useState('');
@@ -68,11 +68,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const sortedBw = [...bodyweightLog].sort((a, b) => a.date.localeCompare(b.date));
   const bwTrend = sortedBw.length >= 2 ? Math.round((sortedBw[sortedBw.length - 1].weight - sortedBw[0].weight) * 10) / 10 : 0;
 
-  // Evolution series (running best total e1RM / dots per session, chronological)
+  // Evolution series (running best total e1RM / força relativa per session, chronological)
   const series = (() => {
     const chrono = [...history].sort((a, b) => a.date.localeCompare(b.date));
     const best: Record<string, number> = {};
-    const out: { total: number; dots: number }[] = [];
+    const out: { total: number; rel: number }[] = [];
     chrono.forEach((s) => {
       s.exercises.forEach((ex) => {
         const ln = ex.name.toLowerCase();
@@ -86,10 +86,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
         });
       });
       const total = SBD.reduce((a, n) => a + (best[n] || 0), 0);
-      if (total > 0) out.push({ total: Math.round(total), dots: calculateDots(getBodyweightAt(s.date), total, settings.gender === 'male') });
+      if (total > 0) out.push({ total: Math.round(total), rel: relativeStrength(total, getBodyweightAt(s.date)) });
     });
     return out.slice(-12);
   })();
+
+  // Recordes reais de 1RM (melhor série com 1 repetição concluída) por levantamento SBD
+  const best1RM = SBD.map((n) => {
+    const ln = n.toLowerCase();
+    let max = 0;
+    history.forEach((s) => s.exercises.forEach((ex) => {
+      if (ex.name.toLowerCase() !== ln) return;
+      ex.sets.forEach((set) => { if (set.completed && set.reps === 1 && set.weight > max) max = set.weight; });
+    }));
+    return Math.round(max);
+  });
 
   const polyline = (vals: number[], w: number, h: number, pad = 6) => {
     if (vals.length === 0) return '';
@@ -106,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
       .join(' ');
   };
 
-  const evoVals = series.map((p) => (metric === 'e1rm' ? p.total : p.dots));
+  const evoVals = series.map((p) => (metric === 'e1rm' ? p.total : p.rel));
   const bwVals = sortedBw.slice(-10).map((e) => e.weight);
 
   const formatDate = (iso: string) => {
@@ -242,7 +253,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
           <span style={styles.cardTitle}>Evolução</span>
           <div style={styles.toggle}>
             <button onClick={() => setMetric('e1rm')} style={metric === 'e1rm' ? styles.toggleOn : styles.toggleOff}>e1RM</button>
-            <button onClick={() => setMetric('dots')} style={metric === 'dots' ? styles.toggleOn : styles.toggleOff}>DOTS</button>
+            <button onClick={() => setMetric('rel')} style={metric === 'rel' ? styles.toggleOn : styles.toggleOff}>Força rel.</button>
           </div>
         </div>
         {evoVals.length >= 2 ? (
@@ -273,7 +284,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
       {/* PR compact */}
       <div style={styles.card}>
         <div style={styles.cardHead}>
-          <span style={styles.prKicker}><Award size={14} /> RECORDES (e1RM)</span>
+          <span style={styles.prKicker}><Award size={14} /> RECORDES</span>
           <span style={styles.dotsBadge}>{dots} DOTS</span>
         </div>
         <div style={styles.prGrid}>
@@ -281,6 +292,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
             <div key={n} style={{ ...styles.prCol, ...(i === 1 ? styles.prColMid : {}) }}>
               <span style={styles.prLbl}>{i === 0 ? 'AGACH.' : i === 1 ? 'SUPINO' : 'TERRA'}</span>
               <span style={styles.prVal}>{bestE1RM[i]}</span>
+              <span style={styles.prSub}>e1RM</span>
+              <span style={styles.pr1rm}>{best1RM[i] > 0 ? `${best1RM[i]} ${u}` : '—'}<span style={styles.prSub}> 1RM</span></span>
             </div>
           ))}
         </div>
@@ -470,6 +483,8 @@ const styles: Record<string, React.CSSProperties> = {
   prColMid: { borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' },
   prLbl: { fontSize: '9px', fontWeight: 800, color: 'var(--text-secondary)' },
   prVal: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' },
+  prSub: { fontSize: '8px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' },
+  pr1rm: { fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '2px' },
   prFooter: { borderTop: '1px solid var(--border-color)', marginTop: '10px', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' },
   historyList: { display: 'flex', flexDirection: 'column', gap: '10px' },
   historyCard: { textAlign: 'left', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' },
