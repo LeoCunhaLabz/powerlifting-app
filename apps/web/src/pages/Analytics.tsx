@@ -19,7 +19,10 @@ const LIFTS: LiftDef[] = [
   { label: 'Terra', short: 'Terra', color: '#fafafa', match: (n) => n.includes('terra') || n.includes('deadlift') },
 ];
 
-const RPE_COLORS: Record<number, string> = { 6: '#37b87f', 7: '#9ed16b', 8: '#e0a93f', 9: '#ef9a4d', 10: '#e5544b' };
+// RPE 5 representa o balde "≤5" (séries leves/aquecimento).
+const RPE_COLORS: Record<number, string> = { 5: '#3a9fd1', 6: '#37b87f', 7: '#9ed16b', 8: '#e0a93f', 9: '#ef9a4d', 10: '#e5544b' };
+const RPE_BUCKETS = [5, 6, 7, 8, 9, 10];
+const rpeLabel = (r: number) => (r === 5 ? '≤5' : String(r));
 
 const tonnageOf = (s: WorkoutSession): number =>
   s.exercises.reduce(
@@ -136,6 +139,7 @@ export const Analytics: React.FC = () => {
   const [topExMetric, setTopExMetric] = useState<'volume' | 'series'>('volume');
   const [topExExpanded, setTopExExpanded] = useState(false);
   const [prFilter, setPrFilter] = useState<'sbd' | 'all'>('all');
+  const [rpeScope, setRpeScope] = useState<'all' | 'sbd'>('all');
   const [prExpanded, setPrExpanded] = useState(false);
   const [heatmapHoverIdx, setHeatmapHoverIdx] = useState<number | null>(null);
   const heatmapDayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
@@ -193,7 +197,8 @@ export const Analytics: React.FC = () => {
   });
 
   const allVals = series.flatMap((s) => s.pts.map((p) => p.v));
-  const hasLine = allVals.length >= 2 && n >= 2;
+  // Mostra o gráfico mesmo com um único ponto por lift (carrega os lifts próximos disponíveis).
+  const hasLine = allVals.length >= 1 && n >= 1;
   const maxV = allVals.length ? Math.max(...allVals) : 0;
   const minV = allVals.length ? Math.min(...allVals) : 0;
   const range = maxV - minV || 1;
@@ -320,7 +325,8 @@ export const Analytics: React.FC = () => {
   const fillFor = (m: MuscleGroup): string => {
     const r = (muscleVal[m] || 0) / maxMuscle;
     if (r <= 0) return 'var(--bg-tertiary)';
-    const pct = Math.round((0.18 + r * 0.82) * 100);
+    // Mais contraste: piso maior e curva sqrt para destacar grupos de baixo/médio volume.
+    const pct = Math.round((0.32 + Math.sqrt(r) * 0.68) * 100);
     return `color-mix(in srgb, var(--accent) ${pct}%, var(--bg-tertiary))`;
   };
   const topMuscles = (Object.entries(muscleVal) as [MuscleGroup, number][])
@@ -338,7 +344,7 @@ export const Analytics: React.FC = () => {
     const bars = Object.keys(weekMap)
       .map(Number)
       .sort((a, b) => a - b)
-      .slice(-10)
+      .slice(-16)
       .map((k) => weekMap[k]);
     return { weekBars: bars, maxWeekBar: bars.length ? Math.max(...bars, 1) : 1 };
   }, [sessions]);
@@ -379,17 +385,19 @@ export const Analytics: React.FC = () => {
     .slice(-8);
   const rpeWeekVals = rpeWeekKeys.map((k) => Math.round((rpeWeek[k].sum / rpeWeek[k].count) * 10) / 10);
 
-  // --- Distribuição de RPE ---
-  const rpeCounts: Record<number, number> = { 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+  // --- Distribuição de RPE (balde ≤5 + escopo: treino inteiro ou só SBD) ---
+  const rpeCounts: Record<number, number> = { 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
   sessions.forEach((s) =>
-    s.exercises.forEach((ex) =>
+    s.exercises.forEach((ex) => {
+      if (rpeScope === 'sbd' && !LIFTS.some((l) => l.match(ex.name.toLowerCase()))) return;
       ex.sets.forEach((set) => {
         if (set.completed && set.rpe) {
           const r = Math.round(set.rpe);
-          if (r >= 6 && r <= 10) rpeCounts[r]++;
+          if (r <= 5) rpeCounts[5]++;
+          else if (r <= 10) rpeCounts[r]++;
         }
-      }),
-    ),
+      });
+    }),
   );
   const maxRpe = Math.max(...Object.values(rpeCounts), 1);
   const hasRpe = Object.values(rpeCounts).some((c) => c > 0);
@@ -529,6 +537,17 @@ export const Analytics: React.FC = () => {
           </>
         ) : (
           <div style={styles.empty}>Complete treinos com os 3 levantamentos para ver a tendência.</div>
+        )}
+        {sbdTotal > 0 && (
+          <div style={styles.sbdBreakdown}>
+            {LIFTS.map((l, idx) => (
+              <span key={l.label} style={styles.sbdBreakItem}>
+                <span style={{ ...styles.sbdBreakDot, backgroundColor: l.color }} />
+                {l.short} <strong style={styles.sbdBreakVal}>{Math.round(liftMax[idx])}</strong>
+              </span>
+            ))}
+            <span style={styles.sbdBreakNote}>e1RM (1RM estimado) · {u}</span>
+          </div>
         )}
       </div>
 
@@ -839,12 +858,18 @@ export const Analytics: React.FC = () => {
 
       {/* RPE distribution */}
       <div style={styles.card}>
-        <span style={styles.cardTitle}>Distribuição de RPE</span>
+        <div style={styles.cardHead}>
+          <span style={styles.cardTitle}>Distribuição de RPE</span>
+          <div style={styles.legend}>
+            <button onClick={() => setRpeScope('all')} style={rpeScope === 'all' ? styles.segOn : styles.segOff}>Treino</button>
+            <button onClick={() => setRpeScope('sbd')} style={rpeScope === 'sbd' ? styles.segOn : styles.segOff}>SBD</button>
+          </div>
+        </div>
         {hasRpe ? (
           <div style={styles.rpeList}>
-            {[6, 7, 8, 9, 10].map((r) => (
+            {RPE_BUCKETS.map((r) => (
               <div key={r} style={styles.rpeRow}>
-                <span style={{ ...styles.rpeNum, color: RPE_COLORS[r] }}>{r}</span>
+                <span style={{ ...styles.rpeNum, color: RPE_COLORS[r] }}>{rpeLabel(r)}</span>
                 <span style={styles.rpeTrack}>
                   <span style={{ ...styles.rpeFill, width: `${(rpeCounts[r] / maxRpe) * 100}%`, backgroundColor: RPE_COLORS[r] }} />
                 </span>
@@ -853,7 +878,7 @@ export const Analytics: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div style={styles.empty}>Registre o RPE das séries para ver a distribuição.</div>
+          <div style={styles.empty}>{rpeScope === 'sbd' ? 'Sem séries de SBD com RPE no período.' : 'Registre o RPE das séries para ver a distribuição.'}</div>
         )}
       </div>
 
@@ -1037,6 +1062,11 @@ const styles: Record<string, React.CSSProperties> = {
   tlSub: { fontSize: '11px', color: 'var(--text-muted)' },
   tlDate: { fontSize: '11px', color: 'var(--text-muted)' },
   tooltipBar: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
+  sbdBreakdown: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' },
+  sbdBreakItem: { display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-secondary)' },
+  sbdBreakDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  sbdBreakVal: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
+  sbdBreakNote: { fontSize: '10px', color: 'var(--text-muted)', marginLeft: 'auto' },
   tooltipVal: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
   tooltipDate: { fontSize: '11px', color: 'var(--text-muted)' },
 };
