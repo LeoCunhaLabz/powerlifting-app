@@ -1,11 +1,11 @@
 import React from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
-import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, History as HistoryIcon, Dumbbell } from 'lucide-react';
+import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, History as HistoryIcon, Dumbbell, Award } from 'lucide-react';
 import { calculateDots, getStrengthComparison } from '../utils/powerlifting';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
-export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history' | 'exercises';
+export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history' | 'exercises' | 'prs';
 
 interface MoreProps {
   onNavigate: (tab: MoreTab) => void;
@@ -23,11 +23,20 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
   const { settings } = state;
 
-  const bestTotal =
-    getMaxE1RM('Agachamento') + getMaxE1RM('Supino Reto') + getMaxE1RM('Levantamento Terra');
+  const squat = getMaxE1RM('Agachamento');
+  const bench = getMaxE1RM('Supino Reto');
+  const deadlift = getMaxE1RM('Levantamento Terra');
+  const bestTotal = squat + bench + deadlift;
   const bw = getBodyweightAt(new Date().toISOString());
   const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
   const comparison = getStrengthComparison(dots, bw, settings.gender === 'male');
+  const u = settings.units;
+  const perLift: { short: string; e1rm: number }[] = [
+    { short: 'Agach.', e1rm: squat },
+    { short: 'Supino', e1rm: bench },
+    { short: 'Terra', e1rm: deadlift },
+  ];
+  const bwMult = (v: number) => (bw > 0 ? (v / bw).toFixed(2) : '—');
 
   const handleLogout = () => {
     logout();
@@ -59,6 +68,12 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
       label: 'Exercícios',
       desc: 'Crie e gerencie exercícios customizados reutilizáveis',
       icon: <Dumbbell size={22} />,
+    },
+    {
+      tab: 'prs',
+      label: 'Recordes',
+      desc: 'Todos os seus PRs (recordes pessoais) por exercício',
+      icon: <Award size={22} />,
     },
     {
       tab: 'settings',
@@ -93,7 +108,23 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
           <span style={styles.comparisonClass}>{comparison.bodyweightClass}</span>
         </div>
         <div style={styles.comparisonLevel}>{comparison.level}</div>
-        <div style={styles.comparisonPercentile}>Top {comparison.topPercentApprox}% aproximado</div>
+        <div style={styles.comparisonPercentile}>Top {comparison.topPercentApprox}% aproximado · {dots} DOTS</div>
+        {comparison.nextLevel && comparison.dotsToNext !== undefined && (
+          <div style={styles.comparisonNext}>
+            Próximo: <strong>{comparison.nextLevel}</strong> — faltam {comparison.dotsToNext} DOTS
+          </div>
+        )}
+        {bestTotal > 0 && (
+          <div style={styles.comparisonLifts}>
+            {perLift.map((l) => (
+              <span key={l.short} style={styles.comparisonLift}>
+                <span style={styles.comparisonLiftName}>{l.short}</span>
+                <span style={styles.comparisonLiftVal}>{Math.round(l.e1rm)} {u}</span>
+                <span style={styles.comparisonLiftMult}>{bwMult(l.e1rm)}× PC</span>
+              </span>
+            ))}
+          </div>
+        )}
         <div style={styles.comparisonNote}>{comparison.note}</div>
       </div>
 
@@ -230,6 +261,29 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     color: 'var(--accent)',
   },
+  comparisonNext: {
+    fontSize: '12px',
+    color: 'var(--text-secondary)',
+    marginTop: '4px',
+  },
+  comparisonLifts: {
+    display: 'flex',
+    gap: '8px',
+    margin: '10px 0',
+  },
+  comparisonLift: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    padding: '8px',
+    backgroundColor: 'var(--bg-tertiary)',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border-color)',
+  },
+  comparisonLiftName: { fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  comparisonLiftVal: { fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' },
+  comparisonLiftMult: { fontSize: '10px', color: 'var(--text-secondary)' },
   comparisonNote: {
     fontSize: '11px',
     color: 'var(--text-muted)',

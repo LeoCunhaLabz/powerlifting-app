@@ -152,6 +152,10 @@ export interface StrengthComparisonResult {
   topPercentApprox: number;
   bodyweightClass: string;
   note: string;
+  /** Próximo nível acima do atual (undefined se já é Elite). */
+  nextLevel?: StrengthLevel;
+  /** Quantos pontos de DOTS faltam para atingir o próximo nível. */
+  dotsToNext?: number;
 }
 
 interface ComparisonBand {
@@ -207,13 +211,17 @@ export function getStrengthComparison(dots: number, bodyweight: number, isMale: 
     };
   }
 
-  const band = [...refClass.bands].reverse().find((b) => dots >= b.minDots) ?? refClass.bands[0];
+  const bandIdx = [...refClass.bands].map((b, i) => ({ b, i })).reverse().find(({ b }) => dots >= b.minDots)?.i ?? 0;
+  const band = refClass.bands[bandIdx];
+  const next = refClass.bands[bandIdx + 1];
   return {
     level: band.level,
     percentileApprox: band.percentileApprox,
     topPercentApprox: Math.max(1, 100 - band.percentileApprox),
     bodyweightClass: refClass.classLabel,
     note: 'Estimativa aproximada baseada em referência estática (OpenPowerlifting).',
+    nextLevel: next?.level,
+    dotsToNext: next ? Math.max(0, Math.round((next.minDots - dots) * 100) / 100) : undefined,
   };
 }
 
