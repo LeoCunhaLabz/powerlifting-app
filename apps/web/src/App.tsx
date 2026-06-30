@@ -148,7 +148,7 @@ const AppContent: React.FC = () => {
           className={`nav-item ${currentTab === 'templates' ? 'active' : ''}`}
         >
           <ClipboardList />
-          <span>Rotinas</span>
+          <span>Biblioteca</span>
         </button>
 
         {/* Espaço reservado para o FAB central */}
