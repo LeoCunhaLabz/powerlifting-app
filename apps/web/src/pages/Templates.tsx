@@ -104,6 +104,19 @@ const parseRestInput = (raw: string): number | undefined => {
   return Number.isFinite(n) ? Math.max(0, n) : undefined;
 };
 
+/**
+ * Máscara m:ss aplicada enquanto o usuário digita — insere o ":" sozinho.
+ * Considera apenas os dígitos (máx. 4) com os 2 últimos como segundos:
+ * "1" → "0:01", "130" → "1:30", "1300" → "13:00". Vazio permanece vazio.
+ */
+const maskRestInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  if (!digits) return '';
+  const secs = digits.slice(-2).padStart(2, '0');
+  const mins = digits.length > 2 ? Number(digits.slice(0, -2)) : 0;
+  return `${mins}:${secs}`;
+};
+
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
   const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise, repeatWorkout } = useWorkout();
   const { templates, customExercises, settings } = state;
@@ -503,14 +516,13 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                     <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>DESCANSO (m:ss)</label>
                     <input
-                      key={ex.restSeconds ?? 'empty'}
                       type="text"
                       inputMode="numeric"
                       placeholder="1:30"
-                      defaultValue={ex.restSeconds != null ? secondsToMMSS(ex.restSeconds) : ''}
-                      onBlur={(e) =>
+                      value={ex.restSeconds != null ? secondsToMMSS(ex.restSeconds) : ''}
+                      onChange={(e) =>
                         setExercises(prev => prev.map((x, i) =>
-                          i === exIdx ? { ...x, restSeconds: parseRestInput(e.target.value) } : x
+                          i === exIdx ? { ...x, restSeconds: parseRestInput(maskRestInput(e.target.value)) } : x
                         ))
                       }
                       style={{ ...styles.inp, width: 80 }}
