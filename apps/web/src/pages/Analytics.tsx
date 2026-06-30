@@ -207,6 +207,36 @@ export const Analytics: React.FC = () => {
   const pathOf = (pts: { i: number; v: number }[]) =>
     pts.map((p, k) => `${k === 0 ? 'M' : 'L'} ${xFor(p.i).toFixed(1)} ${yFor(p.v).toFixed(1)}`).join(' ');
 
+  // Tap em qualquer lugar do gráfico seleciona o ponto mais próximo do toque (não só no ponto exato).
+  // Para gráficos lineares (viewBox sem padding) o x mapeia direto para o índice.
+  const nearestIndexFromTap = (e: React.MouseEvent<SVGSVGElement>, count: number): number => {
+    if (count <= 1) return 0;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = rect.width ? (e.clientX - rect.left) / rect.width : 0;
+    return Math.max(0, Math.min(count - 1, Math.round(ratio * (count - 1))));
+  };
+
+  // Gráfico multi-série de e1RM: encontra o ponto plotado mais próximo do toque (qualquer linha).
+  const e1rmTap = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const cx = ((e.clientX - rect.left) / rect.width) * vbW;
+    const cy = ((e.clientY - rect.top) / rect.height) * vbH;
+    let best: { sIdx: number; p: { i: number; v: number }; short: string; d: number } | null = null;
+    series.forEach((s, sIdx) =>
+      s.pts.forEach((p) => {
+        const dx = xFor(p.i) - cx;
+        const dy = yFor(p.v) - cy;
+        const d = dx * dx + dy * dy;
+        if (!best || d < best.d) best = { sIdx, p, short: s.short, d };
+      }),
+    );
+    if (best) {
+      const b = best as { sIdx: number; p: { i: number; v: number }; short: string; d: number };
+      setActiveTooltip({ chartId: `e1rm-${b.sIdx}`, label: `${b.short} ${Math.round(b.p.v)} ${u}`, date: chrono[b.p.i]?.date ?? '' });
+    }
+  };
+
   const liftMax = series.map((s) => (s.pts.length ? Math.max(...s.pts.map((p) => p.v)) : 0));
   const sbdTotal = liftMax.reduce((a, b) => a + b, 0);
   let acc = 0;
@@ -475,7 +505,8 @@ export const Analytics: React.FC = () => {
         </div>
         {totalTrend.length >= 2 ? (
           <>
-            <svg width="100%" height="90" viewBox="0 0 300 90" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+            <svg width="100%" height="90" viewBox="0 0 300 90" fill="none" preserveAspectRatio="none" style={{ cursor: 'pointer' }}
+              onClick={(e) => { const i = nearestIndexFromTap(e, totalTrend.length); setActiveTooltip({ chartId: 'sbd', label: `${totalTrend[i]} ${u}`, date: totalTrendDates[i] }); }}>
               <polyline points={linePoints(totalTrend, 300, 90, 10)} stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
               {lineCoords(totalTrend, 300, 90, 10).map((pt, i) => {
                 const isActive = activeTooltip?.chartId === 'sbd' && activeTooltip.date === totalTrendDates[i];
@@ -516,7 +547,7 @@ export const Analytics: React.FC = () => {
         </div>
         {hasLine ? (
           <>
-            <svg viewBox={`0 0 ${vbW} ${vbH}`} style={styles.svg} onClick={() => setActiveTooltip(null)}>
+            <svg viewBox={`0 0 ${vbW} ${vbH}`} style={{ ...styles.svg, cursor: 'pointer' }} onClick={e1rmTap}>
               {[0.5, 1].map((f, idx) => {
                 const y = padT + chartH - f * chartH;
                 return <line key={idx} x1={padL} y1={y} x2={vbW - padR} y2={y} stroke="var(--border-color)" strokeWidth="1" />;
@@ -563,7 +594,8 @@ export const Analytics: React.FC = () => {
         </div>
         {bwSeries.length >= 2 ? (
           <>
-            <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+            <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" preserveAspectRatio="none" style={{ cursor: 'pointer' }}
+              onClick={(e) => { const i = nearestIndexFromTap(e, bwSeries.length); setActiveTooltip({ chartId: 'bw', label: `${bwSeries[i]} ${u}`, date: bwEntries[i]?.date ?? '' }); }}>
               <polyline points={linePoints(bwSeries, 300, 80, 8)} stroke="#cfcfd4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               {lineCoords(bwSeries, 300, 80, 8).map((pt, i) => {
                 const isActive = activeTooltip?.chartId === 'bw' && activeTooltip.date === bwEntries[i]?.date;
@@ -741,7 +773,8 @@ export const Analytics: React.FC = () => {
           <span style={styles.cardMeta}>por semana</span>
           {rpeWeekVals.length >= 2 ? (
             <>
-              <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+              <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none" style={{ cursor: 'pointer' }}
+                onClick={(e) => { const i = nearestIndexFromTap(e, rpeWeekVals.length); setActiveTooltip({ chartId: 'rpe', label: `RPE ${rpeWeekVals[i]}`, date: new Date(rpeWeekKeys[i]).toISOString().slice(0, 10) }); }}>
                 <polyline points={linePoints(rpeWeekVals, 140, 60, 8)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                 {lineCoords(rpeWeekVals, 140, 60, 8).map((pt, i) => {
                   const weekIso = new Date(rpeWeekKeys[i]).toISOString().slice(0, 10);
@@ -774,7 +807,8 @@ export const Analytics: React.FC = () => {
           <span style={styles.cardMeta}>SBD total ÷ peso corporal</span>
           {relTrend.length >= 2 ? (
             <>
-              <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none" onClick={() => setActiveTooltip(null)}>
+              <svg width="100%" height="60" viewBox="0 0 140 60" fill="none" preserveAspectRatio="none" style={{ cursor: 'pointer' }}
+                onClick={(e) => { const i = nearestIndexFromTap(e, relTrend.length); setActiveTooltip({ chartId: 'rel', label: `${relTrend[i]}×`, date: relTrendDates[i] }); }}>
                 <polyline points={linePoints(relTrend, 140, 60, 8)} stroke="#9ec5ff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                 {lineCoords(relTrend, 140, 60, 8).map((pt, i) => {
                   const isActive = activeTooltip?.chartId === 'rel' && activeTooltip.date === relTrendDates[i];
