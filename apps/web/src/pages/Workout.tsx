@@ -4,8 +4,7 @@ import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, Ro
 import PlateVisualizer from '../components/PlateVisualizer';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 import type { WorkoutTemplate } from '@powerlifting/shared';
-
-const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D: 'N' };
+import { TYPE_CYCLE } from '../utils/setTypeCycle';
 
 export const Workout: React.FC = () => {
   const {

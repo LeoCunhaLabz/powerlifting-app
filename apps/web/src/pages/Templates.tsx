@@ -4,13 +4,11 @@ import { useWorkout } from '../context/WorkoutContext';
 import type { TemplateExercise, WorkoutTemplate, Program, WeekOverride } from '@powerlifting/shared';
 import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown, Archive, ArchiveX, History as HistoryIcon } from 'lucide-react';
 import History from './History';
+import { TYPE_CYCLE } from '../utils/setTypeCycle';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
 }
-
-// Ciclo do tipo de série ao tocar no número: Normal → Aquecimento → Drop.
-const TYPE_CYCLE: Record<'N' | 'W' | 'D', 'N' | 'W' | 'D'> = { N: 'W', W: 'D', D: 'N' };
 
 const EXERCISE_CATEGORIES = {
   'Powerlifting (Básicos)': [
@@ -990,7 +988,7 @@ const styles: Record<string, React.CSSProperties> = {
   setHead: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 30px', gap: '7px', fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', paddingBottom: '7px' },
   cC: { textAlign: 'center' },
   setRow: { display: 'grid', gridTemplateColumns: '34px 1fr 1fr 30px', gap: '7px', alignItems: 'center', marginBottom: '7px' },
-  typeChip: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid', borderRadius: '8px', fontSize: '13px', fontWeight: 700, width: '100%', minWidth: 0, cursor: 'pointer' },
+  typeChip: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid', borderRadius: '8px', fontSize: '13px', fontWeight: 700, width: '100%', minWidth: 0, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   typeLegend: { fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 4px', lineHeight: 1.4 },
   inp: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center', fontSize: '14px', fontWeight: 700, width: '100%', padding: '0 2px', minWidth: 0 },
   delSetBtn: { color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px' },
