@@ -128,7 +128,12 @@ const MuscleMap: React.FC<{ view: 'front' | 'back'; fill: (m: MuscleGroup) => st
   </svg>
 );
 
-export const Analytics: React.FC = () => {
+interface AnalyticsProps {
+  /** Navega para a página dedicada de recordes (PRs). */
+  onSeeAllPRs?: () => void;
+}
+
+export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const { state, getBodyweightAt } = useWorkout();
   const { history, settings, bodyweightLog } = state;
   const [period, setPeriod] = useState<Period>('12w');
@@ -972,9 +977,15 @@ export const Analytics: React.FC = () => {
               ))}
             </div>
             {prsFiltered.length > 5 && (
-              <button onClick={() => setPrExpanded((x) => !x)} style={styles.verMaisBtn}>
-                {prExpanded ? 'Ver menos ↑' : `Ver mais (${prsFiltered.length - 5} PRs) ↓`}
-              </button>
+              onSeeAllPRs ? (
+                <button onClick={onSeeAllPRs} style={styles.verMaisBtn}>
+                  Ver todos os recordes ({prsFiltered.length}) →
+                </button>
+              ) : (
+                <button onClick={() => setPrExpanded((x) => !x)} style={styles.verMaisBtn}>
+                  {prExpanded ? 'Ver menos ↑' : `Ver mais (${prsFiltered.length - 5} PRs) ↓`}
+                </button>
+              )
             )}
           </>
         ) : (
