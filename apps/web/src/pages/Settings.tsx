@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check, LogOut, Plus, X } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
 import type { ThemeName } from '@powerlifting/shared';
+import { ErrorBox } from '../components/ErrorBox';
 
 const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = [
   { id: 'onyx', name: 'Onyx', swatch: '#fafafa', desc: 'Monocromático' },
@@ -310,9 +311,7 @@ export const Settings: React.FC = () => {
             </div>
           )}
           {importStatus === 'error' && (
-            <div style={styles.errorAlert}>
-              <AlertTriangle size={16} /> Backup inválido ou corrompido. Nenhuma alteração foi feita.
-            </div>
+            <ErrorBox style={{ marginTop: '10px' }}>Backup inválido ou corrompido. Nenhuma alteração foi feita.</ErrorBox>
           )}
         </div>
       </div>
@@ -618,18 +617,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     marginTop: '10px',
     border: '1px solid rgba(55, 184, 127, 0.2)',
-  },
-  errorAlert: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: 'rgba(229, 84, 75, 0.1)',
-    color: 'var(--error)',
-    padding: '10px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '12px',
-    marginTop: '10px',
-    border: '1px solid rgba(229, 84, 75, 0.2)',
   },
   confirmBox: {
     backgroundColor: 'rgba(229, 84, 75, 0.05)',
