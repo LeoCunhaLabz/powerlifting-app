@@ -111,6 +111,8 @@ interface WorkoutContextType {
   removeCustomExercise: (id: string) => void;
   /** Reseta o app para uma conta em branco (histórico, rotinas custom, programas, peso, exercícios). */
   resetAllData: () => void;
+  /** Recria o dataset demo anual (com purge no servidor) para a conta demo. */
+  reseedDemoData: (confirmationText: string) => Promise<{ ok: boolean; message: string }>;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -249,6 +251,9 @@ const DEFAULT_STATE: AppState = {
 };
 
 const DEMO_ACCOUNT_EMAIL = 'leonardovalcesio@gmail.com';
+const DEMO_RESEED_CONFIRMATION = 'RESEED DEMO';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
+const TOKEN_KEY = 'powerlifting_token';
 
 const DEMO_TEMPLATE_IDS = {
   lowerStrength: 'demo-lower-strength',
@@ -266,19 +271,36 @@ function dayKeyDaysAgo(daysAgo: number, baseDate = new Date()): string {
   return daysAgoIso(daysAgo, baseDate).slice(0, 10);
 }
 
+function seededRandom(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+function roundToStep(value: number, step = 2.5): number {
+  return Math.round(value / step) * step;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function createDemoState(baseDate = new Date()): AppState {
+  const random = seededRandom(20260712);
   const demoTemplates: WorkoutTemplate[] = [
     {
       id: DEMO_TEMPLATE_IDS.lowerStrength,
       name: 'Lower Strength',
-      description: 'Sessão de base para agachamento e terra com foco em volume controlado.',
+      description: 'Sessão base de membros inferiores com foco em agachamento e cadeia posterior.',
       exercises: [
         {
           name: 'Agachamento',
           restSeconds: 180,
           sets: [
-            { reps: 5, weightPercentage: 65, type: 'W' },
-            { reps: 5, weightPercentage: 75, type: 'N' },
+            { reps: 5, weightPercentage: 62.5, type: 'W' },
+            { reps: 4, weightPercentage: 75, type: 'N' },
             { reps: 3, weightPercentage: 82.5, type: 'N' },
           ],
         },
@@ -286,25 +308,22 @@ function createDemoState(baseDate = new Date()): AppState {
           name: 'Levantamento Terra',
           restSeconds: 210,
           sets: [
-            { reps: 5, weightPercentage: 60, type: 'W' },
-            { reps: 4, weightPercentage: 72.5, type: 'N' },
-            { reps: 3, weightPercentage: 80, type: 'N' },
+            { reps: 4, weightPercentage: 62.5, type: 'W' },
+            { reps: 3, weightPercentage: 77.5, type: 'N' },
+            { reps: 2, weightPercentage: 85, type: 'N' },
           ],
         },
         {
-          name: 'Abdominal na Polia',
-          restSeconds: 60,
-          sets: [
-            { reps: 12, type: 'N' },
-            { reps: 12, type: 'N' },
-          ],
+          name: 'Leg Press',
+          restSeconds: 90,
+          sets: [{ reps: 10, type: 'N' }, { reps: 10, type: 'N' }, { reps: 10, type: 'N' }],
         },
       ],
     },
     {
       id: DEMO_TEMPLATE_IDS.upperPower,
       name: 'Upper Power',
-      description: 'Bloco de supino com remada e tríceps para dar contraste visual ao histórico.',
+      description: 'Sessão de empurrar e puxar com ênfase em supino e volume de costas.',
       exercises: [
         {
           name: 'Supino Reto',
@@ -318,200 +337,232 @@ function createDemoState(baseDate = new Date()): AppState {
         {
           name: 'Remada Curvada',
           restSeconds: 120,
-          sets: [
-            { reps: 8, type: 'N' },
-            { reps: 8, type: 'N' },
-            { reps: 8, type: 'N' },
-          ],
+          sets: [{ reps: 8, type: 'N' }, { reps: 8, type: 'N' }, { reps: 8, type: 'N' }],
         },
         {
-          name: 'Tríceps na Polia',
-          restSeconds: 75,
-          sets: [
-            { reps: 10, type: 'N' },
-            { reps: 10, type: 'N' },
-          ],
+          name: 'Desenvolvimento Militar',
+          restSeconds: 120,
+          sets: [{ reps: 8, type: 'N' }, { reps: 8, type: 'N' }, { reps: 6, type: 'N' }],
         },
       ],
     },
     {
       id: DEMO_TEMPLATE_IDS.deadliftTechnique,
       name: 'Deadlift Technique',
-      description: 'Sessão curta para destacar terra, técnica e um pouco de acessórios.',
+      description: 'Sessão curta para técnica de terra e acessórios de puxada.',
       exercises: [
         {
           name: 'Levantamento Terra',
           restSeconds: 210,
           sets: [
-            { reps: 3, weightPercentage: 70, type: 'W' },
-            { reps: 3, weightPercentage: 80, type: 'N' },
-            { reps: 2, weightPercentage: 87.5, type: 'N' },
+            { reps: 3, weightPercentage: 67.5, type: 'W' },
+            { reps: 3, weightPercentage: 77.5, type: 'N' },
+            { reps: 2, weightPercentage: 85, type: 'N' },
           ],
         },
         {
           name: 'Puxada na Barra',
           restSeconds: 90,
-          sets: [
-            { reps: 8, type: 'N' },
-            { reps: 8, type: 'N' },
-            { reps: 8, type: 'N' },
-          ],
+          sets: [{ reps: 8, type: 'N' }, { reps: 8, type: 'N' }, { reps: 8, type: 'N' }],
+        },
+        {
+          name: 'Rosca Direta',
+          restSeconds: 75,
+          sets: [{ reps: 10, type: 'N' }, { reps: 10, type: 'N' }],
+        },
+      ],
+    },
+    {
+      id: 'demo-hypertrophy-balance',
+      name: 'Hypertrophy Balance',
+      description: 'Sessão de hipertrofia para completar volume semanal e variação muscular.',
+      exercises: [
+        {
+          name: 'Supino Inclinado',
+          restSeconds: 120,
+          sets: [{ reps: 10, type: 'N' }, { reps: 10, type: 'N' }, { reps: 8, type: 'N' }],
+        },
+        {
+          name: 'Agachamento Frontal',
+          restSeconds: 150,
+          sets: [{ reps: 6, type: 'N' }, { reps: 6, type: 'N' }, { reps: 6, type: 'N' }],
+        },
+        {
+          name: 'Panturrilha em Pé',
+          restSeconds: 60,
+          sets: [{ reps: 12, type: 'N' }, { reps: 12, type: 'N' }, { reps: 12, type: 'N' }],
         },
       ],
     },
   ];
 
-  const history: WorkoutSession[] = [
-    {
-      id: 'demo-session-4',
-      name: 'Lower Strength - PR day',
-      date: daysAgoIso(2, baseDate),
-      duration: 4_260,
-      templateId: DEMO_TEMPLATE_IDS.lowerStrength,
-      notes: 'Sessão forte para mostrar PRs no histórico e no resumo do dashboard.',
-      exercises: [
-        {
-          id: 'demo-ex-4-1',
-          name: 'Agachamento',
-          notes: 'Série mais pesada do seed',
-          sets: [
-            { id: 'demo-set-4-1-1', weight: 100, reps: 5, rpe: 7, completed: true, type: 'W' },
-            { id: 'demo-set-4-1-2', weight: 122.5, reps: 4, rpe: 8, completed: true, type: 'N' },
-            { id: 'demo-set-4-1-3', weight: 132.5, reps: 3, rpe: 8.5, completed: true, type: 'N', isPr: true },
-          ],
-        },
-        {
-          id: 'demo-ex-4-2',
-          name: 'Levantamento Terra',
-          sets: [
-            { id: 'demo-set-4-2-1', weight: 110, reps: 3, rpe: 7.5, completed: true, type: 'W' },
-            { id: 'demo-set-4-2-2', weight: 132.5, reps: 3, rpe: 8, completed: true, type: 'N' },
-            { id: 'demo-set-4-2-3', weight: 145, reps: 2, rpe: 8.5, completed: true, type: 'N', isPr: true },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'demo-session-3',
-      name: 'Deadlift Technique',
-      date: daysAgoIso(6, baseDate),
-      duration: 3_180,
-      templateId: DEMO_TEMPLATE_IDS.deadliftTechnique,
-      notes: 'Trabalho técnico com volume moderado.',
-      exercises: [
-        {
-          id: 'demo-ex-3-1',
-          name: 'Levantamento Terra',
-          sets: [
-            { id: 'demo-set-3-1-1', weight: 100, reps: 3, rpe: 7, completed: true, type: 'W' },
-            { id: 'demo-set-3-1-2', weight: 122.5, reps: 3, rpe: 7.5, completed: true, type: 'N' },
-            { id: 'demo-set-3-1-3', weight: 135, reps: 2, rpe: 8, completed: true, type: 'N' },
-          ],
-        },
-        {
-          id: 'demo-ex-3-2',
-          name: 'Puxada na Barra',
-          sets: [
-            { id: 'demo-set-3-2-1', weight: 50, reps: 8, rpe: 7, completed: true, type: 'N' },
-            { id: 'demo-set-3-2-2', weight: 50, reps: 8, rpe: 7, completed: true, type: 'N' },
-            { id: 'demo-set-3-2-3', weight: 50, reps: 8, rpe: 7, completed: true, type: 'N' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'demo-session-2',
-      name: 'Upper Power',
-      date: daysAgoIso(10, baseDate),
-      duration: 3_540,
-      templateId: DEMO_TEMPLATE_IDS.upperPower,
-      notes: 'Sessão com supino pesado e acessórios de empurrar.',
-      exercises: [
-        {
-          id: 'demo-ex-2-1',
-          name: 'Supino Reto',
-          sets: [
-            { id: 'demo-set-2-1-1', weight: 70, reps: 5, rpe: 6.5, completed: true, type: 'W' },
-            { id: 'demo-set-2-1-2', weight: 82.5, reps: 4, rpe: 7.5, completed: true, type: 'N' },
-            { id: 'demo-set-2-1-3', weight: 90, reps: 3, rpe: 8, completed: true, type: 'N', isPr: true },
-          ],
-        },
-        {
-          id: 'demo-ex-2-2',
-          name: 'Remada Curvada',
-          sets: [
-            { id: 'demo-set-2-2-1', weight: 60, reps: 8, rpe: 7, completed: true, type: 'N' },
-            { id: 'demo-set-2-2-2', weight: 60, reps: 8, rpe: 7, completed: true, type: 'N' },
-            { id: 'demo-set-2-2-3', weight: 60, reps: 8, rpe: 7, completed: true, type: 'N' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'demo-session-1',
-      name: 'Lower Strength',
-      date: daysAgoIso(14, baseDate),
-      duration: 4_080,
-      templateId: DEMO_TEMPLATE_IDS.lowerStrength,
-      notes: 'Primeira sessão para abrir o histórico com base sólida.',
-      exercises: [
-        {
-          id: 'demo-ex-1-1',
-          name: 'Agachamento',
-          sets: [
-            { id: 'demo-set-1-1-1', weight: 90, reps: 5, rpe: 6.5, completed: true, type: 'W' },
-            { id: 'demo-set-1-1-2', weight: 105, reps: 5, rpe: 7, completed: true, type: 'N' },
-            { id: 'demo-set-1-1-3', weight: 112.5, reps: 3, rpe: 7.5, completed: true, type: 'N' },
-          ],
-        },
-        {
-          id: 'demo-ex-1-2',
-          name: 'Levantamento Terra',
-          sets: [
-            { id: 'demo-set-1-2-1', weight: 100, reps: 3, rpe: 6.5, completed: true, type: 'W' },
-            { id: 'demo-set-1-2-2', weight: 115, reps: 3, rpe: 7, completed: true, type: 'N' },
-            { id: 'demo-set-1-2-3', weight: 125, reps: 2, rpe: 7.5, completed: true, type: 'N' },
-          ],
-        },
-      ],
-    },
+  const trainingOffsets = [0, 2, 4, 6] as const;
+  const weekCount = 52;
+  let squatBase = 112.5;
+  let benchBase = 82.5;
+  let deadliftBase = 142.5;
+  let pressBase = 52.5;
+  let rowBase = 72.5;
+  let bw = 81.8;
+
+  const sessionPool = [
+    { templateId: DEMO_TEMPLATE_IDS.lowerStrength, name: 'Lower Strength' },
+    { templateId: DEMO_TEMPLATE_IDS.upperPower, name: 'Upper Power' },
+    { templateId: DEMO_TEMPLATE_IDS.deadliftTechnique, name: 'Deadlift Technique' },
+    { templateId: 'demo-hypertrophy-balance', name: 'Hypertrophy Balance' },
   ];
+
+  const historyAscending: WorkoutSession[] = [];
+  const bodyweightLog: BodyweightEntry[] = [];
+  let sessionSeq = 1;
+
+  for (let week = 0; week < weekCount; week += 1) {
+    if (week > 0 && week % 8 === 0) {
+      const deloadFactor = 0.975 + random() * 0.01;
+      squatBase = roundToStep(squatBase * deloadFactor);
+      benchBase = roundToStep(benchBase * deloadFactor);
+      deadliftBase = roundToStep(deadliftBase * deloadFactor);
+      pressBase = roundToStep(pressBase * deloadFactor);
+      rowBase = roundToStep(rowBase * deloadFactor);
+    } else {
+      squatBase = roundToStep(squatBase + 0.45 + random() * 0.55);
+      benchBase = roundToStep(benchBase + 0.2 + random() * 0.35);
+      deadliftBase = roundToStep(deadliftBase + 0.45 + random() * 0.7);
+      pressBase = roundToStep(pressBase + 0.15 + random() * 0.25);
+      rowBase = roundToStep(rowBase + 0.2 + random() * 0.4);
+    }
+
+    const workoutsInWeek = random() < 0.42 ? 4 : 3;
+    const rotationOffset = week % sessionPool.length;
+    const selectedOffsets = trainingOffsets.slice(0, workoutsInWeek);
+
+    selectedOffsets.forEach((dayOffset, idx) => {
+      const daysAgo = (weekCount - 1 - week) * 7 + dayOffset;
+      const date = daysAgoIso(daysAgo, baseDate);
+      const slot = (rotationOffset + idx) % sessionPool.length;
+      const pick = sessionPool[slot];
+      const blockPhase = week % 4;
+      const phaseMod = blockPhase === 3 ? 0.985 : blockPhase === 2 ? 1.015 : 1;
+      const fatigueMod = 0.985 + random() * 0.035;
+
+      const setsByName: Record<string, SetState[]> = {
+        'Agachamento': [
+          { id: `demo-set-${sessionSeq}-sq-1`, weight: roundToStep(squatBase * 0.74 * fatigueMod), reps: 5, rpe: 7 + random() * 0.4, completed: true, type: 'W' },
+          { id: `demo-set-${sessionSeq}-sq-2`, weight: roundToStep(squatBase * 0.84 * phaseMod), reps: 4, rpe: 7.8 + random() * 0.4, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-sq-3`, weight: roundToStep(squatBase * 0.93 * phaseMod), reps: 2 + Math.round(random()), rpe: 8.1 + random() * 0.6, completed: true, type: 'N' },
+        ],
+        'Agachamento Frontal': [
+          { id: `demo-set-${sessionSeq}-fsq-1`, weight: roundToStep(squatBase * 0.62), reps: 6, rpe: 7.4 + random() * 0.4, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-fsq-2`, weight: roundToStep(squatBase * 0.64), reps: 6, rpe: 7.6 + random() * 0.4, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-fsq-3`, weight: roundToStep(squatBase * 0.66), reps: 6, rpe: 7.8 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Supino Reto': [
+          { id: `demo-set-${sessionSeq}-bp-1`, weight: roundToStep(benchBase * 0.72 * fatigueMod), reps: 5, rpe: 7 + random() * 0.4, completed: true, type: 'W' },
+          { id: `demo-set-${sessionSeq}-bp-2`, weight: roundToStep(benchBase * 0.84 * phaseMod), reps: 4, rpe: 7.8 + random() * 0.4, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-bp-3`, weight: roundToStep(benchBase * 0.92 * phaseMod), reps: 2 + Math.round(random()), rpe: 8.2 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Supino Inclinado': [
+          { id: `demo-set-${sessionSeq}-ibp-1`, weight: roundToStep(benchBase * 0.62), reps: 10, rpe: 7.2 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-ibp-2`, weight: roundToStep(benchBase * 0.64), reps: 10, rpe: 7.5 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-ibp-3`, weight: roundToStep(benchBase * 0.66), reps: 8, rpe: 7.8 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Levantamento Terra': [
+          { id: `demo-set-${sessionSeq}-dl-1`, weight: roundToStep(deadliftBase * 0.72 * fatigueMod), reps: 3, rpe: 7.1 + random() * 0.4, completed: true, type: 'W' },
+          { id: `demo-set-${sessionSeq}-dl-2`, weight: roundToStep(deadliftBase * 0.84 * phaseMod), reps: 3, rpe: 7.8 + random() * 0.4, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-dl-3`, weight: roundToStep(deadliftBase * 0.92 * phaseMod), reps: 2, rpe: 8.3 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Remada Curvada': [
+          { id: `demo-set-${sessionSeq}-row-1`, weight: roundToStep(rowBase * 0.9), reps: 8, rpe: 7.2 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-row-2`, weight: roundToStep(rowBase * 0.92), reps: 8, rpe: 7.4 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-row-3`, weight: roundToStep(rowBase * 0.94), reps: 8, rpe: 7.6 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Desenvolvimento Militar': [
+          { id: `demo-set-${sessionSeq}-ohp-1`, weight: roundToStep(pressBase * 0.88), reps: 8, rpe: 7.2 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-ohp-2`, weight: roundToStep(pressBase * 0.9), reps: 8, rpe: 7.5 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-ohp-3`, weight: roundToStep(pressBase * 0.92), reps: 6, rpe: 7.9 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Puxada na Barra': [
+          { id: `demo-set-${sessionSeq}-lat-1`, weight: roundToStep(55 + random() * 20), reps: 8, rpe: 7.2 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-lat-2`, weight: roundToStep(55 + random() * 20), reps: 8, rpe: 7.4 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-lat-3`, weight: roundToStep(55 + random() * 20), reps: 8, rpe: 7.6 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Leg Press': [
+          { id: `demo-set-${sessionSeq}-lp-1`, weight: roundToStep(180 + random() * 70, 5), reps: 10, rpe: 7.4 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-lp-2`, weight: roundToStep(185 + random() * 70, 5), reps: 10, rpe: 7.6 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-lp-3`, weight: roundToStep(190 + random() * 70, 5), reps: 10, rpe: 7.8 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Rosca Direta': [
+          { id: `demo-set-${sessionSeq}-curl-1`, weight: roundToStep(25 + random() * 12.5), reps: 10, rpe: 7.3 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-curl-2`, weight: roundToStep(25 + random() * 12.5), reps: 10, rpe: 7.5 + random() * 0.5, completed: true, type: 'N' },
+        ],
+        'Panturrilha em Pé': [
+          { id: `demo-set-${sessionSeq}-calf-1`, weight: roundToStep(60 + random() * 40), reps: 12, rpe: 7.2 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-calf-2`, weight: roundToStep(60 + random() * 40), reps: 12, rpe: 7.4 + random() * 0.5, completed: true, type: 'N' },
+          { id: `demo-set-${sessionSeq}-calf-3`, weight: roundToStep(60 + random() * 40), reps: 12, rpe: 7.6 + random() * 0.5, completed: true, type: 'N' },
+        ],
+      };
+
+      const template = demoTemplates.find((t) => t.id === pick.templateId);
+      if (!template) return;
+
+      const exercises: ExerciseState[] = template.exercises.map((exercise, exIdx) => ({
+        id: `demo-ex-${sessionSeq}-${exIdx + 1}`,
+        name: exercise.name,
+        sets: setsByName[exercise.name].map((set, setIdx) => ({
+          ...set,
+          rpe: clamp(Math.round((set.rpe ?? 8) * 10) / 10, 6, 9.8),
+          id: `demo-set-${sessionSeq}-${exIdx + 1}-${setIdx + 1}`,
+        })),
+      }));
+
+      historyAscending.push({
+        id: `demo-session-${sessionSeq}`,
+        name: `${pick.name} W${week + 1}`,
+        date,
+        duration: Math.round(3300 + random() * 1700),
+        exercises,
+        notes: week % 8 === 7 ? 'Semana de deload com foco em técnica e recuperação.' : undefined,
+        templateId: pick.templateId,
+      });
+      sessionSeq += 1;
+    });
+
+    bw = clamp(bw + (random() - 0.45) * 0.22, 79.5, 84.8);
+    bodyweightLog.push({
+      date: dayKeyDaysAgo((weekCount - 1 - week) * 7 + 1, baseDate),
+      weight: Math.round(bw * 10) / 10,
+    });
+  }
+
+  const history = recalculatePRs(historyAscending).sort((a, b) => b.date.localeCompare(a.date));
 
   return {
     history,
     templates: [...BUILT_IN_TEMPLATES, ...demoTemplates],
     settings: {
       ...DEFAULT_SETTINGS,
-      bodyweight: 81.6,
+      bodyweight: bodyweightLog[bodyweightLog.length - 1]?.weight ?? 82,
       customPlates: [1.25, 2.5],
       theme: 'brass',
     },
-    bodyweightLog: [
-      { date: dayKeyDaysAgo(14, baseDate), weight: 80.4 },
-      { date: dayKeyDaysAgo(10, baseDate), weight: 80.9 },
-      { date: dayKeyDaysAgo(6, baseDate), weight: 81.2 },
-      { date: dayKeyDaysAgo(2, baseDate), weight: 81.6 },
-    ],
+    bodyweightLog,
     programs: [
       {
         id: 'demo-program-strength-cycle',
-        name: 'Ciclo Demo de Força',
-        description: 'Programa curto para visualizar calendário, templates e histórico no celular.',
-        templateIds: [
-          DEMO_TEMPLATE_IDS.lowerStrength,
-          DEMO_TEMPLATE_IDS.upperPower,
-          DEMO_TEMPLATE_IDS.deadliftTechnique,
-        ],
+        name: 'Ciclo Demo Longo (52 semanas)',
+        description: 'Programa anual para simular uso consistente com foco em força intermediária.',
+        templateIds: demoTemplates.map((template) => template.id),
         isActive: true,
-        createdAt: daysAgoIso(15, baseDate),
+        createdAt: daysAgoIso(366, baseDate),
         updatedAt: daysAgoIso(2, baseDate),
-        startDate: dayKeyDaysAgo(13, baseDate),
-        trainingDays: [1, 3, 5],
-        weekCount: 3,
+        startDate: dayKeyDaysAgo(365, baseDate),
+        trainingDays: [1, 3, 5, 6],
+        weekCount: 4,
         weekOverrides: [
           { weekIndex: 0, exerciseName: 'Agachamento', reps: 4, weightPercentage: 80, sets: 4 },
           { weekIndex: 1, exerciseName: 'Supino Reto', reps: 3, weightPercentage: 85, sets: 4 },
-          { weekIndex: 2, exerciseName: 'Levantamento Terra', reps: 2, weightPercentage: 87.5, sets: 3 },
+          { weekIndex: 2, exerciseName: 'Levantamento Terra', reps: 2, weightPercentage: 88, sets: 3 },
+          { weekIndex: 3, exerciseName: 'Desenvolvimento Militar', reps: 6, weightPercentage: 72, sets: 3 },
         ],
       },
     ],
@@ -519,26 +570,41 @@ function createDemoState(baseDate = new Date()): AppState {
   };
 }
 
-function hasMeaningfulUserData(state: AppState): boolean {
-  return (
-    state.history.length > 0 ||
-    state.templates.some((template) => !template.isBuiltIn) ||
-    state.bodyweightLog.length > 0 ||
-    state.programs.length > 0 ||
-    state.customExercises.length > 0
-  );
-}
+async function purgeServerData(token: string): Promise<{ workoutsDeleted: number; templatesDeleted: number }> {
+  const pullResponse = await fetch(`${API_BASE}/sync/pull`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-function shouldSeedDemoData(
-  demoEmail: string | null | undefined,
-  state: AppState,
-  activeWorkout: WorkoutSession | null,
-): boolean {
-  return (
-    demoEmail?.trim().toLowerCase() === DEMO_ACCOUNT_EMAIL &&
-    activeWorkout === null &&
-    !hasMeaningfulUserData(state)
-  );
+  if (!pullResponse.ok) {
+    throw new Error(`Falha ao listar dados remotos (${pullResponse.status}).`);
+  }
+
+  const remote = await pullResponse.json() as {
+    workouts: Array<{ id: string }>;
+    templates: Array<{ id: string }>;
+  };
+
+  const deleteById = async (path: 'workouts' | 'templates', id: string) => {
+    const response = await fetch(`${API_BASE}/${path}/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Falha ao apagar ${path}/${id} (${response.status}).`);
+    }
+  };
+
+  for (const row of remote.workouts) {
+    await deleteById('workouts', row.id);
+  }
+  for (const row of remote.templates) {
+    await deleteById('templates', row.id);
+  }
+
+  return {
+    workoutsDeleted: remote.workouts.length,
+    templatesDeleted: remote.templates.length,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -679,12 +745,30 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     const result = await syncPull();
     if (!result) return;
     const now = new Date().toISOString();
-    setState(prev => (
-      shouldSeedDemoData(demoEmail, prev, activeWorkout) && result.workouts.length === 0 && result.templates.length === 0
-        ? createDemoState(new Date())
-        : mergePullResult(prev, result, now)
-    ));
-  }, [activeWorkout, demoEmail, syncPull]);
+    setState(prev => mergePullResult(prev, result, now));
+  }, [syncPull]);
+
+  const reseedDemoData = useCallback(async (confirmationText: string) => {
+    const normalizedEmail = demoEmail?.trim().toLowerCase();
+    if (normalizedEmail !== DEMO_ACCOUNT_EMAIL) {
+      return { ok: false, message: 'Ação disponível apenas para a conta demo.' };
+    }
+    if (confirmationText.trim().toUpperCase() !== DEMO_RESEED_CONFIRMATION) {
+      return { ok: false, message: `Confirmação inválida. Digite exatamente "${DEMO_RESEED_CONFIRMATION}".` };
+    }
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      return { ok: false, message: 'Sessão inválida para sincronização. Faça login novamente.' };
+    }
+
+    await purgeServerData(token);
+    setActiveWorkout(null);
+    setRestTimerEnd(null);
+    setState(createDemoState(new Date()));
+
+    return { ok: true, message: 'Dataset demo anual recriado com sucesso.' };
+  }, [demoEmail]);
 
   // Pull inicial ao montar (= usuário acabou de autenticar)
   useEffect(() => {
@@ -692,16 +776,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     syncPull().then(result => {
       if (!result || cancelled) return;
       const now = new Date().toISOString();
-      setState(prev => (
-        shouldSeedDemoData(demoEmail, prev, activeWorkout) && result.workouts.length === 0 && result.templates.length === 0
-          ? createDemoState(new Date())
-          : mergePullResult(prev, result, now)
-      ));
+      setState(prev => mergePullResult(prev, result, now));
     });
     return () => { cancelled = true; };
   // Roda apenas uma vez ao montar
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkout, demoEmail]);
+  }, []);
 
   // Detecta itens sem syncedAt e dispara push automaticamente (built-ins excluídos)
   useEffect(() => {
@@ -1553,6 +1633,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       addCustomExercise,
       removeCustomExercise,
       resetAllData,
+      reseedDemoData,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -1562,7 +1643,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
       updateHistorySession, deleteHistorySession, addCustomPlate, removeCustomPlate,
-      addCustomExercise, removeCustomExercise, resetAllData,
+      addCustomExercise, removeCustomExercise, resetAllData, reseedDemoData,
     ])}>
       {children}
     </WorkoutContext.Provider>

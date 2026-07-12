@@ -13,7 +13,7 @@ const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = 
 ];
 
 export const Settings: React.FC = () => {
-  const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData } = useWorkout();
+  const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData, reseedDemoData } = useWorkout();
   const { user, logout, deleteAccount } = useAuth();
   const { settings } = state;
 
@@ -23,6 +23,10 @@ export const Settings: React.FC = () => {
   const [showConfirmDeleteAccount, setShowConfirmDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [customPlateInput, setCustomPlateInput] = useState('');
+  const [showDemoReseed, setShowDemoReseed] = useState(false);
+  const [demoConfirmationText, setDemoConfirmationText] = useState('');
+  const [demoReseedStatus, setDemoReseedStatus] = useState<string | null>(null);
+  const [isReseedingDemo, setIsReseedingDemo] = useState(false);
 
   const handleUnitChange = (units: 'kg' | 'lbs') => {
     updateSettings({ units });
@@ -98,6 +102,22 @@ export const Settings: React.FC = () => {
       console.error('Falha ao excluir conta:', e);
       setDeletingAccount(false);
       setShowConfirmDeleteAccount(false);
+    }
+  };
+
+  const handleReseedDemo = async () => {
+    setIsReseedingDemo(true);
+    try {
+      const result = await reseedDemoData(demoConfirmationText);
+      setDemoReseedStatus(result.message);
+      if (result.ok) {
+        setDemoConfirmationText('');
+        setShowDemoReseed(false);
+      }
+    } catch {
+      setDemoReseedStatus('Falha ao recriar dataset demo. Tente novamente.');
+    } finally {
+      setIsReseedingDemo(false);
     }
   };
 
@@ -379,6 +399,61 @@ export const Settings: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* Demo Seed */}
+      {user?.email?.trim().toLowerCase() === 'leonardovalcesio@gmail.com' && (
+        <div style={styles.section}>
+          <h2 style={{ ...styles.sectionTitle, color: 'var(--warning)' }}>Conta Demo (Produção)</h2>
+          <p style={{ ...styles.settingDesc, marginBottom: '12px' }}>
+            Recria um dataset fake anual (3-4 treinos por semana) e substitui os dados atuais da conta.
+          </p>
+          {showDemoReseed ? (
+            <div style={styles.confirmBoxWarning}>
+              <div style={styles.confirmText}>
+                <AlertTriangle size={20} color="var(--warning)" />
+                Para confirmar, digite <strong>RESEED DEMO</strong> no campo abaixo.
+              </div>
+              <input
+                type="text"
+                value={demoConfirmationText}
+                onChange={(e) => setDemoConfirmationText(e.target.value)}
+                placeholder="RESEED DEMO"
+                style={styles.reseedInput}
+              />
+              <div style={{ ...styles.confirmButtons, marginTop: '10px' }}>
+                <button
+                  onClick={() => {
+                    setShowDemoReseed(false);
+                    setDemoConfirmationText('');
+                    setDemoReseedStatus(null);
+                  }}
+                  style={styles.cancelBtn}
+                  disabled={isReseedingDemo}
+                >
+                  Cancelar
+                </button>
+                <button onClick={handleReseedDemo} style={styles.confirmWarningBtn} disabled={isReseedingDemo}>
+                  {isReseedingDemo ? 'Processando…' : 'Confirmar reseed'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setDemoReseedStatus(null);
+                setShowDemoReseed(true);
+              }}
+              style={{ ...styles.btn, ...styles.btnWarn }}
+            >
+              <AlertTriangle size={16} /> Recriar Dataset Demo (1 ano)
+            </button>
+          )}
+
+          {demoReseedStatus && (
+            <div style={styles.warnAlert}>{demoReseedStatus}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -570,6 +645,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--error)',
     border: '1px solid rgba(229, 84, 75, 0.2)',
   },
+  btnWarn: {
+    backgroundColor: 'rgba(224, 169, 63, 0.12)',
+    color: 'var(--warning)',
+    border: '1px solid rgba(224, 169, 63, 0.26)',
+  },
   accountRow: {
     display: 'flex',
     alignItems: 'center',
@@ -624,6 +704,12 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-sm)',
     padding: '12px',
   },
+  confirmBoxWarning: {
+    backgroundColor: 'rgba(224, 169, 63, 0.08)',
+    border: '1px solid rgba(224, 169, 63, 0.25)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '12px',
+  },
   confirmText: {
     display: 'flex',
     gap: '8px',
@@ -654,6 +740,32 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontWeight: '700',
     color: '#ffffff',
+  },
+  confirmWarningBtn: {
+    flex: 1,
+    height: '32px',
+    backgroundColor: 'var(--warning)',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#101010',
+  },
+  reseedInput: {
+    width: '100%',
+    height: '36px',
+    fontSize: '13px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.02em',
+  },
+  warnAlert: {
+    marginTop: '10px',
+    backgroundColor: 'rgba(224, 169, 63, 0.12)',
+    color: 'var(--warning)',
+    padding: '10px',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: '12px',
+    border: '1px solid rgba(224, 169, 63, 0.26)',
   },
   customPlatesSection: {
     marginTop: '14px',
