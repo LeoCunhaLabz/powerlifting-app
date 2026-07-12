@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateE1RM, calculateDots, calculateWilks, getExerciseMuscles, getBodyweightSeriesInRange, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
 import type { WorkoutSession } from '@powerlifting/shared';
-import { Award } from 'lucide-react';
+import { Award, Info } from 'lucide-react';
 import BodyweightLogList from '../components/BodyweightLogList';
 import {
   buildE1rmSelectionFromAnchor,
@@ -156,6 +156,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const [prExpanded, setPrExpanded] = useState(false);
   const [heatmapHoverIdx, setHeatmapHoverIdx] = useState<number | null>(null);
   const [activeE1rmSelection, setActiveE1rmSelection] = useState<E1rmSelection | null>(null);
+  const [sbdInfoOpen, setSbdInfoOpen] = useState(false);
   const heatmapDayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
   const u = settings.units;
@@ -834,10 +835,26 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
       <div style={styles.twoCol}>
         <div style={styles.card}>
           <div style={styles.cardHead}>
-            <span style={styles.cardTitle}>Total SBD</span>
-            <span style={styles.cardMeta}>e1RM (estimado)</span>
+            <div style={styles.cardHeadLeft}>
+              <span style={styles.cardTitle}>Total SBD</span>
+              <span style={styles.cardMeta}>e1RM (estimado)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSbdInfoOpen((x) => !x)}
+              style={styles.infoBtn}
+              aria-label={sbdInfoOpen ? 'Ocultar explicação do Total SBD' : 'Mostrar explicação do Total SBD'}
+              aria-expanded={sbdInfoOpen}
+              title="Entenda o cálculo"
+            >
+              <Info size={12} />
+            </button>
           </div>
-          <span style={styles.cardMeta}>Soma dos melhores e1RMs de agachamento, supino e terra no período.</span>
+          {sbdInfoOpen && (
+            <div style={styles.sbdInfo}>
+              Soma dos melhores e1RMs de agachamento, supino e terra no período.
+            </div>
+          )}
           <div style={styles.donutWrap}>
             <div style={{ ...styles.donut, background: donutBg }} />
             <div style={styles.donutHole}>
@@ -1147,6 +1164,7 @@ const styles: Record<string, React.CSSProperties> = {
   summaryLabel: { fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' },
   card: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' },
   cardHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardHeadLeft: { display: 'flex', flexDirection: 'column', gap: '2px' },
   cardHeadIcon: { display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' },
   cardTitle: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
   cardMeta: { fontSize: '11px', color: 'var(--text-muted)' },
@@ -1185,7 +1203,7 @@ const styles: Record<string, React.CSSProperties> = {
   donutLegend: { display: 'flex', flexDirection: 'column', gap: '5px' },
   donutLegendRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   donutPct: { fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' },
-  scoreCol: { display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' },
+  scoreCol: { display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', paddingBottom: '16px' },
   scoreCard: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'space-between', flex: 1, minHeight: 0 },
   scoreHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
   scoreDelta: { fontSize: '11px', fontWeight: 700 },
@@ -1194,6 +1212,8 @@ const styles: Record<string, React.CSSProperties> = {
   scoreDeltaFlat: { color: 'var(--text-muted)' },
   scoreVal: { fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' },
   scoreSpark: { cursor: 'pointer', marginTop: 'auto' },
+  infoBtn: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '999px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', flexShrink: 0 },
+  sbdInfo: { fontSize: '11px', lineHeight: 1.45, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '8px 10px' },
   rpeList: { display: 'flex', flexDirection: 'column', gap: '9px' },
   rpeRow: { display: 'flex', alignItems: 'center', gap: '10px' },
   rpeNum: { width: '18px', fontSize: '12px', fontWeight: 800, textAlign: 'center' },
