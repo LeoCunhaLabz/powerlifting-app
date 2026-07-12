@@ -276,6 +276,11 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
 
   const liftMax = series.map((s) => (s.pts.length ? Math.max(...s.pts.map((p) => p.v)) : 0));
   const sbdTotal = liftMax.reduce((a, b) => a + b, 0);
+  const sbdDistribution = LIFTS.map((lift, idx) => ({
+    ...lift,
+    value: liftMax[idx],
+    pct: sbdTotal ? Math.round((liftMax[idx] / sbdTotal) * 100) : 0,
+  }));
   let acc = 0;
   const segs = LIFTS.map((l, i) => {
     const pct = sbdTotal ? (liftMax[i] / sbdTotal) * 100 : 0;
@@ -335,6 +340,28 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
     });
     return { relTrend: vals, relTrendDates: dates };
   })();
+
+  const buildScoreTrend = (calculateScore: (bodyweight: number, total: number, isMale: boolean) => number) => {
+    const values: number[] = [];
+    const dates: string[] = [];
+
+    totalTrend.forEach((total, idx) => {
+      const date = totalTrendDates[idx];
+      const bodyweight = getBodyweightAt(date);
+      const value = Math.round(calculateScore(bodyweight, total, isMale));
+      if (value > 0) {
+        values.push(value);
+        dates.push(date);
+      }
+    });
+
+    const current = values.length ? values[values.length - 1] : 0;
+    const delta = values.length >= 2 ? current - values[0] : 0;
+    return { values, dates, current, delta };
+  };
+
+  const dotsTrendCard = buildScoreTrend(calculateDots);
+  const wilksTrendCard = buildScoreTrend(calculateWilks);
 
   // --- Peso corporal no período ---
   const bwEntries = getBodyweightSeriesInRange(bodyweightLog, from, to);
@@ -571,10 +598,10 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
         )}
         {sbdTotal > 0 && (
           <div style={styles.sbdBreakdown}>
-            {LIFTS.map((l, idx) => (
-              <span key={l.label} style={styles.sbdBreakItem}>
-                <span style={{ ...styles.sbdBreakDot, backgroundColor: l.color }} />
-                {l.short} <strong style={styles.sbdBreakVal}>{Math.round(liftMax[idx])}</strong>
+            {sbdDistribution.map((lift) => (
+              <span key={lift.label} style={styles.sbdBreakItem}>
+                <span style={{ ...styles.sbdBreakDot, backgroundColor: lift.color }} />
+                {lift.short} <strong style={styles.sbdBreakVal}>{Math.round(lift.value)}</strong>
               </span>
             ))}
             <span style={styles.sbdBreakNote}>e1RM (1RM estimado) · {u}</span>
@@ -806,7 +833,11 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
       {/* SBD distribution + scores */}
       <div style={styles.twoCol}>
         <div style={styles.card}>
-          <span style={styles.cardTitle}>Total SBD</span>
+          <div style={styles.cardHead}>
+            <span style={styles.cardTitle}>Total SBD</span>
+            <span style={styles.cardMeta}>e1RM (estimado)</span>
+          </div>
+          <span style={styles.cardMeta}>Soma dos melhores e1RMs de agachamento, supino e terra no período.</span>
           <div style={styles.donutWrap}>
             <div style={{ ...styles.donut, background: donutBg }} />
             <div style={styles.donutHole}>
@@ -815,25 +846,89 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
             </div>
           </div>
           <div style={styles.donutLegend}>
-            {LIFTS.map((l, idx) => (
-              <span key={idx} style={styles.donutLegendRow}>
+            {sbdDistribution.map((lift) => (
+              <span key={lift.label} style={styles.donutLegendRow}>
                 <span style={styles.legendItem}>
-                  <span style={{ ...styles.legendSquare, backgroundColor: l.color }} />
-                  {l.short}
+                  <span style={{ ...styles.legendSquare, backgroundColor: lift.color }} />
+                  {lift.short}
                 </span>
-                <span style={styles.donutPct}>{sbdTotal ? Math.round((liftMax[idx] / sbdTotal) * 100) : 0}%</span>
+                <span style={styles.donutPct}>{Math.round(lift.value)} {u} · {lift.pct}%</span>
               </span>
             ))}
           </div>
         </div>
         <div style={styles.scoreCol}>
-          <div style={styles.card}>
-            <span style={styles.cardMeta}>DOTS</span>
+          <div style={styles.scoreCard}>
+            <div style={styles.scoreHead}>
+              <span style={styles.cardMeta}>DOTS</span>
+              <span style={{
+                ...styles.scoreDelta,
+                ...(dotsTrendCard.delta > 0 ? styles.scoreDeltaUp : dotsTrendCard.delta < 0 ? styles.scoreDeltaDown : styles.scoreDeltaFlat),
+              }}>
+                {dotsTrendCard.delta > 0 ? '▲' : dotsTrendCard.delta < 0 ? '▼' : '•'} {Math.abs(dotsTrendCard.delta)}
+              </span>
+            </div>
             <span style={styles.scoreVal}>{dots || '—'}</span>
+            {dotsTrendCard.values.length >= 2 ? (
+              <svg
+                width="100%"
+                height="48"
+                viewBox="0 0 140 48"
+                fill="none"
+                preserveAspectRatio="none"
+                style={styles.scoreSpark}
+                onClick={(e) => {
+                  const i = nearestIndexFromTap(e, dotsTrendCard.values.length);
+                  setActiveTooltip({ chartId: 'dots', label: String(dotsTrendCard.values[i]), date: dotsTrendCard.dates[i] });
+                }}
+              >
+                <polyline points={linePoints(dotsTrendCard.values, 140, 48, 6)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <div style={styles.emptySmall}>Registre mais sessões para ver a tendência.</div>
+            )}
+            {activeTooltip?.chartId === 'dots' && (
+              <div style={styles.tooltipBar}>
+                <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+              </div>
+            )}
           </div>
-          <div style={styles.card}>
-            <span style={styles.cardMeta}>Wilks</span>
+          <div style={styles.scoreCard}>
+            <div style={styles.scoreHead}>
+              <span style={styles.cardMeta}>Wilks</span>
+              <span style={{
+                ...styles.scoreDelta,
+                ...(wilksTrendCard.delta > 0 ? styles.scoreDeltaUp : wilksTrendCard.delta < 0 ? styles.scoreDeltaDown : styles.scoreDeltaFlat),
+              }}>
+                {wilksTrendCard.delta > 0 ? '▲' : wilksTrendCard.delta < 0 ? '▼' : '•'} {Math.abs(wilksTrendCard.delta)}
+              </span>
+            </div>
             <span style={styles.scoreVal}>{wilks || '—'}</span>
+            {wilksTrendCard.values.length >= 2 ? (
+              <svg
+                width="100%"
+                height="48"
+                viewBox="0 0 140 48"
+                fill="none"
+                preserveAspectRatio="none"
+                style={styles.scoreSpark}
+                onClick={(e) => {
+                  const i = nearestIndexFromTap(e, wilksTrendCard.values.length);
+                  setActiveTooltip({ chartId: 'wilks', label: String(wilksTrendCard.values[i]), date: wilksTrendCard.dates[i] });
+                }}
+              >
+                <polyline points={linePoints(wilksTrendCard.values, 140, 48, 6)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <div style={styles.emptySmall}>Registre mais sessões para ver a tendência.</div>
+            )}
+            {activeTooltip?.chartId === 'wilks' && (
+              <div style={styles.tooltipBar}>
+                <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
+                <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1090,8 +1185,15 @@ const styles: Record<string, React.CSSProperties> = {
   donutLegend: { display: 'flex', flexDirection: 'column', gap: '5px' },
   donutLegendRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   donutPct: { fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' },
-  scoreCol: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  scoreCol: { display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' },
+  scoreCard: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'space-between', flex: 1, minHeight: 0 },
+  scoreHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
+  scoreDelta: { fontSize: '11px', fontWeight: 700 },
+  scoreDeltaUp: { color: 'var(--success)' },
+  scoreDeltaDown: { color: 'var(--error)' },
+  scoreDeltaFlat: { color: 'var(--text-muted)' },
   scoreVal: { fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' },
+  scoreSpark: { cursor: 'pointer', marginTop: 'auto' },
   rpeList: { display: 'flex', flexDirection: 'column', gap: '9px' },
   rpeRow: { display: 'flex', alignItems: 'center', gap: '10px' },
   rpeNum: { width: '18px', fontSize: '12px', fontWeight: 800, textAlign: 'center' },
