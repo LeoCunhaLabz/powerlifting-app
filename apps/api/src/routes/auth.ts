@@ -30,6 +30,7 @@ const tokensSchema = z.object({
 const authResponseSchema = tokensSchema.extend({ user: userSchema })
 
 const messageSchema = z.object({ message: z.string() })
+const errorMessageSchema = messageSchema.extend({ code: z.string() })
 
 const registerBodySchema = z.object({
   name: z.string().min(1).max(255),
@@ -83,7 +84,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         body: registerBodySchema,
         response: {
           201: authResponseSchema,
-          409: messageSchema,
+          409: errorMessageSchema,
         },
       },
     },
@@ -97,7 +98,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         .limit(1)
 
       if (existing) {
-        return reply.code(409).send({ message: 'E-mail já cadastrado' })
+        return reply.code(409).send({ code: 'EMAIL_ALREADY_REGISTERED', message: 'E-mail já cadastrado' })
       }
 
       const passwordHash = await hashPassword(password)
@@ -115,13 +116,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
           .returning({ id: users.id, email: users.email, name: users.name })
       } catch (error: unknown) {
         if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
-          return reply.code(409).send({ message: 'E-mail já cadastrado' })
+          return reply.code(409).send({ code: 'EMAIL_ALREADY_REGISTERED', message: 'E-mail já cadastrado' })
         }
         throw error
       }
 
       if (!user) {
-        return reply.code(409).send({ message: 'E-mail já cadastrado' })
+        return reply.code(409).send({ code: 'EMAIL_ALREADY_REGISTERED', message: 'E-mail já cadastrado' })
       }
 
       const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
@@ -139,7 +140,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         body: loginBodySchema,
         response: {
           200: authResponseSchema,
-          401: messageSchema,
+          401: errorMessageSchema,
         },
       },
     },
@@ -162,7 +163,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         ? await verifyPassword(password, user.passwordHash)
         : false
       if (!user || !valid) {
-        return reply.code(401).send({ message: 'Credenciais inválidas' })
+        return reply.code(401).send({ code: 'INVALID_CREDENTIALS', message: 'Credenciais inválidas' })
       }
 
       const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
@@ -184,7 +185,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         body: refreshBodySchema,
         response: {
           200: tokensSchema,
-          401: messageSchema,
+          401: errorMessageSchema,
         },
       },
     },
@@ -201,11 +202,11 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         })
 
       if (!session) {
-        return reply.code(401).send({ message: 'Refresh token inválido' })
+        return reply.code(401).send({ code: 'INVALID_REFRESH_TOKEN', message: 'Sessão inválida. Entre novamente.' })
       }
 
       if (session.expiresAt.getTime() < Date.now()) {
-        return reply.code(401).send({ message: 'Refresh token expirado' })
+        return reply.code(401).send({ code: 'EXPIRED_REFRESH_TOKEN', message: 'Sua sessão expirou. Entre novamente.' })
       }
 
       const [user] = await app.db
@@ -215,7 +216,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         .limit(1)
 
       if (!user) {
-        return reply.code(401).send({ message: 'Refresh token inválido' })
+        return reply.code(401).send({ code: 'INVALID_REFRESH_TOKEN', message: 'Sessão inválida. Entre novamente.' })
       }
 
       const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
@@ -250,7 +251,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         response: {
           200: userSchema,
-          401: messageSchema,
+          401: errorMessageSchema,
         },
       },
     },
@@ -262,7 +263,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         .limit(1)
 
       if (!user) {
-        return reply.code(401).send({ message: 'Não autorizado' })
+        return reply.code(401).send({ code: 'UNAUTHORIZED', message: 'Não autorizado' })
       }
 
       return reply.send(user)
@@ -280,7 +281,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         response: {
           204: z.undefined(),
-          401: messageSchema,
+          401: errorMessageSchema,
         },
       },
     },
@@ -301,14 +302,17 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         body: z.object({ credential: z.string().min(1) }),
         response: {
           200: authResponseSchema,
-          400: messageSchema,
-          503: messageSchema,
+          400: errorMessageSchema,
+          503: errorMessageSchema,
         },
       },
     },
     async (request, reply) => {
       if (!env.GOOGLE_CLIENT_ID) {
-        return reply.code(503).send({ message: 'Login com Google não está configurado neste servidor.' })
+        return reply.code(503).send({
+          code: 'GOOGLE_AUTH_UNAVAILABLE',
+          message: 'Login com Google não está configurado neste servidor.',
+        })
       }
 
       const client = new OAuth2Client(env.GOOGLE_CLIENT_ID)
@@ -320,11 +324,14 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         payload = ticket.getPayload()
       } catch {
-        return reply.code(400).send({ message: 'Credencial do Google inválida ou expirada.' })
+        return reply.code(400).send({
+          code: 'INVALID_GOOGLE_CREDENTIAL',
+          message: 'Credencial do Google inválida ou expirada.',
+        })
       }
 
       if (!payload?.email || !payload.sub || payload.email_verified !== true) {
-        return reply.code(400).send({ message: 'Credencial do Google inválida.' })
+        return reply.code(400).send({ code: 'INVALID_GOOGLE_CREDENTIAL', message: 'Credencial do Google inválida.' })
       }
 
       const email = payload.email.trim().toLowerCase()
@@ -361,7 +368,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       if (!user) {
-        return reply.code(400).send({ message: 'Não foi possível criar a conta.' })
+        return reply.code(400).send({ code: 'ACCOUNT_CREATION_FAILED', message: 'Não foi possível criar a conta.' })
       }
 
       const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
@@ -429,7 +436,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         body: resetBodySchema,
         response: {
           200: messageSchema,
-          400: messageSchema,
+          400: errorMessageSchema,
         },
       },
     },
@@ -450,7 +457,10 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         .limit(1)
 
       if (!record) {
-        return reply.code(400).send({ message: 'Link de redefinição inválido ou expirado. Solicite um novo.' })
+        return reply.code(400).send({
+          code: 'INVALID_RESET_LINK',
+          message: 'Link de redefinição inválido ou expirado. Solicite um novo.',
+        })
       }
 
       const passwordHash = await hashPassword(password)

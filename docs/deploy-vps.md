@@ -103,7 +103,7 @@ sudo systemctl status actions.runner.<org>.<repo>.<nome>.service
 ```
 push → main
   └─ job: build (ubuntu-latest)
-       lint → testes → build (type-check)
+       lint → testes → build (type-check) do web e da API
        ↓ (somente se tudo passar)
   └─ job: deploy (self-hosted: dokploy-vps)
        POST /api/application.deploy  →  web
@@ -118,9 +118,9 @@ push → main
        e-mail com resumo (Resend)
 ```
 
-- O deploy **nunca acontece** se lint/testes/build falharem.
+- O deploy **nunca acontece** se lint/testes/build do web ou da API falharem.
 - O smoke test espera o Dokploy terminar o build/rollout antes de testar a URL pública (evita falso negativo com VPS sob carga).
-- Pull Requests são validados pelo `ci.yml` (lint → testes → build) antes do merge.
+- Pull Requests são validados pelo `ci.yml` (lint → testes → build do web e da API) antes do merge.
 
 ---
 
