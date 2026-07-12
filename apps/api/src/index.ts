@@ -24,19 +24,10 @@ const app = Fastify({
 app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
 
-await app.register(cors, { origin: env.CORS_ORIGIN })
-await app.register(helmet, { contentSecurityPolicy: false })
-await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
-await app.register(dbPluginFp)
-await app.register(authPluginFp)
-await app.register(healthRoutes)
-await app.register(authRoutes)
-await app.register(workoutRoutes)
-await app.register(templateRoutes)
-await app.register(syncRoutes)
-
 const defaultErrorHandler = app.errorHandler
 
+// Deve ser definido antes dos plugins de rotas: handlers configurados depois não
+// são herdados pelos contextos encapsulados que o Fastify já registrou.
 app.setErrorHandler((error: FastifyError, request, reply) => {
   const statusCode = error.statusCode ?? 500
   const validationError = buildValidationErrorResponse(error)
@@ -57,6 +48,17 @@ app.setErrorHandler((error: FastifyError, request, reply) => {
     message: 'Erro interno do servidor',
   })
 })
+
+await app.register(cors, { origin: env.CORS_ORIGIN })
+await app.register(helmet, { contentSecurityPolicy: false })
+await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
+await app.register(dbPluginFp)
+await app.register(authPluginFp)
+await app.register(healthRoutes)
+await app.register(authRoutes)
+await app.register(workoutRoutes)
+await app.register(templateRoutes)
+await app.register(syncRoutes)
 
 const shutdown = async () => {
   try {
