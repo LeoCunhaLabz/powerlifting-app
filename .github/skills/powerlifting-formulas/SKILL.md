@@ -5,20 +5,21 @@ description: "Conhecimento de domínio das fórmulas de powerlifting deste app: 
 
 # Fórmulas de Powerlifting
 
-Referência de domínio para os cálculos em [apps/web/src/utils/powerlifting.ts](../../../apps/web/src/utils/powerlifting.ts). Todas as funções são **puras** e retornam `0` para entradas inválidas.
+Referência de domínio para os cálculos em [apps/web/src/utils/powerlifting.ts](../../../apps/web/src/utils/powerlifting.ts). Todas as funções são **puras**. "Entrada inválida" → retorna `0`; inválido significa: pesos/totais ≤ 0 ou não finitos, `reps` ≤ 0, RPE fora de 6,5–10, denominador ≤ 0.
 
 ## e1RM — `calculateE1RM(weight, reps, rpe?)`
 
 1RM estimado. Duas estratégias:
 
-- **Com RPE (6,5–10):** usa a **tabela RPE da RTS** (Mike Tuchscherer) — `RPE_PERCENTAGES[reps][rpe]` dá a fração do 1RM. `e1RM = weight / percentual`. O RPE é arredondado para o 0,5 mais próximo; reps válidos de 1 a 12.
-- **Sem RPE (fallback Brzycki):** `e1RM = weight / (1.0278 - 0.0278 * reps)`; para `reps === 1`, retorna o próprio `weight`.
+- **Com RPE:** usa a **tabela RPE da RTS** (Mike Tuchscherer) — `RPE_PERCENTAGES[reps][rpe]` dá a fração do 1RM. `e1RM = weight / percentual`. O RPE é arredondado para o 0,5 mais próximo. RPE fora de 6,5–10 (ou não finito) → retorna `0` (**não** cai no fallback). A tabela cobre `reps` 1–12; com RPE válido e `reps` > 12, cai no Brzycki.
+- **Sem RPE (fallback Brzycki):** `e1RM = weight / (1.0278 - 0.0278 * reps)`; para `reps === 1`, retorna o próprio `weight`. Limitação conhecida: `reps` ≥ 37 zera/negativa o denominador — se alterar essa função, capar `reps` ou retornar `0`.
+- Também exportadas: `calculateE1RMBrzycki(weight, reps)` e `calculateE1RMEpley(weight, reps)` (`weight * (1 + reps/30)`).
 
 Resultado arredondado para **0,1**.
 
 ## Wilks — `calculateWilks(bodyweight, total, isMale)`
 
-Coeficiente Wilks clássico. `coeff = 500 / denominador`, onde o denominador é um polinômio de grau 5 do peso corporal com constantes específicas por gênero. `pontuação = total * coeff`, arredondada para **0,01**.
+Coeficiente Wilks clássico (constantes no próprio `powerlifting.ts`). `coeff = 500 / denominador`, onde o denominador é um polinômio de grau 5 do peso corporal com constantes específicas por gênero. `pontuação = total * coeff`, arredondada para **0,01**.
 
 ## DOTS — `calculateDots(bodyweight, total, isMale)`
 
@@ -44,8 +45,9 @@ Coeficientes IPF GL 2020 para Powerlifting (SBD) — fonte: [OpenPowerlifting go
 Algoritmo **guloso** (maiores anilhas primeiro) que calcula a montagem **por lado** da barra:
 
 - Carga por lado = `(targetWeight - barWeight) / 2`.
-- Itera as anilhas em ordem decrescente, encaixando o máximo de cada.
-- Retorna `{ plates: [{ plateWeight, count }], actualWeight, remainingWeight }`, onde `count` é por lado e `remainingWeight` é o resíduo não montável.
+- `targetWeight <= barWeight` → retorna `{ plates: [], actualWeight: barWeight, remainingWeight: 0 }` (barra vazia, sem erro).
+- Ordena `availablePlates` internamente em ordem decrescente (a ordem de entrada não importa) e encaixa o máximo de cada.
+- Retorna `{ plates: [{ plateWeight, count }], actualWeight, remainingWeight }`, onde `count` é **por lado** e `remainingWeight` é o resíduo não montável (`targetWeight - actualWeight`).
 
 Padrões: `DEFAULT_PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5, 0.25]`, `DEFAULT_PLATES_LBS = [55, 45, 35, 25, 10, 5, 2.5]`.
 
