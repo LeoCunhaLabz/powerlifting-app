@@ -44,7 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const weekTonnage = weekSessions.reduce((t, s) => t + tonnage(s), 0);
 
   const last4wStart = new Date().getTime() - 28 * 86400000;
-  const freq = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
+  const avgWeeklySessions = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
 
   // Week streak (semanas consecutivas com ao menos 1 treino, terminando nesta semana)
   const weekStreak = (() => {
@@ -194,7 +194,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
       <div style={styles.statGrid}>
         <div style={styles.statTile} role="group" aria-label={`Sessões: ${weekSessions.length} treinos concluídos nesta semana`} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
         <div style={styles.statTile} role="group" aria-label={`Tonelagem: ${(weekTonnage / 1000).toFixed(1)} toneladas levantadas nesta semana`} title="Tonelagem total levantada nesta semana"><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
-        <div style={styles.statTile} role="group" aria-label={`Frequência: ${freq} treinos por semana, média das últimas 4 semanas`} title="Média de treinos por semana (últimas 4 semanas)"><div style={styles.statVal}>{freq}<span style={styles.unit}>/sem</span></div><div style={styles.statLbl}>FREQUÊNCIA</div></div>
+        <div
+          style={styles.statTile}
+          role="group"
+          title="Média de treinos por semana nos últimos 28 dias"
+          aria-label={`Média de treinos: ${avgWeeklySessions} por semana nas últimas 4 semanas`}
+        >
+          <div style={styles.statVal}>{avgWeeklySessions}<span style={styles.unit}> treinos/sem</span></div>
+          <div style={styles.statLbl}>MÉDIA · 4 SEMANAS</div>
+        </div>
       </div>
       <div style={styles.statCaption}>Frequência: média de treinos por semana nas últimas 4 semanas</div>
 
