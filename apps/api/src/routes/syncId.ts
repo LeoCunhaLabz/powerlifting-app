@@ -13,6 +13,6 @@ export function deterministicUuidFromText(input: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
 }
 
-export function mapClientIdToDbUuid(userId: string, entity: 'workout' | 'template', clientId: string): string {
+export function mapClientIdToDbUuid(userId: string, entity: 'workout' | 'template' | 'custom-exercise', clientId: string): string {
   return deterministicUuidFromText(`${entity}:${userId}:${clientId}`)
 }
