@@ -852,26 +852,30 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
           </div>
           {sbdInfoOpen && (
             <div style={styles.sbdInfo}>
-              Soma dos melhores e1RMs de agachamento, supino e terra no período.
+              Soma dos melhores e1RMs no período.
             </div>
           )}
-          <div style={styles.donutWrap}>
-            <div style={{ ...styles.donut, background: donutBg }} />
-            <div style={styles.donutHole}>
-              <span style={styles.donutVal}>{Math.round(sbdTotal)}</span>
-              <span style={styles.donutUnit}>{u}</span>
+          <div style={styles.sbdBody}>
+            <div style={styles.sbdChartArea}>
+              <div style={styles.donutWrap}>
+                <div style={{ ...styles.donut, background: donutBg }} />
+                <div style={styles.donutHole}>
+                  <span style={styles.donutVal}>{Math.round(sbdTotal)}</span>
+                  <span style={styles.donutUnit}>{u}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div style={styles.donutLegend}>
-            {sbdDistribution.map((lift) => (
-              <span key={lift.label} style={styles.donutLegendRow}>
-                <span style={styles.legendItem}>
-                  <span style={{ ...styles.legendSquare, backgroundColor: lift.color }} />
-                  {lift.short}
+            <div style={styles.donutLegend}>
+              {sbdDistribution.map((lift) => (
+                <span key={lift.label} style={styles.donutLegendRow}>
+                  <span style={styles.legendItem}>
+                    <span style={{ ...styles.legendSquare, backgroundColor: lift.color }} />
+                    {lift.short}
+                  </span>
+                  <span style={styles.donutPct}>{Math.round(lift.value)} {u} · {lift.pct}%</span>
                 </span>
-                <span style={styles.donutPct}>{Math.round(lift.value)} {u} · {lift.pct}%</span>
-              </span>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
         <div style={styles.scoreCol}>
@@ -1214,6 +1218,8 @@ const styles: Record<string, React.CSSProperties> = {
   scoreSpark: { cursor: 'pointer', marginTop: 'auto' },
   infoBtn: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '999px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', flexShrink: 0 },
   sbdInfo: { fontSize: '11px', lineHeight: 1.45, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '8px 10px' },
+  sbdBody: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 },
+  sbdChartArea: { display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: 0 },
   rpeList: { display: 'flex', flexDirection: 'column', gap: '9px' },
   rpeRow: { display: 'flex', alignItems: 'center', gap: '10px' },
   rpeNum: { width: '18px', fontSize: '12px', fontWeight: 800, textAlign: 'center' },
