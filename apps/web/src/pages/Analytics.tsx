@@ -91,44 +91,44 @@ const CALF_R = 'M98 246 C102 258 101 300 95 330 C89 332 86 320 87 298 C88 270 91
 
 const MuscleMap: React.FC<{ view: 'front' | 'back'; fill: (m: MuscleGroup) => string }> = ({ view, fill }) => (
   <svg width="150" height="322" viewBox="0 0 160 360" fill="none">
-    <ellipse cx="80" cy="24" rx="14" ry="16" fill="#191919" />
-    <path d="M72 38 H88 L90 49 H70 Z" fill="#191919" />
-    <path d="M58 140 H102 V158 Q80 168 58 158 Z" fill="#191919" />
+    <ellipse cx="80" cy="24" rx="14" ry="16" fill="var(--bg-primary)" stroke="var(--border-focus)" strokeWidth="1" />
+    <path d="M72 38 H88 L90 49 H70 Z" fill="var(--bg-primary)" stroke="var(--border-focus)" strokeWidth="1" />
+    <path d="M58 140 H102 V158 Q80 168 58 158 Z" fill="var(--bg-primary)" stroke="var(--border-focus)" strokeWidth="1" />
     {view === 'front' ? (
       <>
-        <path d="M65 47 Q80 43 95 47 L91 58 Q80 53 69 58 Z" style={{ fill: fill('trapezio') }} />
-        <path d="M50 54 Q34 56 33 72 Q42 78 52 70 Q54 60 50 54 Z" style={{ fill: fill('ombros') }} />
-        <path d="M110 54 Q126 56 127 72 Q118 78 108 70 Q106 60 110 54 Z" style={{ fill: fill('ombros') }} />
-        <path d="M78 58 C68 56 57 59 55 68 C54 80 62 87 78 85 Z" style={{ fill: fill('peito') }} />
-        <path d="M82 58 C92 56 103 59 105 68 C106 80 98 87 82 85 Z" style={{ fill: fill('peito') }} />
-        <path d={ARM_L} style={{ fill: fill('biceps') }} />
-        <path d={ARM_R} style={{ fill: fill('biceps') }} />
-        <path d={FOREARM_L} style={{ fill: fill('antebraco') }} />
-        <path d={FOREARM_R} style={{ fill: fill('antebraco') }} />
-        <rect x="67" y="89" width="26" height="50" rx="7" style={{ fill: fill('abdomen') }} />
-        <path d={LEG_L} style={{ fill: fill('quadriceps') }} />
-        <path d={LEG_R} style={{ fill: fill('quadriceps') }} />
-        <path d={CALF_L} style={{ fill: fill('panturrilha') }} />
-        <path d={CALF_R} style={{ fill: fill('panturrilha') }} />
+        <path d="M65 47 Q80 43 95 47 L91 58 Q80 53 69 58 Z" style={{ fill: fill('trapezio'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M50 54 Q34 56 33 72 Q42 78 52 70 Q54 60 50 54 Z" style={{ fill: fill('ombros'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M110 54 Q126 56 127 72 Q118 78 108 70 Q106 60 110 54 Z" style={{ fill: fill('ombros'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M78 58 C68 56 57 59 55 68 C54 80 62 87 78 85 Z" style={{ fill: fill('peito'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M82 58 C92 56 103 59 105 68 C106 80 98 87 82 85 Z" style={{ fill: fill('peito'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={ARM_L} style={{ fill: fill('biceps'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={ARM_R} style={{ fill: fill('biceps'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={FOREARM_L} style={{ fill: fill('antebraco'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={FOREARM_R} style={{ fill: fill('antebraco'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <rect x="67" y="89" width="26" height="50" rx="7" style={{ fill: fill('abdomen'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={LEG_L} style={{ fill: fill('quadriceps'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={LEG_R} style={{ fill: fill('quadriceps'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={CALF_L} style={{ fill: fill('panturrilha'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={CALF_R} style={{ fill: fill('panturrilha'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
       </>
     ) : (
       <>
-        <path d="M66 46 L80 58 L94 46 L91 64 L80 98 L69 64 Z" style={{ fill: fill('trapezio') }} />
-        <path d="M50 56 Q35 58 34 72 Q43 77 52 70 Z" style={{ fill: fill('ombros') }} />
-        <path d="M110 56 Q125 58 126 72 Q117 77 108 70 Z" style={{ fill: fill('ombros') }} />
-        <path d="M68 70 L80 100 L75 126 C64 120 59 92 68 70 Z" style={{ fill: fill('costas') }} />
-        <path d="M92 70 L80 100 L85 126 C96 120 101 92 92 70 Z" style={{ fill: fill('costas') }} />
-        <path d={ARM_L} style={{ fill: fill('triceps') }} />
-        <path d={ARM_R} style={{ fill: fill('triceps') }} />
-        <path d={FOREARM_L} style={{ fill: fill('antebraco') }} />
-        <path d={FOREARM_R} style={{ fill: fill('antebraco') }} />
-        <rect x="69" y="120" width="22" height="22" rx="6" style={{ fill: fill('lombar') }} />
-        <ellipse cx="70" cy="152" rx="12" ry="13" style={{ fill: fill('gluteos') }} />
-        <ellipse cx="90" cy="152" rx="12" ry="13" style={{ fill: fill('gluteos') }} />
-        <path d={LEG_L} style={{ fill: fill('posterior') }} />
-        <path d={LEG_R} style={{ fill: fill('posterior') }} />
-        <path d={CALF_L} style={{ fill: fill('panturrilha') }} />
-        <path d={CALF_R} style={{ fill: fill('panturrilha') }} />
+        <path d="M66 46 L80 58 L94 46 L91 64 L80 98 L69 64 Z" style={{ fill: fill('trapezio'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M50 56 Q35 58 34 72 Q43 77 52 70 Z" style={{ fill: fill('ombros'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M110 56 Q125 58 126 72 Q117 77 108 70 Z" style={{ fill: fill('ombros'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M68 70 L80 100 L75 126 C64 120 59 92 68 70 Z" style={{ fill: fill('costas'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d="M92 70 L80 100 L85 126 C96 120 101 92 92 70 Z" style={{ fill: fill('costas'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={ARM_L} style={{ fill: fill('triceps'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={ARM_R} style={{ fill: fill('triceps'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={FOREARM_L} style={{ fill: fill('antebraco'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={FOREARM_R} style={{ fill: fill('antebraco'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <rect x="69" y="120" width="22" height="22" rx="6" style={{ fill: fill('lombar'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <ellipse cx="70" cy="152" rx="12" ry="13" style={{ fill: fill('gluteos'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <ellipse cx="90" cy="152" rx="12" ry="13" style={{ fill: fill('gluteos'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={LEG_L} style={{ fill: fill('posterior'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={LEG_R} style={{ fill: fill('posterior'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={CALF_L} style={{ fill: fill('panturrilha'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
+        <path d={CALF_R} style={{ fill: fill('panturrilha'), stroke: 'var(--border-focus)', strokeWidth: 0.8 }} />
       </>
     )}
   </svg>
@@ -355,10 +355,10 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const maxMuscle = Math.max(1, ...Object.values(muscleVal));
   const fillFor = (m: MuscleGroup): string => {
     const r = (muscleVal[m] || 0) / maxMuscle;
-    if (r <= 0) return 'var(--bg-tertiary)';
-    // Mais contraste: piso maior e curva sqrt para destacar grupos de baixo/médio volume.
-    const pct = Math.round((0.32 + Math.sqrt(r) * 0.68) * 100);
-    return `color-mix(in srgb, var(--accent) ${pct}%, var(--bg-tertiary))`;
+    if (r <= 0) return 'var(--bg-primary)';
+    // Piso alto para qualquer volume > 0 ser distinguível do fundo em todos os temas.
+    const pct = Math.round((0.56 + Math.sqrt(r) * 0.44) * 100);
+    return `color-mix(in srgb, var(--accent) ${pct}%, var(--bg-primary))`;
   };
   const topMuscles = (Object.entries(muscleVal) as [MuscleGroup, number][])
     .sort((a, b) => b[1] - a[1])
