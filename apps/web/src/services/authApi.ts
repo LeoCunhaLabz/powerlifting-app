@@ -51,25 +51,29 @@ function fallbackErrorMessage(status: number): string {
   return 'Não foi possível concluir a solicitação. Revise os dados e tente novamente.';
 }
 
+async function buildAuthApiError(res: Response): Promise<AuthApiError> {
+  let message = fallbackErrorMessage(res.status);
+  let code: string | undefined;
+  try {
+    const body = (await res.json()) as { code?: unknown; message?: unknown };
+    if (
+      typeof body.code === 'string'
+      && USER_FACING_ERROR_CODES.has(body.code)
+      && typeof body.message === 'string'
+      && body.message.trim()
+    ) {
+      code = body.code;
+      message = body.message;
+    }
+  } catch {
+    // usa mensagem padrão
+  }
+  return new AuthApiError(message, res.status, code);
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    let message = fallbackErrorMessage(res.status);
-    let code: string | undefined;
-    try {
-      const body = (await res.json()) as { code?: unknown; message?: unknown };
-      if (
-        typeof body.code === 'string'
-        && USER_FACING_ERROR_CODES.has(body.code)
-        && typeof body.message === 'string'
-        && body.message.trim()
-      ) {
-        code = body.code;
-        message = body.message;
-      }
-    } catch {
-      // usa mensagem padrão
-    }
-    throw new AuthApiError(message, res.status, code);
+    throw await buildAuthApiError(res);
   }
   try {
     return (await res.json()) as T;
@@ -157,6 +161,6 @@ export async function deleteAccount(accessToken: string): Promise<void> {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
-    throw new AuthApiError(fallbackErrorMessage(res.status), res.status);
+    throw await buildAuthApiError(res);
   }
 }

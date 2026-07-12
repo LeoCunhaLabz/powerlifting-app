@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { login } from './authApi';
+import { deleteAccount, login } from './authApi';
 
 const mockResponse = (body: unknown, status: number): Response => new Response(
   typeof body === 'string' ? body : JSON.stringify(body),
@@ -56,6 +56,19 @@ describe('authApi — mensagens de erro', () => {
     await expect(login('teste@example.com', 'senha')).rejects.toMatchObject({
       status: 200,
       message: 'O servidor retornou uma resposta inesperada. Tente novamente.',
+    });
+  });
+
+  it('mantém o contrato seguro ao excluir a conta', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse({
+      code: 'UNAUTHORIZED',
+      message: 'Não autorizado',
+    }, 401)));
+
+    await expect(deleteAccount('token-inválido')).rejects.toMatchObject({
+      status: 401,
+      code: 'UNAUTHORIZED',
+      message: 'Não autorizado',
     });
   });
 });
