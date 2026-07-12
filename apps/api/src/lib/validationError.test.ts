@@ -9,11 +9,13 @@ import { buildValidationErrorResponse } from './validationError.js'
 const validate = async (schema: ZodTypeAny, payload: Record<string, unknown>) => {
   const app = Fastify()
   app.setValidatorCompiler(validatorCompiler)
-  app.post('/validate', { schema: { body: schema } }, async () => ({ ok: true }))
   app.setErrorHandler((error, _request, reply) => {
     const validationError = buildValidationErrorResponse(error)
     if (validationError) return reply.code(400).send(validationError)
     return reply.send(error)
+  })
+  await app.register(async (routes) => {
+    routes.post('/validate', { schema: { body: schema } }, async () => ({ ok: true }))
   })
 
   const response = await app.inject({ method: 'POST', url: '/validate', payload })
@@ -32,7 +34,7 @@ const registerSchema = z.object({
   password: z.string().min(8),
 })
 
-test('traduz o erro real do Fastify/Zod sem expor detalhes técnicos', async () => {
+test('traduz erro de rota encapsulada sem expor detalhes técnicos', async () => {
   const response = await validate(loginSchema, { email: 'invalido', password: '' })
   const body = response.json()
 
