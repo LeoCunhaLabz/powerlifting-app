@@ -276,6 +276,11 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
 
   const liftMax = series.map((s) => (s.pts.length ? Math.max(...s.pts.map((p) => p.v)) : 0));
   const sbdTotal = liftMax.reduce((a, b) => a + b, 0);
+  const sbdDistribution = LIFTS.map((lift, idx) => ({
+    ...lift,
+    value: liftMax[idx],
+    pct: sbdTotal ? Math.round((liftMax[idx] / sbdTotal) * 100) : 0,
+  }));
   let acc = 0;
   const segs = LIFTS.map((l, i) => {
     const pct = sbdTotal ? (liftMax[i] / sbdTotal) * 100 : 0;
@@ -571,10 +576,10 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
         )}
         {sbdTotal > 0 && (
           <div style={styles.sbdBreakdown}>
-            {LIFTS.map((l, idx) => (
-              <span key={l.label} style={styles.sbdBreakItem}>
-                <span style={{ ...styles.sbdBreakDot, backgroundColor: l.color }} />
-                {l.short} <strong style={styles.sbdBreakVal}>{Math.round(liftMax[idx])}</strong>
+            {sbdDistribution.map((lift) => (
+              <span key={lift.label} style={styles.sbdBreakItem}>
+                <span style={{ ...styles.sbdBreakDot, backgroundColor: lift.color }} />
+                {lift.short} <strong style={styles.sbdBreakVal}>{Math.round(lift.value)}</strong>
               </span>
             ))}
             <span style={styles.sbdBreakNote}>e1RM (1RM estimado) · {u}</span>
@@ -806,7 +811,11 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
       {/* SBD distribution + scores */}
       <div style={styles.twoCol}>
         <div style={styles.card}>
-          <span style={styles.cardTitle}>Total SBD</span>
+          <div style={styles.cardHead}>
+            <span style={styles.cardTitle}>Total SBD</span>
+            <span style={styles.cardMeta}>e1RM (estimado)</span>
+          </div>
+          <span style={styles.cardMeta}>Soma dos melhores e1RMs de agachamento, supino e terra no período.</span>
           <div style={styles.donutWrap}>
             <div style={{ ...styles.donut, background: donutBg }} />
             <div style={styles.donutHole}>
@@ -815,13 +824,13 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
             </div>
           </div>
           <div style={styles.donutLegend}>
-            {LIFTS.map((l, idx) => (
-              <span key={idx} style={styles.donutLegendRow}>
+            {sbdDistribution.map((lift) => (
+              <span key={lift.label} style={styles.donutLegendRow}>
                 <span style={styles.legendItem}>
-                  <span style={{ ...styles.legendSquare, backgroundColor: l.color }} />
-                  {l.short}
+                  <span style={{ ...styles.legendSquare, backgroundColor: lift.color }} />
+                  {lift.short}
                 </span>
-                <span style={styles.donutPct}>{sbdTotal ? Math.round((liftMax[idx] / sbdTotal) * 100) : 0}%</span>
+                <span style={styles.donutPct}>{Math.round(lift.value)} {u} · {lift.pct}%</span>
               </span>
             ))}
           </div>
