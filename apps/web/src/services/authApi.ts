@@ -1,5 +1,18 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
+const USER_FACING_ERROR_CODES = new Set([
+  'ACCOUNT_CREATION_FAILED',
+  'EMAIL_ALREADY_REGISTERED',
+  'EXPIRED_REFRESH_TOKEN',
+  'GOOGLE_AUTH_UNAVAILABLE',
+  'INVALID_CREDENTIALS',
+  'INVALID_GOOGLE_CREDENTIAL',
+  'INVALID_REFRESH_TOKEN',
+  'INVALID_RESET_LINK',
+  'UNAUTHORIZED',
+  'VALIDATION_ERROR',
+]);
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -17,29 +30,56 @@ export interface AuthResponse extends AuthTokens {
 
 export class AuthApiError extends Error {
   readonly status: number;
-  constructor(message: string, status: number) {
+  readonly code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = 'AuthApiError';
     this.status = status;
+    this.code = code;
   }
+}
+
+function fallbackErrorMessage(status: number): string {
+  if (status === 429) {
+    return 'Muitas tentativas. Aguarde um momento e tente novamente.';
+  }
+
+  if (status >= 500) {
+    return 'O serviço está temporariamente indisponível. Tente novamente.';
+  }
+
+  return 'Não foi possível concluir a solicitação. Revise os dados e tente novamente.';
+}
+
+async function buildAuthApiError(res: Response): Promise<AuthApiError> {
+  let message = fallbackErrorMessage(res.status);
+  let code: string | undefined;
+  try {
+    const body = (await res.json()) as { code?: unknown; message?: unknown };
+    if (
+      typeof body.code === 'string'
+      && USER_FACING_ERROR_CODES.has(body.code)
+      && typeof body.message === 'string'
+      && body.message.trim()
+    ) {
+      code = body.code;
+      message = body.message;
+    }
+  } catch {
+    // usa mensagem padrão
+  }
+  return new AuthApiError(message, res.status, code);
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    let message = `Erro ${res.status}`;
-    try {
-      const body = (await res.json()) as { message?: string };
-      if (body.message) message = body.message;
-    } catch {
-      // usa mensagem padrão
-    }
-    throw new AuthApiError(message, res.status);
+    throw await buildAuthApiError(res);
   }
   try {
     return (await res.json()) as T;
   } catch {
     throw new AuthApiError(
-      'Resposta inesperada do servidor. Verifique VITE_API_URL.',
+      'O servidor retornou uma resposta inesperada. Tente novamente.',
       res.status,
     );
   }
@@ -121,6 +161,6 @@ export async function deleteAccount(accessToken: string): Promise<void> {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
-    throw new AuthApiError(`Erro ${res.status}`, res.status);
+    throw await buildAuthApiError(res);
   }
 }

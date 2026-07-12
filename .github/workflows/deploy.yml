@@ -17,9 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # 1) Gate: lint + build (type-check). Se falhar, o deploy não acontece.
+  # 1) Gate: lint + testes + build do web e da API. Se falhar, o deploy não acontece.
   build:
-    name: Lint & Build
+    name: Lint, Testes & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,14 +34,23 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Lint
+      - name: Lint (web)
         run: npm run lint
 
-      - name: Testes
+      - name: Lint (API)
+        run: npm run lint:api
+
+      - name: Testes (web)
         run: npm run test
 
-      - name: Build (type-check + bundle)
+      - name: Testes (API)
+        run: npm run test:api
+
+      - name: Build (web)
         run: npm run build
+
+      - name: Build (API)
+        run: npm run build:api
 
   # 2) Deploy: dispara o build/deploy no Dokploy via API REST com API key,
   #    para o frontend e a API. Cada app tem seu applicationId (secret).
