@@ -4,6 +4,12 @@ import { calculateE1RM, calculateDots, calculateWilks, getExerciseMuscles, getBo
 import type { WorkoutSession } from '@powerlifting/shared';
 import { Award } from 'lucide-react';
 import BodyweightLogList from '../components/BodyweightLogList';
+import {
+  buildE1rmSelectionFromAnchor,
+  toggleE1rmSelection,
+  type E1rmSelection,
+  type E1rmPlotPoint,
+} from '../utils/e1rmSelection';
 
 type Period = '4w' | '12w' | 'year' | 'all' | 'custom';
 
@@ -149,6 +155,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const [bwView, setBwView] = useState<'evo' | 'list'>('evo');
   const [prExpanded, setPrExpanded] = useState(false);
   const [heatmapHoverIdx, setHeatmapHoverIdx] = useState<number | null>(null);
+  const [activeE1rmSelection, setActiveE1rmSelection] = useState<E1rmSelection | null>(null);
   const heatmapDayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
   const u = settings.units;
@@ -219,6 +226,22 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const pathOf = (pts: { i: number; v: number }[]) =>
     pts.map((p, k) => `${k === 0 ? 'M' : 'L'} ${xFor(p.i).toFixed(1)} ${yFor(p.v).toFixed(1)}`).join(' ');
 
+  const e1rmPoints: E1rmPlotPoint[] = series.flatMap((s, sIdx) =>
+    s.pts.map((p) => ({
+      sIdx,
+      short: s.short,
+      i: p.i,
+      v: p.v,
+      x: xFor(p.i),
+      y: yFor(p.v),
+      date: chrono[p.i]?.date ?? '',
+    })),
+  );
+
+  const applyE1rmSelection = (next: E1rmSelection) => {
+    setActiveE1rmSelection((prev) => toggleE1rmSelection(prev, next));
+  };
+
   // Tap em qualquer lugar do gráfico seleciona o ponto mais próximo do toque (não só no ponto exato).
   // Para gráficos lineares (viewBox sem padding) o x mapeia direto para o índice.
   const nearestIndexFromTap = (e: React.MouseEvent<SVGSVGElement>, count: number): number => {
@@ -234,19 +257,21 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
     if (!rect.width || !rect.height) return;
     const cx = ((e.clientX - rect.left) / rect.width) * vbW;
     const cy = ((e.clientY - rect.top) / rect.height) * vbH;
-    let best: { sIdx: number; p: { i: number; v: number }; short: string; d: number } | null = null;
-    series.forEach((s, sIdx) =>
-      s.pts.forEach((p) => {
-        const dx = xFor(p.i) - cx;
-        const dy = yFor(p.v) - cy;
-        const d = dx * dx + dy * dy;
-        if (!best || d < best.d) best = { sIdx, p, short: s.short, d };
-      }),
-    );
-    if (best) {
-      const b = best as { sIdx: number; p: { i: number; v: number }; short: string; d: number };
-      setActiveTooltip({ chartId: `e1rm-${b.sIdx}`, label: `${b.short} ${Math.round(b.p.v)} ${u}`, date: chrono[b.p.i]?.date ?? '' });
-    }
+    let best: (typeof e1rmPoints)[number] | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    e1rmPoints.forEach((p) => {
+      const dx = p.x - cx;
+      const dy = p.y - cy;
+      const d = dx * dx + dy * dy;
+      if (d < bestDistance) {
+        best = p;
+        bestDistance = d;
+      }
+    });
+
+    if (!best) return;
+    applyE1rmSelection(buildE1rmSelectionFromAnchor(best, e1rmPoints, 14));
   };
 
   const liftMax = series.map((s) => (s.pts.length ? Math.max(...s.pts.map((p) => p.v)) : 0));
@@ -584,22 +609,43 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
               )}
               {series.map((s, sIdx) =>
                 s.pts.map((p, pIdx) => {
-                  const isActive = activeTooltip?.chartId === `e1rm-${sIdx}` && activeTooltip.date === chrono[p.i]?.date;
+                  const point = {
+                    sIdx,
+                    short: s.short,
+                    i: p.i,
+                    v: p.v,
+                    x: xFor(p.i),
+                    y: yFor(p.v),
+                    date: chrono[p.i]?.date ?? '',
+                  };
+                  const isActive = !!activeE1rmSelection?.items.some((item) => item.sIdx === sIdx && item.i === p.i);
                   return (
                     <g key={`${sIdx}-${pIdx}`}>
                       <circle cx={xFor(p.i)} cy={yFor(p.v)} r="3.5" style={{ fill: s.color }} opacity={isActive ? 1 : (pIdx === s.pts.length - 1 ? 1 : 0.35)} />
                       <circle cx={xFor(p.i)} cy={yFor(p.v)} r="8" fill="transparent" style={{ cursor: 'pointer' }}
-                        onClick={(e) => { e.stopPropagation(); setActiveTooltip(isActive ? null : { chartId: `e1rm-${sIdx}`, label: `${s.short} ${Math.round(p.v)} ${u}`, date: chrono[p.i]?.date ?? '' }); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          applyE1rmSelection(buildE1rmSelectionFromAnchor(point, e1rmPoints, 14));
+                        }}
                       />
                     </g>
                   );
                 }),
               )}
             </svg>
-            {activeTooltip?.chartId?.startsWith('e1rm-') && (
-              <div style={styles.tooltipBar}>
-                <strong style={styles.tooltipVal}>{activeTooltip.label}</strong>
-                <span style={styles.tooltipDate}>{fmtDate(activeTooltip.date)}</span>
+            {activeE1rmSelection && (
+              <div style={styles.tooltipBarMulti}>
+                {activeE1rmSelection.items.map((item) => (
+                  <div key={`${item.sIdx}-${item.i}`} style={styles.tooltipMultiRow}>
+                    <span style={styles.tooltipLiftName}>{item.short}</span>
+                    <strong style={styles.tooltipLiftVal}>{Math.round(item.v)} {u}</strong>
+                  </div>
+                ))}
+                <span style={styles.tooltipDate}>
+                  {activeE1rmSelection.items.some((item) => item.date !== activeE1rmSelection.anchorDate)
+                    ? 'Pontos próximos'
+                    : fmtDate(activeE1rmSelection.anchorDate)}
+                </span>
               </div>
             )}
           </>
@@ -1075,6 +1121,10 @@ const styles: Record<string, React.CSSProperties> = {
   tlSub: { fontSize: '11px', color: 'var(--text-muted)' },
   tlDate: { fontSize: '11px', color: 'var(--text-muted)' },
   tooltipBar: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
+  tooltipBarMulti: { display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' },
+  tooltipMultiRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  tooltipLiftName: { fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' },
+  tooltipLiftVal: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
   sbdBreakdown: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' },
   sbdBreakItem: { display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-secondary)' },
   sbdBreakDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
