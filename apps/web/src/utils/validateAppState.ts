@@ -144,6 +144,7 @@ function isValidCustomExercise(v: unknown): v is CustomExercise {
   if (!isString(v.id) || v.id.trim() === '') return false;
   if (!isString(v.name) || v.name.trim() === '') return false;
   if (!isDateString(v.createdAt)) return false;
+  if (v.syncedAt !== undefined && !isDateString(v.syncedAt)) return false;
   return true;
 }
 

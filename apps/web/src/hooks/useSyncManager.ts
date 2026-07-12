@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { WorkoutSession, WorkoutTemplate, SyncStatus } from '@powerlifting/shared';
+import type { CustomExercise, WorkoutSession, WorkoutTemplate, SyncStatus } from '@powerlifting/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const TOKEN_KEY = 'powerlifting_token';
@@ -8,6 +8,7 @@ const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 interface SyncPayload {
   workouts: WorkoutSession[];
   templates: WorkoutTemplate[];
+  customExercises: CustomExercise[];
 }
 
 interface UseSyncManagerOptions {
@@ -48,12 +49,14 @@ async function postSync(payload: SyncPayload, token: string): Promise<SyncPayloa
   const data = await res.json() as {
     workouts: Array<{ data: unknown }>;
     templates: Array<{ data: unknown }>;
+    customExercises: Array<{ data: unknown }>;
   };
 
   // O servidor devolve rows com { data: WorkoutSession } e { data: WorkoutTemplate }
   return {
     workouts: data.workouts.map((r) => r.data as WorkoutSession),
     templates: data.templates.map((r) => r.data as WorkoutTemplate),
+    customExercises: data.customExercises.map((r) => r.data as CustomExercise),
   };
 }
 
@@ -69,11 +72,13 @@ async function fetchPull(token: string): Promise<SyncPayload> {
   const data = await res.json() as {
     workouts: Array<{ data: unknown }>;
     templates: Array<{ data: unknown }>;
+    customExercises: Array<{ data: unknown }>;
   };
 
   return {
     workouts: data.workouts.map((r) => r.data as WorkoutSession),
     templates: data.templates.map((r) => r.data as WorkoutTemplate),
+    customExercises: data.customExercises.map((r) => r.data as CustomExercise),
   };
 }
 

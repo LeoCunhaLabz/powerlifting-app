@@ -5,7 +5,7 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import type { FastifyRequest } from 'fastify'
 import { syncRoutes } from './sync.js'
 import { mapClientIdToDbUuid } from './syncId.js'
-import { workouts } from '../db/schema.js'
+import { customExercises, workouts } from '../db/schema.js'
 
 const USER_ID = '7d9bc183-a3d6-420f-83b2-534ef6e649bc'
 
@@ -27,17 +27,27 @@ interface TemplateRow {
   updatedAt: Date
 }
 
+interface CustomExerciseRow {
+  id: string
+  userId: string
+  data: unknown
+  createdAt: Date
+  updatedAt: Date
+}
+
 function createMockDb() {
   const workoutsStore = new Map<string, WorkoutRow>()
   const templatesStore = new Map<string, TemplateRow>()
-  let selectedTable: 'workouts' | 'templates' | null = null
+  const customExercisesStore = new Map<string, CustomExerciseRow>()
+  let selectedTable: 'workouts' | 'templates' | 'customExercises' | null = null
   let templateSelectCallCount = 0
   let lastWorkoutRow: WorkoutRow | null = null
   let lastTemplateRow: TemplateRow | null = null
+  let lastCustomExerciseRows: CustomExerciseRow[] = []
 
   return {
     insert(table: unknown) {
-      const tableName = table === workouts ? 'workouts' : 'templates'
+      const tableName = table === workouts ? 'workouts' : table === customExercises ? 'customExercises' : 'templates'
 
       return {
         values(value: Record<string, unknown>) {
@@ -61,6 +71,25 @@ function createMockDb() {
             }
           }
 
+          if (tableName === 'customExercises') {
+            const row: CustomExerciseRow = {
+              id: String(value.id),
+              userId: String(value.userId),
+              data: value.data,
+              createdAt: value.createdAt as Date,
+              updatedAt: value.updatedAt as Date,
+            }
+
+            return {
+              async returning() {
+                const key = `${row.id}:${row.userId}`
+                customExercisesStore.set(key, row)
+                lastCustomExerciseRows = [...customExercisesStore.values()]
+                return [row]
+              },
+            }
+          }
+
           const row: TemplateRow = {
             id: String(value.id),
             userId: String(value.userId),
@@ -73,7 +102,7 @@ function createMockDb() {
             async returning() {
               const key = `${row.id}:${row.userId}`
               templatesStore.set(key, row)
-               lastTemplateRow = row
+              lastTemplateRow = row
               return [row]
             },
           }
@@ -97,12 +126,30 @@ function createMockDb() {
             return lastWorkoutRow ? [lastWorkoutRow] : []
           }
 
+          if (selectedTable === 'customExercises') {
+            return lastCustomExerciseRows
+          }
+
           templateSelectCallCount += 1
 
           // No primeiro select de template (fluxo de upsert), simula ausência para cair no insert.
           if (templateSelectCallCount === 1) return []
 
           return lastTemplateRow ? [lastTemplateRow] : []
+        },
+      }
+    },
+
+    delete(table: unknown) {
+      const tableName = table === customExercises ? 'customExercises' : null
+
+      return {
+        async where() {
+          if (tableName === 'customExercises') {
+            customExercisesStore.clear()
+            lastCustomExerciseRows = []
+          }
+          return []
         },
       }
     },
@@ -188,6 +235,13 @@ test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', as
           updatedAt: '2026-06-28T00:00:00.000Z',
         },
       ],
+      customExercises: [
+        {
+          id: 'cex-1735689600000',
+          name: 'Rosca Spider',
+          createdAt: '2026-06-28T00:00:00.000Z',
+        },
+      ],
     },
   })
 
@@ -196,14 +250,18 @@ test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', as
   const body = response.json() as {
     workouts: Array<{ id: string; data: { id: string } }>
     templates: Array<{ id: string; data: { id: string } }>
+    customExercises: Array<{ id: string; data: { id: string; name: string } }>
   }
 
   assert.equal(body.workouts.length, 1)
   assert.equal(body.templates.length, 1)
+  assert.equal(body.customExercises.length, 1)
   assert.equal(body.workouts[0]?.data.id, workoutId)
   assert.equal(body.templates[0]?.data.id, templateId)
+  assert.equal(body.customExercises[0]?.data.name, 'Rosca Spider')
   assert.equal(body.workouts[0]?.id, mapClientIdToDbUuid(USER_ID, 'workout', workoutId))
   assert.equal(body.templates[0]?.id, mapClientIdToDbUuid(USER_ID, 'template', templateId))
+  assert.equal(body.customExercises[0]?.id, mapClientIdToDbUuid(USER_ID, 'custom-exercise', 'cex-1735689600000'))
 
   await app.close()
 })

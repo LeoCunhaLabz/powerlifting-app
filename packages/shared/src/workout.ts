@@ -137,6 +137,7 @@ export interface CustomExercise {
   id: string;
   name: string;
   createdAt: string; // ISO
+  syncedAt?: string; // ISO — quando foi sincronizado com o servidor
 }
 
 export interface AppState {

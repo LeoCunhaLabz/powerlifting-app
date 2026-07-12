@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
-import { workouts, templates } from '../db/schema.js'
+import { customExercises, workouts, templates } from '../db/schema.js'
 import { mapClientIdToDbUuid } from './syncId.js'
 
 // ---------------------------------------------------------------------------
@@ -58,6 +58,13 @@ const workoutTemplateSchema = z.object({
   syncedAt: z.string().optional(),
 })
 
+const customExerciseSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  createdAt: z.string(),
+  syncedAt: z.string().optional(),
+})
+
 // ---------------------------------------------------------------------------
 // Response schemas
 // ---------------------------------------------------------------------------
@@ -80,19 +87,30 @@ const templateRowSchema = z.object({
   updatedAt: z.string().or(z.date()),
 })
 
+const customExerciseRowSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  data: z.unknown(),
+  createdAt: z.string().or(z.date()),
+  updatedAt: z.string().or(z.date()),
+})
+
 const syncBodySchema = z.object({
   workouts: z.array(workoutSessionSchema),
   templates: z.array(workoutTemplateSchema),
+  customExercises: z.array(customExerciseSchema),
 })
 
 const syncResponseSchema = z.object({
   workouts: z.array(workoutRowSchema),
   templates: z.array(templateRowSchema),
+  customExercises: z.array(customExerciseRowSchema),
 })
 
 const pullResponseSchema = z.object({
   workouts: z.array(workoutRowSchema),
   templates: z.array(templateRowSchema),
+  customExercises: z.array(customExerciseRowSchema),
 })
 
 // ---------------------------------------------------------------------------
@@ -127,7 +145,7 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const userId = request.user.sub
-      const { workouts: clientWorkouts, templates: clientTemplates } = request.body
+      const { workouts: clientWorkouts, templates: clientTemplates, customExercises: clientCustomExercises } = request.body
       const now = new Date()
 
       // --- Workouts: upsert append-only ---
@@ -203,9 +221,35 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
           }),
       )
 
+      // --- Custom Exercises: lista autoritativa por usuário (substituição completa) ---
+      await app.db
+        .delete(customExercises)
+        .where(eq(customExercises.userId, userId))
+
+      const syncedCustomExerciseRows = await Promise.all(
+        clientCustomExercises.map(async (exercise) => {
+          const dbCustomExerciseId = mapClientIdToDbUuid(userId, 'custom-exercise', exercise.id)
+          const createdAt = new Date(exercise.createdAt)
+
+          const [row] = await app.db
+            .insert(customExercises)
+            .values({
+              id: dbCustomExerciseId,
+              userId,
+              data: exercise as Record<string, unknown>,
+              createdAt,
+              updatedAt: now,
+            })
+            .returning()
+
+          return row
+        }),
+      )
+
       return reply.code(200).send({
         workouts: syncedWorkoutRows.filter(Boolean),
         templates: syncedTemplateRows.filter(Boolean),
+        customExercises: syncedCustomExerciseRows.filter(Boolean),
       })
     },
   )
@@ -226,14 +270,16 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const userId = request.user.sub
 
-      const [userWorkouts, userTemplates] = await Promise.all([
+      const [userWorkouts, userTemplates, userCustomExercises] = await Promise.all([
         app.db.select().from(workouts).where(eq(workouts.userId, userId)),
         app.db.select().from(templates).where(eq(templates.userId, userId)),
+        app.db.select().from(customExercises).where(eq(customExercises.userId, userId)),
       ])
 
       return reply.code(200).send({
         workouts: userWorkouts,
         templates: userTemplates,
+        customExercises: userCustomExercises,
       })
     },
   )

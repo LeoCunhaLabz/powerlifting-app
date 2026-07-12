@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { 
   AppState, 
   WorkoutSession, 
@@ -625,10 +625,40 @@ function currentWeekIndex(startDate: string, weekCount: number): number {
   return weekCount > 0 ? elapsed % weekCount : 0;
 }
 
+function normalizeCustomExerciseName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function getCustomExerciseSignature(customExercises: CustomExercise[]): string {
+  return [...customExercises]
+    .map((exercise) => `${exercise.id}:${normalizeCustomExerciseName(exercise.name)}`)
+    .sort()
+    .join('|');
+}
+
+function mergeCustomExercises(
+  prev: CustomExercise[],
+  incoming: CustomExercise[],
+  syncedAt: string,
+): CustomExercise[] {
+  const serverIds = new Set(incoming.map((exercise) => exercise.id));
+  const serverNames = new Set(incoming.map((exercise) => normalizeCustomExerciseName(exercise.name)));
+
+  return [
+    ...incoming.map((exercise) => ({ ...exercise, syncedAt })),
+    ...prev.filter(
+      (exercise) =>
+        !exercise.syncedAt &&
+        !serverIds.has(exercise.id) &&
+        !serverNames.has(normalizeCustomExerciseName(exercise.name)),
+    ),
+  ];
+}
+
 // ---------------------------------------------------------------------------
 function mergePullResult(
   prev: AppState,
-  result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[] },
+  result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[] },
   now: string,
 ): AppState {
   // Workouts
@@ -658,7 +688,12 @@ function mergePullResult(
     ...prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id)),
   ];
 
-  return { ...prev, history: mergedHistory, templates: mergedTemplates };
+  return {
+    ...prev,
+    history: mergedHistory,
+    templates: mergedTemplates,
+    customExercises: mergeCustomExercises(prev.customExercises, result.customExercises, now),
+  };
 }
 
 export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScopeId?: string | null; demoEmail?: string | null }> = ({ children, storageScopeId, demoEmail }) => {
@@ -718,22 +753,16 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   // Sinaliza falha ao persistir no localStorage (cota cheia, modo privado, indisponivel)
   const [saveError, setSaveError] = useState<string | null>(null);
   const dismissSaveError = useCallback(() => setSaveError(null), []);
+  const lastSyncedCustomExercisesRef = useRef(
+    getCustomExerciseSignature(state.customExercises.filter((exercise) => !!exercise.syncedAt)),
+  );
 
   // --- Sync Manager ---
   const onSyncComplete = useCallback(
-    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[] }) => {
+    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[] }) => {
       const now = new Date().toISOString();
-      setState(prev => ({
-        ...prev,
-        history: prev.history.map(s => {
-          const matched = result.workouts.find(w => w.id === s.id);
-          return matched ? { ...s, syncedAt: now } : s;
-        }),
-        templates: prev.templates.map(t => {
-          const matched = result.templates.find(w => w.id === t.id);
-          return matched ? { ...t, syncedAt: now } : t;
-        }),
-      }));
+      lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
+      setState(prev => mergePullResult(prev, result, now));
     },
     [],
   );
@@ -745,6 +774,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     const result = await syncPull();
     if (!result) return;
     const now = new Date().toISOString();
+    lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
     setState(prev => mergePullResult(prev, result, now));
   }, [syncPull]);
 
@@ -776,6 +806,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     syncPull().then(result => {
       if (!result || cancelled) return;
       const now = new Date().toISOString();
+      lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
       setState(prev => mergePullResult(prev, result, now));
     });
     return () => { cancelled = true; };
@@ -786,15 +817,18 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   // Detecta itens sem syncedAt e dispara push automaticamente (built-ins excluídos)
   useEffect(() => {
     const customTemplates = state.templates.filter(t => !t.isBuiltIn);
+    const customExerciseSignature = getCustomExerciseSignature(state.customExercises);
     const hasPending =
       state.history.some(s => !s.syncedAt) ||
-      customTemplates.some(t => !t.syncedAt);
+      customTemplates.some(t => !t.syncedAt) ||
+      state.customExercises.some(exercise => !exercise.syncedAt) ||
+      customExerciseSignature !== lastSyncedCustomExercisesRef.current;
     if (hasPending) {
-      triggerSync({ workouts: state.history, templates: customTemplates });
+      triggerSync({ workouts: state.history, templates: customTemplates, customExercises: state.customExercises });
     }
   // triggerSync é estável (useCallback com deps [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.history, state.templates]);
+  }, [state.history, state.templates, state.customExercises]);
 
   // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
   // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
