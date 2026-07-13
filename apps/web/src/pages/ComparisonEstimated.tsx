@@ -1,5 +1,5 @@
-import React from 'react';
-import { TrendingUp, Scale, Trophy, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, Scale, Trophy, Users, Info } from 'lucide-react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateDots, getStrengthComparison, type StrengthLevel } from '../utils/powerlifting';
 
@@ -11,9 +11,10 @@ interface LiftBand {
   level: StrengthLevel;
 }
 
-// Bandas por levantamento (independentes da escala geral por DOTS). Cada levantamento
-// tem sua própria progressão de níveis com base na relação peso levantado / peso corporal.
-const LIFT_REFERENCE_MALE: Record<LiftKey, LiftBand[]> = {
+// Bandas por levantamento, referência IPF (raw) — independentes da escala geral por DOTS.
+// Cada levantamento tem sua própria progressão de níveis com base na relação peso levantado / peso corporal.
+// Estimativa aproximada; hoje cobre apenas IPF (outras federações podem ser adicionadas depois).
+const LIFT_REFERENCE_MALE_IPF: Record<LiftKey, LiftBand[]> = {
   squat: [
     { min: 0, level: 'Iniciante' },
     { min: 1.5, level: 'Intermediário' },
@@ -34,7 +35,7 @@ const LIFT_REFERENCE_MALE: Record<LiftKey, LiftBand[]> = {
   ],
 };
 
-const LIFT_REFERENCE_FEMALE: Record<LiftKey, LiftBand[]> = {
+const LIFT_REFERENCE_FEMALE_IPF: Record<LiftKey, LiftBand[]> = {
   squat: [
     { min: 0, level: 'Iniciante' },
     { min: 1.2, level: 'Intermediário' },
@@ -85,13 +86,13 @@ const findLiftBandProgress = (multiplier: number, bands: LiftBand[]) => {
   };
 };
 
-const progressPct = (currentDots: number, dotsToNext?: number) => {
-  if (!(currentDots > 0) || dotsToNext === undefined) return 0;
+// Progresso real dentro da faixa atual: do limite inferior do nível atual até o limite
+// do próximo nível (não uma janela fixa), para refletir corretamente faixas de larguras diferentes.
+const progressPct = (currentDots: number, currentLevelMinDots?: number, dotsToNext?: number) => {
+  if (!(currentDots > 0) || dotsToNext === undefined || currentLevelMinDots === undefined) return 0;
   const target = currentDots + dotsToNext;
-  if (!(target > 0)) return 0;
-  const start = Math.max(0, target - 80);
-  const span = Math.max(1, target - start);
-  return Math.max(0, Math.min(100, Math.round(((currentDots - start) / span) * 100)));
+  const span = Math.max(1, target - currentLevelMinDots);
+  return Math.max(0, Math.min(100, Math.round(((currentDots - currentLevelMinDots) / span) * 100)));
 };
 
 const safeRound = (value: number, decimals = 1) => {
@@ -109,7 +110,9 @@ export const ComparisonEstimated: React.FC = () => {
   const { settings } = state;
   const isMale = settings.gender === 'male';
   const unit = settings.units;
-  const liftReference = isMale ? LIFT_REFERENCE_MALE : LIFT_REFERENCE_FEMALE;
+  const liftReference = isMale ? LIFT_REFERENCE_MALE_IPF : LIFT_REFERENCE_FEMALE_IPF;
+  const [overviewInfoOpen, setOverviewInfoOpen] = useState(false);
+  const [radarInfoOpen, setRadarInfoOpen] = useState(false);
 
   const squat = getMaxE1RM('Agachamento');
   const bench = getMaxE1RM('Supino Reto');
@@ -155,7 +158,7 @@ export const ComparisonEstimated: React.FC = () => {
   });
 
   const dataReady = bodyweight > 0 && total > 0 && dots > 0;
-  const progress = progressPct(dots, comparison.dotsToNext);
+  const progress = progressPct(dots, comparison.currentLevelMinDots, comparison.dotsToNext);
   const radarRings = [0.25, 0.5, 0.75, 1];
 
   return (
@@ -176,8 +179,26 @@ export const ComparisonEstimated: React.FC = () => {
           <section style={styles.card}>
             <div style={styles.cardHeader}>
               <span style={styles.cardKicker}>Visão geral</span>
-              <span style={styles.cardClass}>{comparison.bodyweightClass}</span>
+              <div style={styles.cardHeaderRight}>
+                <span style={styles.cardClass}>{comparison.bodyweightClass}</span>
+                <button
+                  type="button"
+                  onClick={() => setOverviewInfoOpen((x) => !x)}
+                  style={styles.infoBtn}
+                  aria-label={overviewInfoOpen ? 'Ocultar explicação da visão geral' : 'Mostrar explicação da visão geral'}
+                  aria-expanded={overviewInfoOpen}
+                  title="Entenda esta seção"
+                >
+                  <Info size={12} />
+                </button>
+              </div>
             </div>
+            {overviewInfoOpen && (
+              <div style={styles.infoPanel}>
+                O nível geral usa o coeficiente DOTS, que compara sua força total (agachamento + supino + terra) ajustada ao seu peso corporal — quanto maior o DOTS, mais forte você é em relação ao seu peso.
+                O percentil ("Top X%") é uma estimativa aproximada de onde você estaria entre atletas raw da sua categoria, com base em uma referência estática inspirada nos rankings do OpenPowerlifting — não é um dado oficial de competição, apenas uma referência de progresso.
+              </div>
+            )}
 
             <div style={styles.rowMain}>
               <span style={styles.levelBadge}>
@@ -209,14 +230,31 @@ export const ComparisonEstimated: React.FC = () => {
                 </div>
               </>
             )}
-            <p style={styles.note}>Base: DOTS/OpenPowerlifting (estimativa). Use como referência de progresso, não como resultado oficial de competição.</p>
           </section>
 
           <section style={styles.card}>
             <div style={styles.cardHeader}>
-              <span style={styles.cardKicker}>Perfil de força (SBD)</span>
-              <span style={styles.inlineIcon}><Scale size={14} /> {bodyweight} {unit}</span>
+              <span style={styles.cardKicker}>Perfil de força (SBD) · ref. IPF</span>
+              <div style={styles.cardHeaderRight}>
+                <span style={styles.inlineIcon}><Scale size={14} /> {bodyweight} {unit}</span>
+                <button
+                  type="button"
+                  onClick={() => setRadarInfoOpen((x) => !x)}
+                  style={styles.infoBtn}
+                  aria-label={radarInfoOpen ? 'Ocultar explicação do perfil de força' : 'Mostrar explicação do perfil de força'}
+                  aria-expanded={radarInfoOpen}
+                  title="Entenda esta seção"
+                >
+                  <Info size={12} />
+                </button>
+              </div>
             </div>
+            {radarInfoOpen && (
+              <div style={styles.infoPanel}>
+                Este radar mostra a relação entre o peso levantado e o seu peso corporal em cada levantamento (agachamento, supino e terra), usando uma referência aproximada baseada em padrões da IPF (raw).
+                Essa escala é independente do nível geral acima (que usa DOTS) — por isso os dois podem mostrar níveis diferentes ao mesmo tempo, já que medem coisas ligeiramente distintas.
+              </div>
+            )}
 
             <svg viewBox="0 0 200 200" style={styles.radarSvg} role="img" aria-label="Radar de força relativa por levantamento">
               {radarRings.map((ring) => (
@@ -269,7 +307,6 @@ export const ComparisonEstimated: React.FC = () => {
                 </article>
               ))}
             </div>
-            <p style={styles.note}>Esta escala usa a relação entre o peso levantado e o seu peso corporal, por levantamento — é independente do nível geral acima (calculado por DOTS) e os dois podem não coincidir.</p>
           </section>
         </>
       )}
@@ -336,6 +373,32 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     color: 'var(--text-secondary)',
     fontWeight: 600,
+  },
+  cardHeaderRight: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  infoBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '22px',
+    height: '22px',
+    borderRadius: '999px',
+    border: '1px solid var(--border-color)',
+    backgroundColor: 'var(--bg-primary)',
+    color: 'var(--text-secondary)',
+    flexShrink: 0,
+  },
+  infoPanel: {
+    fontSize: '11px',
+    lineHeight: 1.5,
+    color: 'var(--text-secondary)',
+    backgroundColor: 'var(--bg-primary)',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--radius-md)',
+    padding: '10px 12px',
   },
   rowMain: {
     display: 'flex',
@@ -480,12 +543,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontWeight: 700,
     color: 'var(--accent)',
-  },
-  note: {
-    margin: 0,
-    fontSize: '11px',
-    lineHeight: 1.45,
-    color: 'var(--text-muted)',
   },
 };
 

@@ -165,6 +165,8 @@ export interface StrengthComparisonResult {
   nextLevel?: StrengthLevel;
   /** Quantos pontos de DOTS faltam para atingir o próximo nível. */
   dotsToNext?: number;
+  /** DOTS mínimo do nível atual (limite inferior da faixa) — usado para calcular o progresso real dentro do nível. */
+  currentLevelMinDots?: number;
 }
 
 interface ComparisonBand {
@@ -231,6 +233,7 @@ export function getStrengthComparison(dots: number, bodyweight: number, isMale: 
     note: 'Estimativa aproximada baseada em referência estática (OpenPowerlifting).',
     nextLevel: next?.level,
     dotsToNext: next ? Math.max(0, Math.round((next.minDots - dots) * 100) / 100) : undefined,
+    currentLevelMinDots: band.minDots,
   };
 }
 
