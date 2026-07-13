@@ -11,15 +11,16 @@ import Calendar from './pages/Calendar';
 import History from './pages/History';
 import CustomExercises from './pages/CustomExercises';
 import PRs from './pages/PRs';
+import ComparisonEstimated from './pages/ComparisonEstimated';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
 
-type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history' | 'exercises' | 'prs';
+type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history' | 'exercises' | 'prs' | 'comparison';
 
 // Abas que vivem dentro do hub "Mais" (Análises voltou para a barra inferior)
-const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar', 'history', 'exercises', 'prs'];
+const MORE_TABS: Tab[] = ['more', 'calculators', 'settings', 'calendar', 'history', 'exercises', 'prs', 'comparison'];
 const MORE_LABELS: Record<MoreTab, string> = {
   calculators: 'Calculadoras',
   settings: 'Configurações',
@@ -27,6 +28,7 @@ const MORE_LABELS: Record<MoreTab, string> = {
   history: 'Histórico',
   exercises: 'Exercícios',
   prs: 'Recordes',
+  comparison: 'Comparação estimada',
 };
 
 const AppContent: React.FC = () => {
@@ -61,7 +63,7 @@ const AppContent: React.FC = () => {
     prevSync.current = syncStatus;
   }, [syncStatus]);
 
-  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar' || currentTab === 'history' || currentTab === 'exercises' || currentTab === 'prs';
+  const isMoreChild = currentTab === 'calculators' || currentTab === 'settings' || currentTab === 'calendar' || currentTab === 'history' || currentTab === 'exercises' || currentTab === 'prs' || currentTab === 'comparison';
   const moreActive = MORE_TABS.includes(currentTab);
 
   const renderActiveTab = () => {
@@ -88,6 +90,8 @@ const AppContent: React.FC = () => {
         return <CustomExercises />;
       case 'prs':
         return <PRs />;
+      case 'comparison':
+        return <ComparisonEstimated />;
       default:
         return <Dashboard onStartWorkoutTab={() => setCurrentTab('workout')} onNavigateHistory={goToHistory} />;
     }

@@ -1,11 +1,11 @@
 import React from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
-import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, Dumbbell, Award } from 'lucide-react';
-import { calculateDots, getStrengthComparison } from '../utils/powerlifting';
+import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, Dumbbell, Award, Radar } from 'lucide-react';
+import { calculateDots } from '../utils/powerlifting';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
-export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history' | 'exercises' | 'prs';
+export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history' | 'exercises' | 'prs' | 'comparison';
 
 interface MoreProps {
   onNavigate: (tab: MoreTab) => void;
@@ -29,14 +29,6 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
   const bestTotal = squat + bench + deadlift;
   const bw = getBodyweightAt(new Date().toISOString());
   const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
-  const comparison = getStrengthComparison(dots, bw, settings.gender === 'male');
-  const u = settings.units;
-  const perLift: { short: string; e1rm: number }[] = [
-    { short: 'Agach.', e1rm: squat },
-    { short: 'Supino', e1rm: bench },
-    { short: 'Terra', e1rm: deadlift },
-  ];
-  const bwMult = (v: number) => (bw > 0 ? (v / bw).toFixed(2) : '—');
 
   const handleLogout = () => {
     logout();
@@ -45,6 +37,12 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
   const avatarLetter = user?.name?.charAt(0).toUpperCase() ?? 'A';
 
   const items: MoreItem[] = [
+    {
+      tab: 'comparison',
+      label: 'Comparação estimada',
+      desc: 'Seu nivel atual, comparacao por lift e meta para proximo nivel',
+      icon: <Radar size={22} />,
+    },
     {
       tab: 'calendar',
       label: 'Calendário',
@@ -94,32 +92,6 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
         <button onClick={handleLogout} style={styles.logoutBtn} aria-label="Sair">
           <LogOut size={18} />
         </button>
-      </div>
-
-      <div style={styles.comparisonCard}>
-        <div style={styles.comparisonHead}>
-          <span style={styles.comparisonTitle}>Comparação estimada</span>
-          <span style={styles.comparisonClass}>{comparison.bodyweightClass}</span>
-        </div>
-        <div style={styles.comparisonLevel}>{comparison.level}</div>
-        <div style={styles.comparisonPercentile}>Top {comparison.topPercentApprox}% aproximado · {dots} DOTS</div>
-        {comparison.nextLevel && comparison.dotsToNext !== undefined && (
-          <div style={styles.comparisonNext}>
-            Próximo: <strong>{comparison.nextLevel}</strong> — faltam {comparison.dotsToNext} DOTS
-          </div>
-        )}
-        {bestTotal > 0 && (
-          <div style={styles.comparisonLifts}>
-            {perLift.map((l) => (
-              <span key={l.short} style={styles.comparisonLift}>
-                <span style={styles.comparisonLiftName}>{l.short}</span>
-                <span style={styles.comparisonLiftVal}>{Math.round(l.e1rm)} {u}</span>
-                <span style={styles.comparisonLiftMult}>{bwMult(l.e1rm)}× PC</span>
-              </span>
-            ))}
-          </div>
-        )}
-        <div style={styles.comparisonNote}>{comparison.note}</div>
       </div>
 
       {/* Tiles */}
@@ -216,72 +188,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  comparisonCard: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '14px 16px',
-    marginBottom: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  comparisonHead: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  comparisonTitle: {
-    fontSize: '12px',
-    fontWeight: 800,
-    color: 'var(--text-secondary)',
-    letterSpacing: '0.03em',
-    textTransform: 'uppercase',
-  },
-  comparisonClass: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-  },
-  comparisonLevel: {
-    fontSize: '22px',
-    fontWeight: 800,
-    fontFamily: 'var(--font-display)',
-    color: 'var(--text-primary)',
-  },
-  comparisonPercentile: {
-    fontSize: '13px',
-    fontWeight: 700,
-    color: 'var(--accent)',
-  },
-  comparisonNext: {
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    marginTop: '4px',
-  },
-  comparisonLifts: {
-    display: 'flex',
-    gap: '8px',
-    margin: '10px 0',
-  },
-  comparisonLift: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    padding: '8px',
-    backgroundColor: 'var(--bg-tertiary)',
-    borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--border-color)',
-  },
-  comparisonLiftName: { fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  comparisonLiftVal: { fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' },
-  comparisonLiftMult: { fontSize: '10px', color: 'var(--text-secondary)' },
-  comparisonNote: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-    lineHeight: 1.4,
   },
   grid: {
     display: 'grid',
