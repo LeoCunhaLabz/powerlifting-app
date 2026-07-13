@@ -40,7 +40,7 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
     {
       tab: 'comparison',
       label: 'Comparação estimada',
-      desc: 'Seu nivel atual, comparacao por lift e meta para proximo nivel',
+      desc: 'Seu nível atual, perfil de força por levantamento e meta para o próximo nível',
       icon: <Radar size={22} />,
     },
     {

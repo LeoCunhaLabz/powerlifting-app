@@ -1,33 +1,35 @@
 import React from 'react';
-import { TrendingUp, Scale, Target } from 'lucide-react';
+import { TrendingUp, Scale, Trophy, Users } from 'lucide-react';
 import { useWorkout } from '../context/WorkoutContext';
-import { calculateDots, getStrengthComparison } from '../utils/powerlifting';
+import { calculateDots, getStrengthComparison, type StrengthLevel } from '../utils/powerlifting';
 
-type Level = 'Iniciante' | 'Intermediario' | 'Avancado' | 'Elite';
 type LiftKey = 'squat' | 'bench' | 'deadlift';
 
 interface LiftBand {
+  /** Múltiplo do peso corporal (ex.: 1.5 = 1.5x PC) a partir do qual este nível é atingido. */
   min: number;
-  level: Level;
+  level: StrengthLevel;
 }
 
+// Bandas por levantamento (independentes da escala geral por DOTS). Cada levantamento
+// tem sua própria progressão de níveis com base na relação peso levantado / peso corporal.
 const LIFT_REFERENCE_MALE: Record<LiftKey, LiftBand[]> = {
   squat: [
     { min: 0, level: 'Iniciante' },
-    { min: 1.5, level: 'Intermediario' },
-    { min: 2.0, level: 'Avancado' },
+    { min: 1.5, level: 'Intermediário' },
+    { min: 2.0, level: 'Avançado' },
     { min: 2.4, level: 'Elite' },
   ],
   bench: [
     { min: 0, level: 'Iniciante' },
-    { min: 1.0, level: 'Intermediario' },
-    { min: 1.4, level: 'Avancado' },
+    { min: 1.0, level: 'Intermediário' },
+    { min: 1.4, level: 'Avançado' },
     { min: 1.8, level: 'Elite' },
   ],
   deadlift: [
     { min: 0, level: 'Iniciante' },
-    { min: 1.8, level: 'Intermediario' },
-    { min: 2.3, level: 'Avancado' },
+    { min: 1.8, level: 'Intermediário' },
+    { min: 2.3, level: 'Avançado' },
     { min: 2.8, level: 'Elite' },
   ],
 };
@@ -35,42 +37,52 @@ const LIFT_REFERENCE_MALE: Record<LiftKey, LiftBand[]> = {
 const LIFT_REFERENCE_FEMALE: Record<LiftKey, LiftBand[]> = {
   squat: [
     { min: 0, level: 'Iniciante' },
-    { min: 1.2, level: 'Intermediario' },
-    { min: 1.6, level: 'Avancado' },
+    { min: 1.2, level: 'Intermediário' },
+    { min: 1.6, level: 'Avançado' },
     { min: 2.0, level: 'Elite' },
   ],
   bench: [
     { min: 0, level: 'Iniciante' },
-    { min: 0.7, level: 'Intermediario' },
-    { min: 1.0, level: 'Avancado' },
+    { min: 0.7, level: 'Intermediário' },
+    { min: 1.0, level: 'Avançado' },
     { min: 1.3, level: 'Elite' },
   ],
   deadlift: [
     { min: 0, level: 'Iniciante' },
-    { min: 1.4, level: 'Intermediario' },
-    { min: 1.9, level: 'Avancado' },
+    { min: 1.4, level: 'Intermediário' },
+    { min: 1.9, level: 'Avançado' },
     { min: 2.3, level: 'Elite' },
   ],
 };
 
-const LEVEL_ORDER: Record<Level, number> = {
-  Iniciante: 0,
-  Intermediario: 1,
-  Avancado: 2,
-  Elite: 3,
+/** Ângulo (graus, sentido horário a partir do topo) de cada levantamento no radar. */
+const RADAR_AXES: Record<LiftKey, number> = { squat: -90, bench: 30, deadlift: 150 };
+const RADAR_R = 64;
+const RADAR_LABEL_R = 82;
+const RADAR_CENTER = 100;
+
+const radarPoint = (angleDeg: number, fraction: number) => {
+  const rad = (angleDeg * Math.PI) / 180;
+  const r = RADAR_R * fraction;
+  return { x: RADAR_CENTER + r * Math.cos(rad), y: RADAR_CENTER + r * Math.sin(rad) };
 };
 
-const levelLabel = (level: Level) => {
-  if (level === 'Intermediario') return 'Intermediario';
-  if (level === 'Avancado') return 'Avancado';
-  return level;
+const radarLabelPoint = (angleDeg: number) => {
+  const rad = (angleDeg * Math.PI) / 180;
+  return { x: RADAR_CENTER + RADAR_LABEL_R * Math.cos(rad), y: RADAR_CENTER + RADAR_LABEL_R * Math.sin(rad) };
 };
 
-const classifyLiftByMultiplier = (multiplier: number, isMale: boolean, key: LiftKey): Level => {
-  const reference = isMale ? LIFT_REFERENCE_MALE : LIFT_REFERENCE_FEMALE;
-  const bands = reference[key];
-  const level = [...bands].reverse().find((b) => multiplier >= b.min)?.level;
-  return level ?? 'Iniciante';
+/** Encontra o nível atual (banda mais alta atingida) e a próxima banda (se houver) para um multiplicador. */
+const findLiftBandProgress = (multiplier: number, bands: LiftBand[]) => {
+  const sorted = [...bands].sort((a, b) => a.min - b.min);
+  let currentIdx = 0;
+  sorted.forEach((band, idx) => {
+    if (multiplier >= band.min) currentIdx = idx;
+  });
+  return {
+    currentLevel: sorted[currentIdx].level,
+    nextBand: sorted[currentIdx + 1],
+  };
 };
 
 const progressPct = (currentDots: number, dotsToNext?: number) => {
@@ -88,7 +100,7 @@ const safeRound = (value: number, decimals = 1) => {
 };
 
 const formatDelta = (value: number, unit: string) => {
-  if (!(value > 0)) return 'Meta atingida';
+  if (!(value > 0)) return 'meta atingida';
   return `+${safeRound(value, 1)} ${unit}`;
 };
 
@@ -97,6 +109,7 @@ export const ComparisonEstimated: React.FC = () => {
   const { settings } = state;
   const isMale = settings.gender === 'male';
   const unit = settings.units;
+  const liftReference = isMale ? LIFT_REFERENCE_MALE : LIFT_REFERENCE_FEMALE;
 
   const squat = getMaxE1RM('Agachamento');
   const bench = getMaxE1RM('Supino Reto');
@@ -106,51 +119,54 @@ export const ComparisonEstimated: React.FC = () => {
   const dots = calculateDots(bodyweight, total, isMale);
   const comparison = getStrengthComparison(dots, bodyweight, isMale);
 
+  // Estimativa do total (SBD) necessário para o próximo nível geral — número único e
+  // limitado (não é redistribuído entre os levantamentos, evitando metas irreais por lift).
   const targetDots = comparison.dotsToNext !== undefined ? dots + comparison.dotsToNext : dots;
   const coeff = total > 0 ? dots / total : 0;
   const requiredTotal = coeff > 0 ? targetDots / coeff : total;
   const totalGap = Math.max(0, requiredTotal - total);
 
-  const lifts = [
-    { key: 'squat' as const, label: 'Agachamento', short: 'Agach.', value: squat },
-    { key: 'bench' as const, label: 'Supino', short: 'Supino', value: bench },
-    { key: 'deadlift' as const, label: 'Terra', short: 'Terra', value: deadlift },
+  const lifts: { key: LiftKey; short: string; value: number }[] = [
+    { key: 'squat', short: 'Agach.', value: squat },
+    { key: 'bench', short: 'Supino', value: bench },
+    { key: 'deadlift', short: 'Terra', value: deadlift },
   ];
 
-  const positiveBase = lifts.reduce((acc, lift) => acc + (lift.value > 0 ? lift.value : 0), 0);
-  const distributionBase = positiveBase > 0 ? positiveBase : 3;
-
+  // Meta por levantamento é independente: cada lift mira apenas a PRÓPRIA próxima
+  // banda (nunca herda o gap de outro lift, nunca pula mais de um nível de uma vez).
   const liftProgress = lifts.map((lift) => {
-    const share = (lift.value > 0 ? lift.value : 1) / distributionBase;
-    const recommendedGap = totalGap * share;
-    const targetLift = lift.value + recommendedGap;
     const currentMult = bodyweight > 0 ? lift.value / bodyweight : 0;
-    const targetMult = bodyweight > 0 ? targetLift / bodyweight : 0;
-    const currentLevel = classifyLiftByMultiplier(currentMult, isMale, lift.key);
-    const targetLevel = classifyLiftByMultiplier(targetMult, isMale, lift.key);
+    const bands = liftReference[lift.key];
+    const { currentLevel, nextBand } = findLiftBandProgress(currentMult, bands);
+    const eliteMin = bands[bands.length - 1].min;
+    const radarFraction = eliteMin > 0 ? Math.min(1.15, currentMult / eliteMin) : 0;
+    const targetLift = nextBand ? nextBand.min * bodyweight : lift.value;
+    const gap = nextBand ? Math.max(0, targetLift - lift.value) : 0;
     return {
       ...lift,
       currentMult,
-      targetMult,
       currentLevel,
-      targetLevel,
-      recommendedGap,
+      nextLevel: nextBand?.level,
       targetLift,
+      gap,
+      radarFraction,
+      angle: RADAR_AXES[lift.key],
     };
   });
 
   const dataReady = bodyweight > 0 && total > 0 && dots > 0;
   const progress = progressPct(dots, comparison.dotsToNext);
+  const radarRings = [0.25, 0.5, 0.75, 1];
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>COMPARACAO ESTIMADA</h1>
+      <h1 style={styles.pageTitle}>COMPARAÇÃO ESTIMADA</h1>
 
       {!dataReady && (
         <div style={styles.emptyState}>
           <strong style={styles.emptyTitle}>Dados insuficientes para comparar</strong>
           <p style={styles.emptyText}>
-            Registre seu peso corporal e finalize treinos com series de agachamento, supino e terra para liberar a analise completa.
+            Registre seu peso corporal e finalize treinos com séries de agachamento, supino e terra para liberar a análise completa.
           </p>
         </div>
       )}
@@ -159,81 +175,101 @@ export const ComparisonEstimated: React.FC = () => {
         <>
           <section style={styles.card}>
             <div style={styles.cardHeader}>
-              <span style={styles.cardKicker}>Visao geral</span>
+              <span style={styles.cardKicker}>Visão geral</span>
               <span style={styles.cardClass}>{comparison.bodyweightClass}</span>
             </div>
+
             <div style={styles.rowMain}>
-              <div style={styles.levelBlock}>
-                <span style={styles.levelLabel}>{comparison.level}</span>
-                <span style={styles.percentileText}>Top {comparison.topPercentApprox}% aproximado</span>
-              </div>
+              <span style={styles.levelBadge}>
+                <Trophy size={14} />
+                {comparison.level}
+              </span>
               <div style={styles.dotsBlock}>
                 <TrendingUp size={16} />
                 <span style={styles.dotsValue}>{dots} DOTS</span>
               </div>
             </div>
+
+            <div style={styles.heroPercentBlock}>
+              <Users size={20} style={{ color: 'var(--accent)' }} />
+              <div>
+                <div style={styles.heroPercentValue}>Top {comparison.topPercentApprox}%</div>
+                <div style={styles.heroPercentCaption}>aproximado entre atletas da sua categoria ({comparison.bodyweightClass})</div>
+              </div>
+            </div>
+
             {comparison.nextLevel && comparison.dotsToNext !== undefined && (
               <>
                 <div style={styles.nextText}>
-                  Proximo nivel: <strong>{comparison.nextLevel}</strong> · faltam <strong>{comparison.dotsToNext}</strong> DOTS
+                  Próximo nível: <strong>{comparison.nextLevel}</strong> · faltam <strong>{comparison.dotsToNext}</strong> DOTS
+                  {totalGap > 0 && <> (~{safeRound(totalGap, 1)} {unit} no total)</>}
                 </div>
-                <div style={styles.progressTrack} aria-label="Progresso para o proximo nivel">
+                <div style={styles.progressTrack} aria-label="Progresso para o próximo nível">
                   <span style={{ ...styles.progressFill, width: `${progress}%` }} />
                 </div>
               </>
             )}
-            <p style={styles.note}>Base: DOTS/OpenPowerlifting (estimativa). Use como referencia de progresso, nao como resultado oficial de competicao.</p>
+            <p style={styles.note}>Base: DOTS/OpenPowerlifting (estimativa). Use como referência de progresso, não como resultado oficial de competição.</p>
           </section>
 
           <section style={styles.card}>
             <div style={styles.cardHeader}>
-              <span style={styles.cardKicker}>Por lift (forca relativa)</span>
-              <span style={styles.inlineIcon}><Scale size={14} /> Peso corporal: {bodyweight} {unit}</span>
+              <span style={styles.cardKicker}>Perfil de força (SBD)</span>
+              <span style={styles.inlineIcon}><Scale size={14} /> {bodyweight} {unit}</span>
             </div>
 
-            <div style={styles.liftGrid}>
+            <svg viewBox="0 0 200 200" style={styles.radarSvg} role="img" aria-label="Radar de força relativa por levantamento">
+              {radarRings.map((ring) => (
+                <circle key={ring} cx={RADAR_CENTER} cy={RADAR_CENTER} r={RADAR_R * ring} fill="none" stroke="var(--border-color)" strokeWidth={1} />
+              ))}
               {liftProgress.map((lift) => {
-                const improving = LEVEL_ORDER[lift.targetLevel] > LEVEL_ORDER[lift.currentLevel];
+                const end = radarPoint(lift.angle, 1);
+                return <line key={lift.key} x1={RADAR_CENTER} y1={RADAR_CENTER} x2={end.x} y2={end.y} stroke="var(--border-color)" strokeWidth={1} />;
+              })}
+              <polygon
+                points={liftProgress.map((lift) => { const p = radarPoint(lift.angle, lift.radarFraction); return `${p.x},${p.y}`; }).join(' ')}
+                fill="var(--accent-soft)"
+                stroke="var(--accent)"
+                strokeWidth={2}
+              />
+              {liftProgress.map((lift) => {
+                const p = radarPoint(lift.angle, lift.radarFraction);
+                return <circle key={lift.key} cx={p.x} cy={p.y} r={3.5} fill="var(--accent)" />;
+              })}
+              {liftProgress.map((lift) => {
+                const p = radarLabelPoint(lift.angle);
                 return (
-                  <article key={lift.key} style={styles.liftCard}>
-                    <div style={styles.liftHead}>
-                      <span style={styles.liftName}>{lift.short}</span>
-                      <span style={styles.liftLevel}>{levelLabel(lift.currentLevel)}</span>
-                    </div>
-                    <div style={styles.liftMetricRow}>
-                      <span style={styles.liftMetric}>{safeRound(lift.value, 1)} {unit}</span>
-                      <span style={styles.liftMult}>{safeRound(lift.currentMult, 2)}x PC</span>
-                    </div>
-                    <div style={styles.liftGoal}>
-                      Meta sugerida: <strong>{safeRound(lift.targetLift, 1)} {unit}</strong> ({formatDelta(lift.recommendedGap, unit)})
-                    </div>
-                    <div style={styles.liftGoalLevel}>
-                      Projecao: {levelLabel(lift.targetLevel)} {improving ? 'com avancao de nivel' : 'com consolidacao do nivel atual'}
-                    </div>
-                  </article>
+                  <text key={lift.key} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={11} fontWeight={700} fill="var(--text-secondary)">
+                    {lift.short}
+                  </text>
                 );
               })}
-            </div>
-          </section>
+            </svg>
 
-          <section style={styles.card}>
-            <div style={styles.cardHeader}>
-              <span style={styles.cardKicker}>Plano para o proximo nivel</span>
-              <span style={styles.inlineIcon}><Target size={14} /> Objetivo estimado</span>
+            <div style={styles.liftGrid}>
+              {liftProgress.map((lift) => (
+                <article key={lift.key} style={styles.liftCard}>
+                  <div style={styles.liftHead}>
+                    <span style={styles.liftName}>{lift.short}</span>
+                    <span style={styles.liftLevel}>{lift.currentLevel}</span>
+                  </div>
+                  <div style={styles.liftMetricRow}>
+                    <span style={styles.liftMetric}>{safeRound(lift.value, 1)} {unit}</span>
+                    <span style={styles.liftMult}>{safeRound(lift.currentMult, 2)}x PC</span>
+                  </div>
+                  {lift.nextLevel ? (
+                    <div style={styles.liftGoal}>
+                      Próximo nível ({lift.nextLevel}): <strong>{safeRound(lift.targetLift, 1)} {unit}</strong> ({formatDelta(lift.gap, unit)})
+                    </div>
+                  ) : (
+                    <div style={styles.liftGoalMax}>
+                      <Trophy size={12} /> Nível máximo desta escala atingido
+                    </div>
+                  )}
+                </article>
+              ))}
             </div>
-            <div style={styles.planRow}>
-              <span style={styles.planLabel}>Total atual</span>
-              <strong style={styles.planValue}>{safeRound(total, 1)} {unit}</strong>
-            </div>
-            <div style={styles.planRow}>
-              <span style={styles.planLabel}>Total projetado para subir de nivel</span>
-              <strong style={styles.planValue}>{safeRound(requiredTotal, 1)} {unit}</strong>
-            </div>
-            <div style={styles.planRow}>
-              <span style={styles.planLabel}>Gap estimado total</span>
-              <strong style={styles.planValue}>{formatDelta(totalGap, unit)}</strong>
-            </div>
-            <p style={styles.note}>Distribuicao do gap por lift foi feita de forma proporcional ao seu perfil atual para manter uma progressao equilibrada.</p>
+            <p style={styles.note}>Esta escala usa a relação entre o peso levantado e o seu peso corporal, por levantamento — é independente do nível geral acima (calculado por DOTS) e os dois podem não coincidir.</p>
           </section>
         </>
       )}
@@ -307,22 +343,37 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '12px',
   },
-  levelBlock: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
+  levelBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '999px',
+    backgroundColor: 'var(--accent-soft)',
+    border: '1px solid var(--accent-border)',
+    color: 'var(--accent)',
+    fontSize: '15px',
+    fontWeight: 800,
+    fontFamily: 'var(--font-display)',
   },
-  levelLabel: {
-    fontSize: '24px',
+  heroPercentBlock: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 0',
+  },
+  heroPercentValue: {
+    fontSize: '26px',
     lineHeight: 1,
     fontWeight: 800,
     fontFamily: 'var(--font-display)',
     color: 'var(--text-primary)',
   },
-  percentileText: {
+  heroPercentCaption: {
+    marginTop: '4px',
     fontSize: '12px',
-    color: 'var(--accent)',
-    fontWeight: 700,
+    color: 'var(--text-secondary)',
+    lineHeight: 1.35,
   },
   dotsBlock: {
     display: 'inline-flex',
@@ -363,6 +414,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     color: 'var(--text-secondary)',
     fontWeight: 600,
+  },
+  radarSvg: {
+    width: '100%',
+    maxWidth: '220px',
+    margin: '0 auto',
+    display: 'block',
   },
   liftGrid: {
     display: 'grid',
@@ -416,24 +473,13 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-secondary)',
     lineHeight: 1.4,
   },
-  liftGoalLevel: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-    lineHeight: 1.35,
-  },
-  planRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    gap: '12px',
-  },
-  planLabel: {
+  liftGoalMax: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
     fontSize: '12px',
-    color: 'var(--text-secondary)',
-  },
-  planValue: {
-    fontSize: '14px',
-    color: 'var(--text-primary)',
+    fontWeight: 700,
+    color: 'var(--accent)',
   },
   note: {
     margin: 0,
