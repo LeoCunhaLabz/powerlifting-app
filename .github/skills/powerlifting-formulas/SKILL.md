@@ -5,7 +5,7 @@ description: "Conhecimento de domínio das fórmulas de powerlifting deste app: 
 
 # Fórmulas de Powerlifting
 
-Referência de domínio para os cálculos em [apps/web/src/utils/powerlifting.ts](../../../apps/web/src/utils/powerlifting.ts). Todas as funções são **puras**. "Entrada inválida" → retorna `0`; inválido significa: pesos/totais ≤ 0 ou não finitos, `reps` ≤ 0, RPE fora de 6,5–10, denominador ≤ 0.
+Referência de domínio para os cálculos em [apps/web/src/utils/powerlifting.ts](../../../apps/web/src/utils/powerlifting.ts). Todas as funções são **puras**. "Entrada inválida" → retorna `0`; inválido significa: pesos/totais ≤ 0 ou não finitos, `reps` ≤ 0, RPE fora de 6,5–10 (regra de denominador polinomial varia por fórmula — ver Wilks/DOTS/IPF GL abaixo).
 
 ## e1RM — `calculateE1RM(weight, reps, rpe?)`
 
@@ -19,11 +19,11 @@ Resultado arredondado para **0,1**.
 
 ## Wilks — `calculateWilks(bodyweight, total, isMale)`
 
-Coeficiente Wilks clássico (constantes no próprio `powerlifting.ts`). `coeff = 500 / denominador`, onde o denominador é um polinômio de grau 5 do peso corporal com constantes específicas por gênero. `pontuação = total * coeff`, arredondada para **0,01**.
+Coeficiente Wilks clássico (constantes no próprio `powerlifting.ts`). `coeff = 500 / denominador`, onde o denominador é um polinômio de grau 5 do peso corporal com constantes específicas por gênero. `pontuação = total * coeff`, arredondada para **0,01**. Só checa `denominador === 0` → `0`; **não** checa `denominador < 0`. Peso corporal fora da faixa em que o polinômio foi ajustado pode gerar denominador negativo e produzir uma pontuação incorreta sem retornar `0` (limitação conhecida, não é validação de entrada).
 
 ## DOTS — `calculateDots(bodyweight, total, isMale)`
 
-`coeff = 500 / denominador`, com denominador polinomial de grau 4 do peso corporal (constantes por gênero). Arredonda para **0,01**.
+`coeff = 500 / denominador`, com denominador polinomial de grau 4 do peso corporal (constantes por gênero). Arredonda para **0,01**. Mesma limitação do Wilks: só checa `denominador === 0`, não `< 0`.
 
 ## IPF GL Points — `calculateIpfGl(bodyweight, total, isMale, isEquipped?)`
 
