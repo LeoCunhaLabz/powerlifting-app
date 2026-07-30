@@ -40,7 +40,7 @@ Tema escuro, mobile-first, definido como CSS variables em [apps/web/src/index.cs
 ## Convenções
 
 - **Sempre** use os tokens acima em vez de hex literais quando houver token equivalente. Precisa de uma cor/valor **sem** token? Adicione um token novo em `index.css` (mesmo padrão de nome) em vez de espalhar literais — e atualize a tabela desta skill.
-- **Padrão: classes CSS em `index.css`.** Objeto `styles: { ... }` inline é exceção — use só em componentes autocontidos que **já** seguem esse padrão (ver [RestTimer.tsx](../../../apps/web/src/components/RestTimer.tsx) e [PlateVisualizer.tsx](../../../apps/web/src/components/PlateVisualizer.tsx)); não introduza estilo inline em componentes novos.
+- **Padrão: objeto `styles: Record<string, React.CSSProperties>` inline** no final do arquivo, referenciado via `style={styles.xxx}` — é assim que quase toda página/componente é estilizado (ver [Dashboard.tsx](../../../apps/web/src/pages/Dashboard.tsx), [PlateVisualizer.tsx](../../../apps/web/src/components/PlateVisualizer.tsx), [RestTimer.tsx](../../../apps/web/src/components/RestTimer.tsx), [BodyweightLogList.tsx](../../../apps/web/src/components/BodyweightLogList.tsx)). Classes CSS em `index.css` são reservadas para tokens, o shell fixo (`.app-container`, `.app-content`, `.bottom-nav`, `.nav-item`) e a camada de utilitários compartilhados (`.btn-*`, `.card`, `.badge`, `.modal-*`, resets de `input`/`button`/`h1-h6`, espaçamento `.mt-*`/`.mb-*`) — não crie classe nova em `index.css` para estilo específico de uma página.
 - Navegação inferior (`.bottom-nav`) e itens (`.nav-item`) já estilizados — reutilize as classes ao adicionar abas.
 - Mantenha textos em **pt-BR**.
 
