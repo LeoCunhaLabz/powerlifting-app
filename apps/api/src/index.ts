@@ -9,6 +9,7 @@ import { healthRoutes } from './routes/health.js'
 import { authRoutes } from './routes/auth.js'
 import { workoutRoutes } from './routes/workouts.js'
 import { templateRoutes } from './routes/templates.js'
+import { programRoutes } from './routes/programs.js'
 import { syncRoutes } from './routes/sync.js'
 import { dbPluginFp } from './plugins/db.js'
 import { authPluginFp } from './plugins/auth.js'
@@ -58,6 +59,7 @@ await app.register(healthRoutes)
 await app.register(authRoutes)
 await app.register(workoutRoutes)
 await app.register(templateRoutes)
+await app.register(programRoutes)
 await app.register(syncRoutes)
 
 const shutdown = async () => {

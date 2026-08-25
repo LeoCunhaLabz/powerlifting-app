@@ -62,6 +62,18 @@ export const templates = pgTable('templates', {
   index('templates_user_id_idx').on(table.userId),
 ])
 
+export const programs = pgTable('programs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  data: jsonb('data').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('programs_user_id_idx').on(table.userId),
+])
+
 export const customExercises = pgTable('custom_exercises', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id')
@@ -82,6 +94,8 @@ export type Workout = typeof workouts.$inferSelect
 export type NewWorkout = typeof workouts.$inferInsert
 export type Template = typeof templates.$inferSelect
 export type NewTemplate = typeof templates.$inferInsert
+export type Program = typeof programs.$inferSelect
+export type NewProgram = typeof programs.$inferInsert
 export type CustomExercise = typeof customExercises.$inferSelect
 export type NewCustomExercise = typeof customExercises.$inferInsert
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect
