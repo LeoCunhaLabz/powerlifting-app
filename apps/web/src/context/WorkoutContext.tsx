@@ -570,7 +570,7 @@ function createDemoState(baseDate = new Date()): AppState {
   };
 }
 
-async function purgeServerData(token: string): Promise<{ workoutsDeleted: number; templatesDeleted: number }> {
+async function purgeServerData(token: string): Promise<{ workoutsDeleted: number; templatesDeleted: number; programsDeleted: number }> {
   const pullResponse = await fetch(`${API_BASE}/sync/pull`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -582,9 +582,10 @@ async function purgeServerData(token: string): Promise<{ workoutsDeleted: number
   const remote = await pullResponse.json() as {
     workouts: Array<{ id: string }>;
     templates: Array<{ id: string }>;
+    programs: Array<{ id: string }>;
   };
 
-  const deleteById = async (path: 'workouts' | 'templates', id: string) => {
+  const deleteById = async (path: 'workouts' | 'templates' | 'programs', id: string) => {
     const response = await fetch(`${API_BASE}/${path}/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
@@ -600,10 +601,14 @@ async function purgeServerData(token: string): Promise<{ workoutsDeleted: number
   for (const row of remote.templates) {
     await deleteById('templates', row.id);
   }
+  for (const row of remote.programs) {
+    await deleteById('programs', row.id);
+  }
 
   return {
     workoutsDeleted: remote.workouts.length,
     templatesDeleted: remote.templates.length,
+    programsDeleted: remote.programs.length,
   };
 }
 
@@ -658,7 +663,7 @@ function mergeCustomExercises(
 // ---------------------------------------------------------------------------
 function mergePullResult(
   prev: AppState,
-  result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[] },
+  result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[]; programs: Program[] },
   now: string,
 ): AppState {
   // Workouts
@@ -688,11 +693,27 @@ function mergePullResult(
     ...prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id)),
   ];
 
+  // Programs
+  const localProgramMap = new Map(prev.programs.map(p => [p.id, p]));
+  const serverProgramIds = new Set(result.programs.map(p => p.id));
+
+  const mergedPrograms = [
+    ...result.programs.map(p => {
+      const local = localProgramMap.get(p.id);
+      // Preservar versão local quando pendente (editada mas ainda não enviada)
+      if (local && !local.syncedAt) return local;
+      return { ...p, syncedAt: now };
+    }),
+    // Locais sem correspondência no servidor (novos, ainda não sincronizados)
+    ...prev.programs.filter(p => !serverProgramIds.has(p.id)),
+  ];
+
   return {
     ...prev,
     history: mergedHistory,
     templates: mergedTemplates,
     customExercises: mergeCustomExercises(prev.customExercises, result.customExercises, now),
+    programs: mergedPrograms,
   };
 }
 
@@ -759,7 +780,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
   // --- Sync Manager ---
   const onSyncComplete = useCallback(
-    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[] }) => {
+    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[]; programs: Program[] }) => {
       const now = new Date().toISOString();
       lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
       setState(prev => mergePullResult(prev, result, now));
@@ -822,13 +843,14 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       state.history.some(s => !s.syncedAt) ||
       customTemplates.some(t => !t.syncedAt) ||
       state.customExercises.some(exercise => !exercise.syncedAt) ||
-      customExerciseSignature !== lastSyncedCustomExercisesRef.current;
+      customExerciseSignature !== lastSyncedCustomExercisesRef.current ||
+      state.programs.some(p => !p.syncedAt);
     if (hasPending) {
-      triggerSync({ workouts: state.history, templates: customTemplates, customExercises: state.customExercises });
+      triggerSync({ workouts: state.history, templates: customTemplates, customExercises: state.customExercises, programs: state.programs });
     }
   // triggerSync é estável (useCallback com deps [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.history, state.templates, state.customExercises]);
+  }, [state.history, state.templates, state.customExercises, state.programs]);
 
   // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
   // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
