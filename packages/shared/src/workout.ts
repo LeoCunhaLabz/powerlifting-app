@@ -126,6 +126,8 @@ export interface Program {
   weekOverrides?: WeekOverride[];
   /** Programa arquivado: some das listas ativas, mas é preservado. */
   archived?: boolean;
+  /** ISO — quando foi sincronizado com o servidor pela última vez. */
+  syncedAt?: string;
 }
 
 /**
