@@ -1055,6 +1055,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       date: new Date().toISOString(),
       duration: 0,
       notes: '',
+      templateId: session.templateId,
       exercises: session.exercises.map((ex, exIdx) => ({
         ...ex,
         id: `ex-${exIdx}-${Date.now()}`,
