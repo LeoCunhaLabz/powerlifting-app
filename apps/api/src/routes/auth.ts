@@ -413,7 +413,12 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         const resetUrl = `${resetUrlBase()}/?reset_token=${encodeURIComponent(token)}`
         try {
           const { subject, html, text } = buildPasswordResetEmail(resetUrl, user.name)
-          await sendEmail({ to: user.email, subject, html, text })
+          const sent = await sendEmail({ to: user.email, subject, html, text })
+          if (!sent) {
+            // Sem provedor configurado (RESEND_API_KEY/EMAIL_FROM ausentes) — visibilidade
+            // operacional sem expor token/e-mail nos logs.
+            app.log.warn({ userId: user.id }, 'E-mail de redefinição de senha não enviado: nenhum provedor configurado')
+          }
         } catch (error) {
           // Não vaza o erro ao cliente; apenas registra (a resposta segue genérica).
           app.log.error({ err: error }, 'Falha ao enviar e-mail de redefinição de senha')
@@ -443,18 +448,36 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const { token, password } = request.body
       const tokenHash = hashToken(token)
+      // Calculado fora da transação: bcrypt é lento de propósito e não deve prolongar
+      // o lock de linha (FOR UPDATE) abaixo.
+      const passwordHash = await hashPassword(password)
 
-      const [record] = await app.db
-        .select({ id: passwordResetTokens.id, userId: passwordResetTokens.userId })
-        .from(passwordResetTokens)
-        .where(
-          and(
-            eq(passwordResetTokens.tokenHash, tokenHash),
-            isNull(passwordResetTokens.usedAt),
-            gt(passwordResetTokens.expiresAt, new Date()),
-          ),
-        )
-        .limit(1)
+      // Transação com FOR UPDATE: elimina a condição de corrida de duas requisições
+      // concorrentes com o mesmo token passando ambas pelo check antes de qualquer marcar usedAt.
+      const record = await app.db.transaction(async (tx) => {
+        const [row] = await tx
+          .select({ id: passwordResetTokens.id, userId: passwordResetTokens.userId })
+          .from(passwordResetTokens)
+          .where(
+            and(
+              eq(passwordResetTokens.tokenHash, tokenHash),
+              isNull(passwordResetTokens.usedAt),
+              gt(passwordResetTokens.expiresAt, new Date()),
+            ),
+          )
+          .for('update')
+          .limit(1)
+
+        if (!row) return null
+
+        await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, row.userId))
+
+        // Invalida o token usado e todas as sessões ativas (força novo login).
+        await tx.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, row.id))
+        await tx.delete(sessions).where(eq(sessions.userId, row.userId))
+
+        return row
+      })
 
       if (!record) {
         return reply.code(400).send({
@@ -462,13 +485,6 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
           message: 'Link de redefinição inválido ou expirado. Solicite um novo.',
         })
       }
-
-      const passwordHash = await hashPassword(password)
-      await app.db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, record.userId))
-
-      // Invalida o token usado e todas as sessões ativas (força novo login).
-      await app.db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, record.id))
-      await app.db.delete(sessions).where(eq(sessions.userId, record.userId))
 
       return reply.send({ message: 'Senha redefinida com sucesso. Faça login com a nova senha.' })
     },

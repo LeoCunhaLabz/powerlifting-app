@@ -31,8 +31,11 @@ export async function sendEmail({ to, subject, html, text }: SendEmailArgs): Pro
     return true
   }
 
-  // Fallback de desenvolvimento: nenhum provedor configurado.
-  console.info(`[mailer] (dev — sem provedor) Para: ${to}\nAssunto: ${subject}\n${text}`)
+  // Fallback de desenvolvimento: nenhum provedor configurado. Nunca loga em produção
+  // (mesmo sem RESEND_API_KEY/EMAIL_FROM configuradas) para não vazar links/tokens em logs.
+  if (process.env.NODE_ENV !== 'production') {
+    console.info(`[mailer] (dev — sem provedor) Para: ${to}\nAssunto: ${subject}\n${text}`)
+  }
   return false
 }
 
