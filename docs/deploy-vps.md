@@ -46,6 +46,11 @@ Configuradas em **Dokploy → api → Environment** (nunca commitadas):
 | `JWT_SECRET` | String aleatória ≥ 32 chars — gere com `openssl rand -base64 48` |
 | `JWT_EXPIRES_IN` | `15m` |
 | `REFRESH_TOKEN_EXPIRES_IN` | `7d` |
+| `PASSWORD_RESET_EXPIRES_IN` | `1h` — validade do token de redefinição de senha |
+| `RESEND_API_KEY` | API key do [Resend](https://resend.com) — **obrigatória em produção**: sem ela, o e-mail de redefinição de senha não é enviado (apenas logado, e só fora de produção) |
+| `EMAIL_FROM` | Remetente dos e-mails, ex.: `ONYX <no-reply@dominio.com>` — necessário junto com `RESEND_API_KEY`, deve ser um domínio verificado no Resend |
+| `APP_PUBLIC_URL` | URL pública do frontend usada no link de redefinição (default: mesmo valor de `CORS_ORIGIN`) |
+| `GOOGLE_CLIENT_ID` | Client ID do Google OAuth — opcional; sem ela, o login com Google fica desabilitado |
 
 O `DATABASE_URL` aponta para o **hostname do recurso PostgreSQL do Dokploy** (visível em Dokploy → powerliftingdb → Connection), não para `localhost` nem para o hostname do `docker-compose.yml`.
 
