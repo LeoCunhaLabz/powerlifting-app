@@ -235,26 +235,23 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     addEx(saved || exName.trim());
   };
   const addSet = (exIdx: number) => {
-    setExercises((prev) => {
-      const next = [...prev];
-      const last = next[exIdx].sets[next[exIdx].sets.length - 1];
-      next[exIdx].sets.push({ reps: last?.reps ?? 5, type: last?.type ?? 'N', weightPercentage: last?.weightPercentage, rpe: last?.rpe });
-      return next;
-    });
+    setExercises((prev) => prev.map((ex, i) => {
+      if (i !== exIdx) return ex;
+      const last = ex.sets[ex.sets.length - 1];
+      return { ...ex, sets: [...ex.sets, { reps: last?.reps ?? 5, type: last?.type ?? 'N', weightPercentage: last?.weightPercentage, rpe: last?.rpe }] };
+    }));
   };
   const removeSet = (exIdx: number, setIdx: number) => {
-    setExercises((prev) => {
-      const next = [...prev];
-      if (next[exIdx].sets.length > 1) next[exIdx].sets = next[exIdx].sets.filter((_, i) => i !== setIdx);
-      return next;
-    });
+    setExercises((prev) => prev.map((ex, i) => {
+      if (i !== exIdx || ex.sets.length <= 1) return ex;
+      return { ...ex, sets: ex.sets.filter((_, j) => j !== setIdx) };
+    }));
   };
   const updateSet = (exIdx: number, setIdx: number, fields: Partial<TemplateExercise['sets'][number]>) => {
-    setExercises((prev) => {
-      const next = [...prev];
-      next[exIdx].sets[setIdx] = { ...next[exIdx].sets[setIdx], ...fields };
-      return next;
-    });
+    setExercises((prev) => prev.map((ex, i) => {
+      if (i !== exIdx) return ex;
+      return { ...ex, sets: ex.sets.map((s, j) => (j === setIdx ? { ...s, ...fields } : s)) };
+    }));
   };
   const removeEx = (exIdx: number) => {
     setExercises((prev) => prev.filter((_, i) => i !== exIdx));
