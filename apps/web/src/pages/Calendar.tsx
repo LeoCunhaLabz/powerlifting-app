@@ -3,6 +3,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import type { Program, WorkoutTemplate } from '@powerlifting/shared';
 import { ChevronLeft, ChevronRight, Play, CalendarDays } from 'lucide-react';
 import { toLocalDate, weekDayIdx, computeMissedTrainingDays } from '../utils/programProgress';
+import { SessionDetail } from '../components/SessionDetail';
 
 interface CalendarProps {
   onStartWorkoutTab: () => void;
@@ -294,14 +295,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
                   {daySessions.map((s) => (
                     <div key={s.id} style={styles.realizedSession}>
                       <div style={styles.realizedName}>{s.name}</div>
-                      {s.exercises.map((ex) => (
-                        <div key={ex.id} style={styles.realizedEx}>
-                          <span style={styles.realizedExName}>{ex.name}</span>
-                          <span style={styles.realizedSets}>
-                            {ex.sets.filter((set) => set.completed).map((set) => `${set.weight}${u}×${set.reps}`).join(' · ') || '—'}
-                          </span>
-                        </div>
-                      ))}
+                      <SessionDetail session={s} templates={templates} units={u} />
                     </div>
                   ))}
                 </div>
@@ -326,9 +320,6 @@ const styles: Record<string, React.CSSProperties> = {
   realizedTitle: { fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' },
   realizedSession: { display: 'flex', flexDirection: 'column', gap: 4 },
   realizedName: { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' },
-  realizedEx: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 2 },
-  realizedExName: { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' },
-  realizedSets: { fontSize: 12, color: 'var(--text-muted)' },
   monthNav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   navBtn: { width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   monthLabel: { fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' },

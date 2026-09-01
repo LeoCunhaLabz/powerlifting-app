@@ -3,6 +3,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession, ExerciseState, SetState } from '@powerlifting/shared';
 import { Clock, TrendingUp, Award, X, RotateCcw, Pencil, Check, Trash2, Plus, AlertTriangle } from 'lucide-react';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
+import { SessionDetail } from '../components/SessionDetail';
 
 interface HistoryProps {
   onRepeat: (session: WorkoutSession) => void;
@@ -286,37 +287,7 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
             </div>
             <div style={styles.modalBody}>
               {!editMode ? (
-                // Read-only view
-                <>
-                  {(() => {
-                    const routineNote = selected.templateId
-                      ? state.templates.find((t) => t.id === selected.templateId)?.notes
-                      : undefined;
-                    return routineNote ? <div style={styles.routineNote}>Nota da rotina: {routineNote}</div> : null;
-                  })()}
-                  {selected.exercises.map((ex) => (
-                    <div key={ex.id} style={styles.exBlock}>
-                      <div style={styles.exName}>{ex.name}</div>
-                      {ex.sets.map((set, i) => (
-                        <div key={set.id} style={styles.setRow}>
-                          <span style={styles.setNum}>
-                            {i + 1}{set.isPr && <span style={styles.prBadge}>PR</span>}
-                          </span>
-                          <span>
-                            {set.weight} {u} × {set.reps}
-                            {set.rpe ? ` · RPE ${set.rpe}` : ''}
-                            {set.type !== 'N' ? ` · ${set.type === 'W' ? 'Aquec.' : 'Drop'}` : ''}
-                          </span>
-                          {!set.completed && <span style={styles.skipped}>não concluída</span>}
-                        </div>
-                      ))}
-                      {ex.notes && <div style={styles.exNote}>{ex.notes}</div>}
-                    </div>
-                  ))}
-                  {selected.notes && (
-                    <div style={styles.notes}>{selected.notes}</div>
-                  )}
-                </>
+                <SessionDetail session={selected} templates={state.templates} units={u} />
               ) : (
                 // Edit mode
                 <>
