@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { Program, WorkoutTemplate } from '@powerlifting/shared';
 import { ChevronLeft, ChevronRight, Play, CalendarDays } from 'lucide-react';
+import { toLocalDate, weekDayIdx, computeMissedTrainingDays } from '../utils/programProgress';
 
 interface CalendarProps {
   onStartWorkoutTab: () => void;
@@ -9,36 +10,6 @@ interface CalendarProps {
 
 // 0=Seg … 6=Dom (semana começa na segunda)
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-
-/** Converte Date para string YYYY-MM-DD no fuso local. */
-function toLocalDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/** Índice 0=Seg…6=Dom para uma Date. */
-function weekDayIdx(d: Date): number {
-  return (d.getDay() + 6) % 7;
-}
-
-/** Conta quantos dias de treino existem entre startDate (inclusive) e targetDate (exclusive). */
-function countTrainingDaysBefore(startDate: string, targetDate: string, trainingDays: number[]): number {
-  if (!trainingDays.length) return 0;
-  const start = new Date(startDate + 'T00:00:00');
-  const target = new Date(targetDate + 'T00:00:00');
-  if (target <= start) return 0;
-  let count = 0;
-  const cur = new Date(start);
-  while (cur < target) {
-    if (trainingDays.includes(weekDayIdx(cur))) count++;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return count;
-}
-
-/** Retorna o template index (no ciclo do programa) para um determinado slot de treino. */
-function templateIndexForSlot(slotIndex: number, templateCount: number): number {
-  return slotIndex % templateCount;
-}
 
 interface CalendarDay {
   date: string; // YYYY-MM-DD
@@ -62,12 +33,18 @@ function buildCalendarDays(
   const startDate = program.startDate ?? program.createdAt.slice(0, 10);
   const trainingDays = program.trainingDays ?? [];
 
-  // Conjunto de datas do histórico com templateId válido do programa
-  const doneDates = new Set(
-    history
-      .filter(s => s.templateId && program.templateIds.includes(s.templateId))
-      .map(s => s.date.slice(0, 10)),
-  );
+  // Sessões do programa por data (pode haver mais de uma no mesmo dia) — fonte única
+  // da verdade de "feito", igual ao histórico que getNextTemplate() usa.
+  const sessionsByDate = new Map<string, string | undefined>();
+  for (const s of history) {
+    if (!s.templateId || !program.templateIds.includes(s.templateId)) continue;
+    sessionsByDate.set(s.date.slice(0, 10), s.templateId);
+  }
+  const doneDates = new Set(sessionsByDate.keys());
+
+  // "Perdido" não é mais por dia fixo da semana: um dia esperado só é perdido se nenhuma
+  // sessão do programa (em qualquer dia, fora de ordem inclusive) o cobrir depois.
+  const missedDates = computeMissedTrainingDays(program, history, today);
 
   // Primeiro dia do mês e da grade (semana começa na segunda)
   const firstOfMonth = new Date(year, month, 1);
@@ -97,16 +74,16 @@ function buildCalendarDays(
     const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const dateObj = new Date(date + 'T00:00:00');
     const isTrainingDay = trainingDays.includes(weekDayIdx(dateObj)) && date >= startDate;
-    let template: WorkoutTemplate | null = null;
+    const isDone = isTrainingDay && doneDates.has(date);
+    const isMissed = isTrainingDay && !isDone && missedDates.has(date);
 
-    if (isTrainingDay && program.templateIds.length > 0) {
-      const slotIdx = countTrainingDaysBefore(startDate, date, trainingDays);
-      const tplId = program.templateIds[templateIndexForSlot(slotIdx, program.templateIds.length)];
+    // Nome de rotina só é mostrado em dias concluídos (a rotina que realmente foi feita) —
+    // não há mais previsão de rotina específica por dia (rodízio fixo removido).
+    let template: WorkoutTemplate | null = null;
+    if (isDone) {
+      const tplId = sessionsByDate.get(date);
       template = templates.find(t => t.id === tplId) ?? null;
     }
-
-    const isDone = isTrainingDay && doneDates.has(date);
-    const isMissed = isTrainingDay && !isDone && date < today;
 
     days.push({
       date,
@@ -145,7 +122,7 @@ const MONTH_NAMES = [
 ];
 
 export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
-  const { state, startWorkout } = useWorkout();
+  const { state, startWorkout, getNextTemplate } = useWorkout();
   const { programs, templates, history } = state;
 
   const now = new Date();
@@ -193,6 +170,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
   const daySessions = selectedDay
     ? state.history.filter(s => s.date.slice(0, 10) === selectedDay.date)
     : [];
+  // Dia não concluído: não há mais rotina prevista por dia (rodízio fixo removido) —
+  // oferece iniciar a mesma sugestão única já usada no Início/Treinar.
+  const nextTemplateForDay = selectedDay && !selectedDay.isDone && selectedDay.date <= today
+    ? getNextTemplate()
+    : undefined;
 
   const handleDayPress = (day: CalendarDay) => {
     if (!day.isCurrentMonth || !day.isTrainingDay) return;
@@ -289,20 +271,20 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
                 {selectedDay.isDone && <span style={styles.doneBadge}>Concluído</span>}
                 {selectedDay.isMissed && <span style={styles.missedBadge}>Perdido</span>}
               </div>
-              {selectedDay.template && (
+              {selectedDay.isDone && selectedDay.template && (
                 <>
                   <div style={styles.sheetTplName}>{selectedDay.template.name}</div>
                   <div style={styles.sheetSub}>{selectedDay.template.exercises.length} exercícios · {selectedDay.template.exercises.reduce((t, e) => t + e.sets.length, 0)} séries</div>
                   {selectedDay.template.description && (
                     <div style={styles.sheetDesc}>{selectedDay.template.description}</div>
                   )}
-                  {!selectedDay.isDone && selectedDay.date <= today && selectedDay.template && (
-                    <button onClick={() => handleStart(selectedDay.template!.id)} style={styles.startBtn}>
-                      <Play size={15} fill="var(--accent-ink)" stroke="none" />
-                      {selectedDay.isToday ? 'Iniciar treino de hoje' : 'Iniciar treino'}
-                    </button>
-                  )}
                 </>
+              )}
+              {nextTemplateForDay && (
+                <button onClick={() => handleStart(nextTemplateForDay.id)} style={styles.startBtn}>
+                  <Play size={15} fill="var(--accent-ink)" stroke="none" />
+                  {selectedDay.isToday ? 'Iniciar treino de hoje' : 'Iniciar treino'}
+                </button>
               )}
 
               {/* Detalhe do(s) treino(s) realizado(s) no dia */}
