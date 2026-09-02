@@ -173,9 +173,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
     : [];
   // Dia não concluído: não há mais rotina prevista por dia (rodízio fixo removido) —
   // oferece iniciar a mesma sugestão única já usada no Início/Treinar.
-  const nextTemplateForDay = selectedDay && !selectedDay.isDone && selectedDay.date <= today
-    ? getNextTemplate()
-    : undefined;
+  const canStartDay = selectedDay && !selectedDay.isDone && selectedDay.date <= today;
+  const nextTemplateForDay = canStartDay ? getNextTemplate() : undefined;
+  // Demais rotinas do programa ativo — o usuário pode preferir outra (ex.: dor na
+  // perna impede agachamento, mas dá pra fazer a rotina de depois de amanhã).
+  const otherProgramTemplatesForDay: WorkoutTemplate[] = canStartDay
+    ? activeProgram.templateIds
+        .map(id => templates.find(t => t.id === id))
+        .filter((t): t is WorkoutTemplate => !!t && !t.archived && !t.deleted && t.id !== nextTemplateForDay?.id)
+    : [];
 
   const handleDayPress = (day: CalendarDay) => {
     if (!day.isCurrentMonth || !day.isTrainingDay) return;
@@ -284,8 +290,22 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
               {nextTemplateForDay && (
                 <button onClick={() => handleStart(nextTemplateForDay.id)} style={styles.startBtn}>
                   <Play size={15} fill="var(--accent-ink)" stroke="none" />
-                  {selectedDay.isToday ? 'Iniciar treino de hoje' : 'Iniciar treino'}
+                  {selectedDay.isToday ? 'Iniciar treino de hoje' : 'Iniciar treino'} · {nextTemplateForDay.name}
                 </button>
+              )}
+
+              {otherProgramTemplatesForDay.length > 0 && (
+                <>
+                  <p style={styles.otherHeader}>Prefere outra rotina do programa?</p>
+                  <div style={styles.otherList}>
+                    {otherProgramTemplatesForDay.map((t) => (
+                      <button key={t.id} onClick={() => handleStart(t.id)} style={styles.otherRow}>
+                        <span style={styles.otherRowName}>{t.name}</span>
+                        <Play size={13} fill="var(--accent)" stroke="none" />
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
 
               {/* Detalhe do(s) treino(s) realizado(s) no dia */}
@@ -340,6 +360,10 @@ const styles: Record<string, React.CSSProperties> = {
   sheetSub: { fontSize: 12, color: 'var(--text-muted)' },
   sheetDesc: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 },
   startBtn: { marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 46, backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800 },
+  otherHeader: { fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 14, marginBottom: 6 },
+  otherList: { display: 'flex', flexDirection: 'column', gap: 6 },
+  otherRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', textAlign: 'left' },
+  otherRowName: { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' },
 };
 
 export default Calendar;
