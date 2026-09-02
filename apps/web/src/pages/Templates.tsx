@@ -446,15 +446,15 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
       {mainView === 'rotinas' && (<>
         {/* Sub-filter: Minhas / Embutidas + Arquivadas */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-          <div style={{ ...styles.segmented, flex: 1, marginBottom: 0 }}>
-            <button onClick={() => { setFilter('mine'); setShowArchived(false); }} style={filter === 'mine' && !showArchived ? styles.segOn : styles.segOff}>Minhas</button>
-            <button onClick={() => { setFilter('builtin'); setShowArchived(false); }} style={filter === 'builtin' ? styles.segOn : styles.segOff}>Embutidas</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ ...styles.segmented, flex: 1, marginBottom: 0, background: 'none', border: 'none', padding: 0 }}>
+            <button onClick={() => { setFilter('mine'); setShowArchived(false); }} style={filter === 'mine' && !showArchived ? styles.subSegOn : styles.subSegOff}>Minhas</button>
+            <button onClick={() => { setFilter('builtin'); setShowArchived(false); }} style={filter === 'builtin' ? styles.subSegOn : styles.subSegOff}>Embutidas</button>
           </div>
           {filter === 'mine' && (
             <button
               onClick={() => setShowArchived((x) => !x)}
-              style={{ ...styles.segOff, padding: '6px 10px', fontSize: 12, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: showArchived ? 'var(--accent-soft)' : 'transparent', color: showArchived ? 'var(--accent)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ ...styles.subSegOff, padding: '6px 10px', fontSize: 12, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: showArchived ? 'var(--accent-soft)' : 'transparent', color: showArchived ? 'var(--accent)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}
             >
               <Archive size={13} />{showArchived ? 'Ativas' : 'Arquivadas'}
             </button>
@@ -937,10 +937,14 @@ const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
   headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
   pageTitle: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em' },
-  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, padding: '8px 13px', borderRadius: '999px' },
+  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '12px', fontWeight: 800, padding: '8px 13px', borderRadius: '999px' },
   segmented: { display: 'flex', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '3px', marginBottom: '16px' },
   segOn: { flex: 1, textAlign: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '8px', borderRadius: '9px' },
   segOff: { flex: 1, textAlign: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', padding: '8px' },
+  // Sub-filtro dentro de uma seção (ex.: Minhas/Embutidas) — mais leve que o switcher
+  // de seção principal (segOn/segOff) para deixar clara a hierarquia entre os dois níveis.
+  subSegOn: { flex: 1, textAlign: 'center', fontSize: '12px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '6px', borderRadius: '8px' },
+  subSegOff: { flex: 1, textAlign: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', padding: '6px' },
   list: { display: 'flex', flexDirection: 'column', gap: '10px' },
   empty: { fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, textAlign: 'center', padding: '28px 16px', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)' },
   row: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' },
