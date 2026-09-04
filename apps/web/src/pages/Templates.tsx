@@ -262,6 +262,20 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
       return cur > exIdx ? cur - 1 : cur;
     });
   };
+  // Cópia pontual de valor (não é vínculo vivo — cada exercício continua editável
+  // independentemente depois de aplicado).
+  const applyRestToAll = (sourceIdx: number) => {
+    setExercises((prev) => {
+      const rest = prev[sourceIdx].restSeconds;
+      return prev.map((ex, i) => (i === sourceIdx ? ex : { ...ex, restSeconds: rest }));
+    });
+  };
+  const applySetsToAll = (sourceIdx: number) => {
+    setExercises((prev) => {
+      const sourceSets = prev[sourceIdx].sets;
+      return prev.map((ex, i) => (i === sourceIdx ? ex : { ...ex, sets: sourceSets.map((s) => ({ ...s })) }));
+    });
+  };
 
   const resetForm = () => {
     setName(''); setDescription(''); setRoutineNotes(''); setExercises([]); setPrescription('percent'); setIsCreating(false); setEditingId(null);
@@ -606,6 +620,11 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                       onBlur={() => setRestDraft(null)}
                       style={{ ...styles.inp, width: 80 }}
                     />
+                    {exercises.length > 1 && ex.restSeconds != null && (
+                      <button onClick={() => applyRestToAll(exIdx)} style={styles.applyAllBtn} title="Aplicar este descanso aos outros exercícios">
+                        <Copy size={11} /> Aplicar a todos
+                      </button>
+                    )}
                     <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>PESO ESPERADO</label>
                     <input
                       type="number"
@@ -646,7 +665,14 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                       <button onClick={() => removeSet(exIdx, setIdx)} style={styles.delSetBtn}><X size={14} /></button>
                     </div>
                   ))}
-                  <button onClick={() => addSet(exIdx)} style={styles.addSetBtn}><Plus size={13} /> Série</button>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button onClick={() => addSet(exIdx)} style={{ ...styles.addSetBtn, marginTop: 0, flex: 1 }}><Plus size={13} /> Série</button>
+                    {exercises.length > 1 && (
+                      <button onClick={() => applySetsToAll(exIdx)} style={{ ...styles.applyAllBtn, height: '34px', padding: '0 10px' }} title="Aplicar este esquema de séries aos outros exercícios">
+                        <Copy size={12} /> Aplicar séries a todos
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -992,6 +1018,7 @@ const styles: Record<string, React.CSSProperties> = {
   inp: { height: '34px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center', fontSize: '14px', fontWeight: 700, width: '100%', padding: '0 2px', minWidth: 0 },
   delSetBtn: { color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px' },
   addSetBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%', justifyContent: 'center', height: '34px', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, marginTop: '4px' },
+  applyAllBtn: { display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'transparent', border: '1px dashed var(--accent-border)', borderRadius: '8px', color: 'var(--accent)', fontSize: '11px', fontWeight: 700, padding: '4px 8px', whiteSpace: 'nowrap' },
   addExBox: { position: 'relative' },
   searchEx: { width: '100%', height: '46px' },
   addCustom: { width: '100%', height: '38px', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-sm)', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, marginTop: '8px' },
