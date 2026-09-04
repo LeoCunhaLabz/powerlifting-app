@@ -159,7 +159,7 @@ export const Workout: React.FC = () => {
         )}
         {otherProgramTemplates.length > 0 && (
           <>
-            <p style={styles.sectionHeader}>Outra rotina do programa</p>
+            <p style={styles.sectionHeader}>Prefere outra rotina do programa?</p>
             <div style={styles.templateList}>{otherProgramTemplates.map(renderTemplateRow)}</div>
           </>
         )}
