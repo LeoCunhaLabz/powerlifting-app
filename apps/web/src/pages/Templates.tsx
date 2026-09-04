@@ -504,9 +504,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                         <button onClick={() => setConfirmDeleteId(tpl.id)} style={styles.delBtn}><Trash2 size={14} /> Excluir</button>
                       </>
                     )}
-                    {tpl.isBuiltIn && (
-                      <button onClick={() => startEdit(tpl, true)} style={styles.editBtn}><Copy size={14} /> Duplicar</button>
-                    )}
+                    <button onClick={() => startEdit(tpl, true)} style={styles.editBtn}><Copy size={14} /> Duplicar</button>
                     {!tpl.archived && <button onClick={() => handleStart(tpl.id)} style={styles.startBtn}><Play size={14} fill="var(--accent-ink)" stroke="none" /> Iniciar</button>}
                   </div>
                 </div>
