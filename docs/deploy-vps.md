@@ -33,6 +33,28 @@ Internet → Traefik (TLS, gerenciado pelo Dokploy)
 
 ---
 
+## Config do nginx do web (headers de segurança e CSP)
+
+O nginx do `web` é configurado por **dois arquivos versionados na raiz**, copiados para a imagem pelo [Dockerfile](../Dockerfile):
+
+| Arquivo | Vai para | Papel |
+|---------|----------|-------|
+| [nginx.conf](../nginx.conf) | `/etc/nginx/conf.d/default.conf` | `server` na porta 8080, cache, fallback de SPA, `robots.txt`/`sitemap.xml` |
+| [nginx-security-headers.conf](../nginx-security-headers.conf) | `/etc/nginx/security-headers.conf` | Os 6 headers de segurança + CSP, definidos uma vez |
+
+Dois detalhes que **não são óbvios** e já causaram bug:
+
+1. **`add_header` dentro de um `location` substitui os headers herdados do `server`** — não soma. Por isso todo `location` que adiciona um header próprio (cache do PWA, assets, `index.html`, `robots.txt`, `sitemap.xml`) precisa reincluir `security-headers.conf`. Ao criar um novo `location` com `add_header`, **inclua o snippet** ou aquele path fica sem CSP/HSTS.
+2. **A CSP referencia a origem da API via placeholder `__API_ORIGIN__`**, substituído no build pelo `ARG VITE_API_URL` — o mesmo valor usado para compilar o bundle. Isso impede a CSP de divergir da URL que o frontend chama. Se a API mudar de domínio, basta o `VITE_API_URL`; **não** edite a URL na CSP à mão.
+
+A CSP libera, além de `'self'`: a origem da API (`connect-src`), o Google Identity Services (`script-src`/`frame-src`/`connect-src`/`style-src` em `https://accounts.google.com/gsi/*`) e os webfonts do Google. **Ao adicionar qualquer integração externa nova no frontend, a CSP precisa ser atualizada no mesmo PR** — senão o recurso é bloqueado silenciosamente no browser (só aparece no console).
+
+O `Dockerfile` roda `nginx -t` durante o build, então erro de sintaxe na config quebra o build em vez de subir para produção.
+
+> **Histórico:** até a issue #245, o `Dockerfile` **gerava a config inline** com `printf` e o `nginx.conf` do repo era código morto — produção rodou meses sem nenhum header de segurança e sem o `no-cache` do PWA. Nunca volte a gerar essa config no `Dockerfile`.
+
+---
+
 ## Variáveis de ambiente da API
 
 Configuradas em **Dokploy → api → Environment** (nunca commitadas):
