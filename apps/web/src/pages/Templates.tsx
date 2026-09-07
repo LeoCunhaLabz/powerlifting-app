@@ -567,6 +567,26 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                 </div>
               </div>
 
+              {/* Preview compacto — atualiza em tempo real, sem passo extra de confirmação. */}
+              {exercises.length > 0 && (
+                <div style={styles.previewBox}>
+                  <p style={styles.previewHeader}>
+                    Resumo · {exercises.length} exercício{exercises.length !== 1 ? 's' : ''} · {exercises.reduce((a, e) => a + e.sets.length, 0)} série{exercises.reduce((a, e) => a + e.sets.length, 0) !== 1 ? 's' : ''}
+                  </p>
+                  <div style={styles.exSummary}>
+                    {exercises.map((ex, i) => (
+                      <div key={i} style={styles.exSumRow}>
+                        <span style={styles.exSumName}>{ex.name}</span>
+                        <span style={styles.exSumSets}>
+                          {ex.sets.length}× · {ex.sets.map((s) => s.reps).join('/')}
+                          {ex.sets[0]?.weightPercentage ? ` · ${ex.sets.map((s) => s.weightPercentage).join('/')}%` : ex.sets[0]?.rpe ? ` · RPE ${ex.sets.map((s) => s.rpe).join('/')}` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {exercises.length > 0 && (
                 <p style={styles.typeLegend}>Toque no número da série para mudar o tipo · <b>N</b> normal · <b>W</b> aquecimento · <b>D</b> drop</p>
               )}
@@ -981,6 +1001,8 @@ const styles: Record<string, React.CSSProperties> = {
   expand: { borderTop: '1px solid var(--border-color)', padding: '14px', backgroundColor: 'rgba(0,0,0,0.15)' },
   desc: { fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' },
   exSummary: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' },
+  previewBox: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '14px' },
+  previewHeader: { fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 },
   exSumRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '13px' },
   exSumName: { fontWeight: 700, color: 'var(--text-primary)' },
   exSumSets: { color: 'var(--text-muted)', fontSize: '11px' },
