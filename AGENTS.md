@@ -18,6 +18,8 @@ powerlifting-app/
 ├─ package.json     ← raiz: npm workspaces + scripts que delegam
 ├─ .env.example     ← variáveis de ambiente do docker-compose (raiz)
 ├─ Dockerfile       ← build do web a partir do workspace
+├─ nginx.conf       ← config do nginx do web (COPIADA para a imagem — é a que roda)
+├─ nginx-security-headers.conf  ← headers de segurança + CSP, incluídos pelo nginx.conf
 └─ docker-compose.yml  ← stack local (web + api + postgres); produção usa Dokploy
 ```
 
