@@ -14,36 +14,25 @@ RUN VITE_API_URL="${VITE_API_URL}" npm run build
 # Production stage
 FROM nginx:1.27-alpine
 
+# Mesma origem de API usada no build do bundle — entra na CSP (connect-src) para que
+# o frontend possa chamar a API. ARG é por stage, por isso precisa ser repetido aqui.
+ARG VITE_API_URL="https://api-treino.cunhalabs.tech"
+
 # Copiar build da stage anterior
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-# Remover diretiva 'user nginx' do nginx.conf principal, gerar o config inline
-# e só então corrigir permissões — assim o chown cobre o default.conf gerado.
+# Config do nginx versionada no repo. Antes era gerada inline aqui com printf, o que
+# fazia o nginx.conf do repo virar código morto: produção rodava sem NENHUM header de
+# segurança e sem o bloco de no-cache do PWA. Agora o repo é a fonte única.
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-security-headers.conf /etc/nginx/security-headers.conf
+
+# Remover diretiva 'user nginx' (o container já roda como nginx), injetar a origem da
+# API na CSP, validar a config e só então corrigir permissões.
 # Porta 8080: processos não-root não podem fazer bind em portas < 1024
 RUN sed -i '/^user[[:space:]]/d' /etc/nginx/nginx.conf && \
-    printf 'server {\n\
-    listen 8080;\n\
-    root /usr/share/nginx/html;\n\
-    index index.html;\n\
-    gzip on;\n\
-    gzip_vary on;\n\
-    gzip_proxied any;\n\
-    gzip_comp_level 6;\n\
-    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss image/svg+xml;\n\
-    location ~* \\.(js|css|woff2|woff|ttf|ico|png|jpg|jpeg|gif|svg)$ {\n\
-        expires 1y;\n\
-        add_header Cache-Control "public, immutable";\n\
-        access_log off;\n\
-    }\n\
-    location = /index.html {\n\
-        add_header Cache-Control "no-cache, no-store, must-revalidate";\n\
-        add_header Pragma "no-cache";\n\
-        add_header Expires "0";\n\
-    }\n\
-    location / {\n\
-        try_files $uri $uri/ /index.html;\n\
-    }\n\
-}\n' > /etc/nginx/conf.d/default.conf && \
+    sed -i "s|__API_ORIGIN__|${VITE_API_URL}|g" /etc/nginx/security-headers.conf && \
+    nginx -t && \
     chown -R nginx:nginx \
         /usr/share/nginx/html \
         /var/cache/nginx \
