@@ -99,6 +99,55 @@ Para incluir os dias já rotacionados, troque `jq ... "$LOG"` por `zcat -f "$LOG
 
 ---
 
+## Hardening da VPS (issue #254)
+
+Aplicado em 07/09/2026. Estado do servidor, **não vem do repo** — ao reprovisionar, refazer tudo daqui.
+
+### SSH — só chave, sem senha
+
+Drop-in em `/etc/ssh/sshd_config.d/01-hardening.conf`:
+
+```
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+```
+
+**O nome `01-` é proposital e importa:** o sshd aplica a **primeira** ocorrência de cada diretiva, e o `50-cloud-init.conf` (que o provedor instala) define `PasswordAuthentication yes` — o drop-in precisa ordenar antes dele para vencer. Um `99-` seria silenciosamente ignorado.
+
+Antes de mexer em sshd: `sshd -t` para validar, `systemctl restart ssh`, e **teste uma conexão NOVA antes de fechar a sessão atual** (a sessão aberta sobrevive a config quebrada; a próxima não). Para autorizar outro dispositivo: adicionar a chave pública em `/root/.ssh/authorized_keys`.
+
+### fail2ban
+
+Instalado com jail de sshd em `/etc/fail2ban/jail.d/sshd.local` (`maxretry 5`, `bantime 1h`). Status: `fail2ban-client status sshd`.
+
+### ufw
+
+Ativo com `allow 22,80,443/tcp`, default deny. **Pegadinha que define o desenho todo:** portas publicadas por containers Docker **contornam o ufw** (o Docker escreve direto no iptables, antes das chains do ufw). Na prática o ufw protege o que escuta no host — sshd e as portas do Swarm (`2377`/`7946`, verificadas bloqueadas externamente) — mas **não** fecha `80/443` (Traefik) nem `3000` (painel Dokploy). Fechar porta de container é no **firewall do provedor** (painel da Hostinger), nunca no ufw.
+
+### Painel do Dokploy — acesso somente por túnel SSH
+
+O painel publica a porta `3000` em HTTP puro (Swarm `mode=host`, que não permite bind em `127.0.0.1`). O acesso correto é por túnel:
+
+```bash
+ssh -L 3000:localhost:3000 root@<ip-da-vps>
+# e abrir http://localhost:3000 no browser
+```
+
+- [ ] **Pendência (ação no painel do provedor):** bloquear a porta `3000` externa no firewall da Hostinger. O túnel continua funcionando (entra pela 22) e o runner do CI não é afetado (já usa `localhost:3000`).
+- **Nunca** logar no painel via `http://<ip>:3000` de fora — a credencial de admin trafega sem TLS e o painel controla todos os deploys.
+
+### Verificação pós-mudança (rodar após qualquer mexida nesta seção)
+
+```bash
+ssh root@<ip> 'echo ok'                                  # conexão nova por chave
+curl -so /dev/null -w '%{http_code}\n' https://treino.cunhalabs.tech/       # 200
+curl -so /dev/null -w '%{http_code}\n' https://api-treino.cunhalabs.tech/health  # 200
+ssh root@<ip> 'docker service ls'                        # tudo 1/1
+```
+
+---
+
 ## Variáveis de ambiente da API
 
 Configuradas em **Dokploy → api → Environment** (nunca commitadas):
@@ -223,5 +272,6 @@ O Dokploy mantém histórico de deploys. Para reverter:
 - [ ] Configurar Traefik/domínio para ambas as applications no Dokploy.
 - [ ] Instalar runner self-hosted no VPS com label `dokploy-vps`.
 - [ ] Habilitar o `accessLog` no `/etc/dokploy/traefik/traefik.yml` e criar `/etc/logrotate.d/traefik-access` (ver [Access log do Traefik](#access-log-do-traefik-medição-de-tráfego)) — é estado do servidor, não vem do repo.
+- [ ] Aplicar o [hardening da VPS](#hardening-da-vps-issue-254): sshd só chave (drop-in `01-`), fail2ban, ufw 22/80/443, porta 3000 bloqueada no firewall do provedor (painel só por túnel SSH).
 - [ ] Configurar todos os secrets no GitHub Actions.
 - [ ] Fazer um push para `main` e acompanhar o pipeline.
