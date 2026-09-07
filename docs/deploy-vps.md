@@ -55,6 +55,50 @@ O `Dockerfile` roda `nginx -t` durante o build, então erro de sintaxe na config
 
 ---
 
+## Access log do Traefik (medição de tráfego)
+
+Todo o tráfego HTTP entra pelo Traefik, e é lá que ele é registrado. **Esta é a única fonte de audiência do app** — o `web` funciona sem login (estado em `localStorage`), então um visitante anônimo não deixa rastro no banco.
+
+| Item | Valor |
+|------|-------|
+| Arquivo | `/etc/dokploy/traefik/dynamic/logs/access.log` (no host **e** no container, mesmo path) |
+| Formato | JSON, uma requisição por linha |
+| Config | bloco `accessLog` em `/etc/dokploy/traefik/traefik.yml` |
+| Rotação | `/etc/logrotate.d/traefik-access` — diária, 30 dias, `compress`, `copytruncate` |
+
+Três decisões que **não são óbvias**:
+
+1. **Por que dentro de `dynamic/logs/`.** `dynamic/` é o único diretório bind-mounted read-write no container do Traefik (`traefik.yml` é montado como arquivo único, então a pasta pai não é escrevível de dentro). O file provider observa `dynamic/` mas **não recursa em subdiretórios** — verificado empiricamente —, então o log não é interpretado como config. **Não** coloque o log direto em `dynamic/`.
+2. **`copytruncate` no logrotate.** O Traefik mantém o descritor aberto e não reabre em SIGHUP; rotacionar por rename o deixaria escrevendo no arquivo já rotacionado.
+3. **`traefik.yml` é config estática** — mudanças exigem `docker restart dokploy-traefik` (o `watch: true` só vale para `dynamic/`). O restart derruba todo o HTTPS por 1–2s, incluindo o painel do Dokploy. **Faça backup do `traefik.yml` antes** e valide o retorno com `curl` nas duas URLs públicas; se não voltar, restaure e reinicie.
+
+Os headers são gravados em modo `drop` por padrão, com exceção de `User-Agent` e `Referer` — o suficiente para separar bot de gente, sem registrar `Cookie` ou `Authorization`.
+
+### Consultas úteis
+
+```bash
+LOG=/etc/dokploy/traefik/dynamic/logs/access.log
+
+# Requisições por dia
+jq -r '.StartUTC[0:10]' "$LOG" | sort | uniq -c
+
+# Top user-agents (quem é bot e quem não é)
+jq -r '.["request_User-Agent"] // "-"' "$LOG" | sort | uniq -c | sort -rn | head -20
+
+# Candidatos a acesso ORGÂNICO: exclui crawlers conhecidos e o smoke test do CI
+jq -r 'select((.["request_User-Agent"] // "") | test("bot|crawler|spider|curl|wget|GPTBot|ClaudeBot|OAI-SearchBot"; "i") | not)
+       | "\(.StartUTC[0:16]) \(.ClientHost) \(.RequestPath)"' "$LOG"
+
+# Um dia específico, agrupado por IP
+jq -r 'select(.StartUTC | startswith("2026-09-07")) | .ClientHost' "$LOG" | sort | uniq -c | sort -rn
+```
+
+Para incluir os dias já rotacionados, troque `jq ... "$LOG"` por `zcat -f "$LOG"*` antes do `jq`.
+
+> **Por que isso existe (issue #244):** antes, o único log de acesso era o do nginx dentro do container do `web`, que ia para o driver `json-file` do Docker e **era descartado a cada deploy** (o container é recriado). Numa auditoria em 07/09/2026 só foi possível recuperar 2 dias de tráfego. O log do Traefik vive no host, fora do ciclo de vida dos containers de aplicação — comprovado recriando o container do `web` e vendo as linhas anteriores intactas.
+
+---
+
 ## Variáveis de ambiente da API
 
 Configuradas em **Dokploy → api → Environment** (nunca commitadas):
@@ -178,5 +222,6 @@ O Dokploy mantém histórico de deploys. Para reverter:
 - [ ] Criar application **web** com o `Dockerfile` da raiz; desligar auto-deploy.
 - [ ] Configurar Traefik/domínio para ambas as applications no Dokploy.
 - [ ] Instalar runner self-hosted no VPS com label `dokploy-vps`.
+- [ ] Habilitar o `accessLog` no `/etc/dokploy/traefik/traefik.yml` e criar `/etc/logrotate.d/traefik-access` (ver [Access log do Traefik](#access-log-do-traefik-medição-de-tráfego)) — é estado do servidor, não vem do repo.
 - [ ] Configurar todos os secrets no GitHub Actions.
 - [ ] Fazer um push para `main` e acompanhar o pipeline.
