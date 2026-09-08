@@ -7,7 +7,7 @@ export const CustomExercises: React.FC = () => {
   const { customExercises } = state;
   const [name, setName] = useState('');
 
-  const sorted = [...customExercises].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const sorted = customExercises.filter((c) => !c.deleted).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   const handleAdd = () => {
     const saved = addCustomExercise(name);

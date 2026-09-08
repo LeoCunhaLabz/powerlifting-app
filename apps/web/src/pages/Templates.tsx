@@ -703,12 +703,12 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
                 )}
                 {searchExercise.trim() &&
                   !getAllSuggestedExercises().some((e) => e.toLowerCase() === searchExercise.trim().toLowerCase()) &&
-                  !customExercises.some((c) => c.name.toLowerCase() === searchExercise.trim().toLowerCase()) && (
+                  !customExercises.some((c) => !c.deleted && c.name.toLowerCase() === searchExercise.trim().toLowerCase()) && (
                   <button onClick={() => createAndAddEx(searchExercise)} style={styles.addCustom}>Adicionar "{searchExercise}"</button>
                 )}
                 {showSuggestions && suggestStyle && (() => {
                   const q = searchExercise.toLowerCase();
-                  const customMatches = customExercises.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 5);
+                  const customMatches = customExercises.filter((c) => !c.deleted && c.name.toLowerCase().includes(q)).slice(0, 5);
                   const anyBuiltIn = Object.values(EXERCISE_CATEGORIES).some((exercises) => exercises.some((e) => e.toLowerCase().includes(q)));
                   return createPortal(
                   <div style={{ ...styles.suggestions, ...suggestStyle }}>
@@ -751,13 +751,13 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
         <div style={styles.list}>
           {programs.some((p) => p.archived) && (
             <button onClick={() => setShowArchivedPrograms((v) => !v)} style={styles.archiveToggle}>
-              {showArchivedPrograms ? 'Ocultar arquivados' : `Ver arquivados (${programs.filter((p) => p.archived).length})`}
+              {showArchivedPrograms ? 'Ocultar arquivados' : `Ver arquivados (${programs.filter((p) => p.archived && !p.deleted).length})`}
             </button>
           )}
-          {programs.filter((p) => (showArchivedPrograms ? p.archived : !p.archived)).length === 0 && (
+          {programs.filter((p) => !p.deleted && (showArchivedPrograms ? p.archived : !p.archived)).length === 0 && (
             <div style={styles.empty}>{showArchivedPrograms ? 'Nenhum programa arquivado.' : 'Nenhum programa ainda. Toque em "Novo" para criar um.'}</div>
           )}
-          {programs.filter((p) => (showArchivedPrograms ? p.archived : !p.archived)).map((prog) => (
+          {programs.filter((p) => !p.deleted && (showArchivedPrograms ? p.archived : !p.archived)).map((prog) => (
             <div key={prog.id} style={{ ...styles.row, borderColor: prog.isActive ? 'var(--accent-border)' : undefined }}>
               <div style={styles.rowHead}>
                 <span style={{ ...styles.avatar, backgroundColor: prog.isActive ? 'var(--accent)' : 'var(--bg-tertiary)', color: prog.isActive ? 'var(--accent-ink)' : 'var(--text-secondary)' }}>

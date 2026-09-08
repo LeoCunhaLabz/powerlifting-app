@@ -71,7 +71,7 @@ Migrations são aplicadas **automaticamente no boot** da API via `runMigrations(
 
 - **Escopo mínimo.** Faça apenas o que foi pedido. Não refatore, não adicione features ou dependências sem necessidade clara.
 - **Sem novas dependências** a menos que essencial. Preferir solução com a stack atual (React + lucide-react + CSS puro) no `apps/web`.
-- **Frontend client-side por enquanto.** O `apps/web` persiste em `localStorage`; não adicione chamadas de rede no web até a camada de sincronização (issue #11). O backend vive em `apps/api` (em construção pela fase 2) e é desenvolvido isoladamente.
+- **Offline-first com sync por last-write-wins.** O `apps/web` persiste em `localStorage` e sincroniza com a API em background. Convenção inegociável ao mutar `history`/`templates`/`programs`/`customExercises`: **toda mudança define `updatedAt` novo e limpa `syncedAt`** (marca pendente); exclusões são **soft-delete** (`deleted: true`, também pendente) ou tombstone (`AppState.deletedWorkouts`) — nunca remova do array algo que o servidor conhece, ou o pull ressuscita. O merge vive em [apps/web/src/utils/syncMerge.ts](apps/web/src/utils/syncMerge.ts) (puro, testado); a semântica do servidor em [apps/api/src/routes/syncLogic.ts](apps/api/src/routes/syncLogic.ts). Schemas Zod da API derivam de `apps/api/src/schemas/domain.ts`, com paridade contra `@powerlifting/shared` **verificada em compilação** — ao adicionar campo num tipo do shared, adicione no schema no mesmo PR (o `tsc` da API aponta o lugar).
 - **pt-BR na UI.** Textos visíveis ao usuário em português.
 - **TypeScript strict.** `noUnusedLocals` e `noUnusedParameters` estão ativos — não deixe imports/variáveis sem uso.
 
