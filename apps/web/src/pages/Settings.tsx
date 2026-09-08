@@ -739,7 +739,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-sm)',
     fontSize: '12px',
     fontWeight: '700',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
   },
   confirmWarningBtn: {
     flex: 1,
