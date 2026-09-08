@@ -624,11 +624,12 @@ function currentWeekIndex(startDate: string, weekCount: number): number {
 
 export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScopeId?: string | null; demoEmail?: string | null }> = ({ children, storageScopeId, demoEmail }) => {
   const storageScope = storageScopeId?.trim() ? storageScopeId.trim() : 'global';
-  const storageKeys = {
+  // Identidade estável entre renders — antes o objeto era recriado a cada render (#267)
+  const storageKeys = useMemo(() => ({
     state: `powerlifting_app_state_${storageScope}`,
     activeWorkout: `powerlifting_active_workout_${storageScope}`,
     restTimerEnd: `powerlifting_rest_timer_end_${storageScope}`,
-  };
+  }), [storageScope]);
 
   // Load State from LocalStorage
   const [state, setState] = useState<AppState>(() => {
@@ -784,11 +785,33 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     return ok;
   };
 
-  // Sync state to local storage on change
+  // Persistência do AppState com debounce curto: serializar + gravar o estado inteiro
+  // de forma síncrona a cada mudança mínima custava caro no celular (#267). O flush
+  // fica exposto por ref para quem precisa do resultado REAL do save antes de decidir
+  // (a remoção do backup do treino ativo, issue #266) forçar a gravação pendente.
+  const flushStateSave = useRef<() => void>(() => {});
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
-    lastStateSaveOk.current = safeSetItem(storageKeys.state, JSON.stringify(state));
+    let done = false;
+    const write = () => {
+      if (done) return;
+      done = true;
+      lastStateSaveOk.current = safeSetItem(storageKeys.state, JSON.stringify(state));
+    };
+    flushStateSave.current = write;
+    const t = setTimeout(write, 300);
+    return () => clearTimeout(t);
   }, [state, storageKeys.state]);
+
+  // Flush fora do ciclo de render: fechar/ocultar a aba e desmontar o provider
+  // (logout/troca de conta) não podem perder a janela do debounce.
+  useEffect(() => {
+    const onPageHide = () => flushStateSave.current();
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      flushStateSave.current();
+    };
+  }, []);
 
   // Aplica o tema de acento no documento (lido pelo CSS via [data-theme])
   useEffect(() => {
@@ -800,11 +823,16 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     if (activeWorkout) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
       safeSetItem(storageKeys.activeWorkout, JSON.stringify(activeWorkout));
-    } else if (shouldClearActiveBackup(false, lastStateSaveOk.current)) {
-      // Só remove o backup se o estado (com o treino já no history) foi salvo. Se a
-      // gravação do estado falhou (cota), a chave de backup é a ÚNICA cópia do treino
-      // recém-finalizado — mantê-la evita a perda total no reload (issue #266).
-      try { localStorage.removeItem(storageKeys.activeWorkout); } catch { /* SecurityError: falha silenciosa */ }
+    } else {
+      // Com o save do estado debounced, força a gravação pendente ANTES de decidir:
+      // lastStateSaveOk precisa refletir o estado que já contém o treino no history (#267).
+      flushStateSave.current();
+      if (shouldClearActiveBackup(false, lastStateSaveOk.current)) {
+        // Só remove o backup se o estado (com o treino já no history) foi salvo. Se a
+        // gravação do estado falhou (cota), a chave de backup é a ÚNICA cópia do treino
+        // recém-finalizado — mantê-la evita a perda total no reload (issue #266).
+        try { localStorage.removeItem(storageKeys.activeWorkout); } catch { /* SecurityError: falha silenciosa */ }
+      }
     }
   }, [activeWorkout, storageKeys.activeWorkout]);
 

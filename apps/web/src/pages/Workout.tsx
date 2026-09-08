@@ -1,10 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
-import type { WorkoutTemplate } from '@powerlifting/shared';
+import type { ExerciseState, WorkoutTemplate } from '@powerlifting/shared';
 import { TYPE_CYCLE } from '../utils/setTypeCycle';
+
+// Componente folha do cronômetro: o tick de 1s re-renderiza só este span,
+// não a lista inteira do treino (#267).
+const WorkoutTimer: React.FC<{ startIso: string }> = ({ startIso }) => {
+  const [elapsed, setElapsed] = useState('00:00');
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((Date.now() - new Date(startIso).getTime()) / 1000));
+      const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+      setElapsed(h > 0
+        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+        : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [startIso]);
+
+  return <span style={styles.timer}><Clock size={14} /> {elapsed}</span>;
+};
 
 export const Workout: React.FC = () => {
   const {
@@ -38,7 +59,6 @@ export const Workout: React.FC = () => {
   const [confirmRemoveExIdx, setConfirmRemoveExIdx] = useState<number | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [openExNotes, setOpenExNotes] = useState<Set<number>>(new Set());
-  const [elapsed, setElapsed] = useState('00:00');
 
   useEffect(() => {
     if (pendingFinishRef.current && history.length > 0) {
@@ -47,19 +67,35 @@ export const Workout: React.FC = () => {
     }
   }, [history]);
 
-  useEffect(() => {
-    if (!activeWorkout) return;
-    const tick = () => {
-      const diff = Math.max(0, Math.floor((Date.now() - new Date(activeWorkout.date).getTime()) / 1000));
-      const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
-      setElapsed(h > 0
-        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-        : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-    };
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [activeWorkout]);
+  // Chave estável dos nomes dos exercícios: deps dos memos abaixo sem invalidar
+  // a cada keystroke (updateSet recria os arrays de sets, não os nomes) (#267).
+  const exerciseNamesKey = activeWorkout ? activeWorkout.exercises.map((e) => e.name).join('\n') : '';
+
+  // e1RM por exercício: uma varredura do history por exercício, não por render × exercício (#267)
+  const e1rmByExercise = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!exerciseNamesKey) return m;
+    for (const name of exerciseNamesKey.split('\n')) {
+      const key = name.toLowerCase();
+      if (!m.has(key)) m.set(key, getMaxE1RM(name));
+    }
+    return m;
+  }, [exerciseNamesKey, getMaxE1RM]);
+
+  // Exercício-fonte da coluna "ANT." por nome: evita varrer o history por série (#267)
+  const prevExByName = useMemo(() => {
+    const m = new Map<string, ExerciseState>();
+    if (!exerciseNamesKey) return m;
+    for (const name of exerciseNamesKey.split('\n')) {
+      const key = name.toLowerCase();
+      if (m.has(key)) continue;
+      for (const s of history) {
+        const ex = s.exercises.find((e) => e.name.toLowerCase() === key);
+        if (ex) { m.set(key, ex); break; }
+      }
+    }
+    return m;
+  }, [exerciseNamesKey, history]);
 
   if (!activeWorkout) {
     if (workoutSummary) {
@@ -188,15 +224,10 @@ export const Workout: React.FC = () => {
   }
 
   const lastPerf = (name: string, setIdx: number): string | null => {
-    const ln = name.toLowerCase();
-    for (const s of history) {
-      const ex = s.exercises.find((e) => e.name.toLowerCase() === ln);
-      if (ex) {
-        const set = ex.sets[setIdx] || ex.sets[ex.sets.length - 1];
-        if (set) return `${set.weight}×${set.reps}`;
-      }
-    }
-    return null;
+    const prevEx = prevExByName.get(name.toLowerCase());
+    if (!prevEx) return null;
+    const set = prevEx.sets[setIdx] || prevEx.sets[prevEx.sets.length - 1];
+    return set ? `${set.weight}×${set.reps}` : null;
   };
 
   const openPlate = (exIdx: number, setIdx: number, w: number) => {
@@ -226,7 +257,7 @@ export const Workout: React.FC = () => {
       <div style={styles.appbar}>
         <div style={styles.titleWrap}>
           <h1 style={styles.title}>{activeWorkout.name}</h1>
-          <span style={styles.timer}><Clock size={14} /> {elapsed}</span>
+          <WorkoutTimer startIso={activeWorkout.date} />
         </div>
         <div style={styles.actions}>
           <button onClick={() => setShowConfirmCancel(true)} style={styles.discardBtn}>Descartar</button>
@@ -273,7 +304,7 @@ export const Workout: React.FC = () => {
               <div>
                 <div style={styles.exName}>{ex.name}</div>
                 <div style={styles.exSub}>{(() => {
-                  const e1rm = getMaxE1RM(ex.name);
+                  const e1rm = e1rmByExercise.get(ex.name.toLowerCase()) ?? 0;
                   const ws = ex.sets.find(s => s.type !== 'W');
                   const target = ws?.percentage && e1rm > 0
                     ? Math.round(e1rm * ws.percentage / 100 / 2.5) * 2.5

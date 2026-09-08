@@ -163,7 +163,9 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const isMale = settings.gender === 'male';
 
   // --- Janela de tempo ---
-  const now = new Date().getTime();
+  // 'now' estável por montagem: um valor novo a cada render mudaria from/to e
+  // invalidaria sessions/chrono e todos os memos derivados a cada hover (#267).
+  const [now] = useState(() => new Date().getTime());
   let from = 0;
   let to = now;
   if (period === '4w') from = now - 4 * 7 * 86400000;
@@ -185,15 +187,20 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const n = chrono.length;
 
   // --- Resumo ---
-  const totalVolume = sessions.reduce((a, s) => a + tonnageOf(s), 0);
-  const prCount = sessions.reduce(
-    (a, s) => a + s.exercises.reduce((b, ex) => b + ex.sets.filter((set) => set.completed && set.isPr).length, 0),
-    0,
-  );
-  const volumeLabel = totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}t` : `${Math.round(totalVolume)}`;
+  const { totalVolume, prCount, volumeLabel } = useMemo(() => {
+    const vol = sessions.reduce((a, s) => a + tonnageOf(s), 0);
+    return {
+      totalVolume: vol,
+      prCount: sessions.reduce(
+        (a, s) => a + s.exercises.reduce((b, ex) => b + ex.sets.filter((set) => set.completed && set.isPr).length, 0),
+        0,
+      ),
+      volumeLabel: vol >= 1000 ? `${(vol / 1000).toFixed(1)}t` : `${Math.round(vol)}`,
+    };
+  }, [sessions]);
 
   // --- e1RM por levantamento ---
-  const series = LIFTS.map((l) => {
+  const series = useMemo(() => LIFTS.map((l) => {
     const pts: { i: number; v: number }[] = [];
     chrono.forEach((s, idx) => {
       let best = 0;
@@ -210,7 +217,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
       if (best > 0) pts.push({ i: idx, v: best });
     });
     return { ...l, pts };
-  });
+  }), [chrono]);
 
   const allVals = series.flatMap((s) => s.pts.map((p) => p.v));
   // Mostra o gráfico mesmo com um único ponto por lift (carrega os lifts próximos disponíveis).
@@ -296,92 +303,95 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const dots = sbdTotal ? calculateDots(bwNow, sbdTotal, isMale) : 0;
   const wilks = sbdTotal ? calculateWilks(bwNow, sbdTotal, isMale) : 0;
 
-  // --- Tendência do total estimado (SBD) por sessão (running best) ---
-  const { totalTrend, totalTrendDates } = (() => {
-    const best: Record<string, number> = {};
-    const vals: number[] = [];
-    const dates: string[] = [];
-    chrono.forEach((s) => {
-      s.exercises.forEach((ex) => {
-        const ln = ex.name.toLowerCase();
-        const li = LIFTS.findIndex((l) => l.match(ln));
-        if (li < 0) return;
-        ex.sets.forEach((set) => {
-          if (set.completed) {
-            const e = calculateE1RM(set.weight, set.reps, set.rpe);
-            if (e > (best[LIFTS[li].label] || 0)) best[LIFTS[li].label] = e;
-          }
+  // --- Tendências (total SBD, relativo, DOTS, Wilks) — varreduras completas do período ---
+  const { totalTrend, totalTrendDates, relTrend, relTrendDates, dotsTrendCard, wilksTrendCard } = useMemo(() => {
+    const runningBest = (withBodyweight: boolean) => {
+      const best: Record<string, number> = {};
+      const vals: number[] = [];
+      const dates: string[] = [];
+      chrono.forEach((s) => {
+        s.exercises.forEach((ex) => {
+          const ln = ex.name.toLowerCase();
+          const li = LIFTS.findIndex((l) => l.match(ln));
+          if (li < 0) return;
+          ex.sets.forEach((set) => {
+            if (set.completed) {
+              const e = calculateE1RM(set.weight, set.reps, set.rpe);
+              if (e > (best[LIFTS[li].label] || 0)) best[LIFTS[li].label] = e;
+            }
+          });
         });
+        const t = LIFTS.reduce((a, l) => a + (best[l.label] || 0), 0);
+        if (!withBodyweight) {
+          if (t > 0) { vals.push(Math.round(t)); dates.push(s.date); }
+        } else {
+          const w = getBodyweightAt(s.date);
+          if (t > 0 && w > 0) { vals.push(Math.round((t / w) * 100) / 100); dates.push(s.date); }
+        }
       });
-      const t = LIFTS.reduce((a, l) => a + (best[l.label] || 0), 0);
-      if (t > 0) { vals.push(Math.round(t)); dates.push(s.date); }
-    });
-    return { totalTrend: vals, totalTrendDates: dates };
-  })();
+      return { vals, dates };
+    };
 
-  // --- e1RM relativo ao peso corporal ---
-  const { relTrend, relTrendDates } = (() => {
-    const best: Record<string, number> = {};
-    const vals: number[] = [];
-    const dates: string[] = [];
-    chrono.forEach((s) => {
-      s.exercises.forEach((ex) => {
-        const ln = ex.name.toLowerCase();
-        const li = LIFTS.findIndex((l) => l.match(ln));
-        if (li < 0) return;
-        ex.sets.forEach((set) => {
-          if (set.completed) {
-            const e = calculateE1RM(set.weight, set.reps, set.rpe);
-            if (e > (best[LIFTS[li].label] || 0)) best[LIFTS[li].label] = e;
-          }
-        });
+    const total = runningBest(false);
+    const rel = runningBest(true);
+
+    const buildScoreTrend = (calculateScore: (bodyweight: number, total: number, isMale: boolean) => number) => {
+      const values: number[] = [];
+      const dates: string[] = [];
+
+      total.vals.forEach((t, idx) => {
+        const date = total.dates[idx];
+        const bodyweight = getBodyweightAt(date);
+        const value = Math.round(calculateScore(bodyweight, t, isMale));
+        if (value > 0) {
+          values.push(value);
+          dates.push(date);
+        }
       });
-      const t = LIFTS.reduce((a, l) => a + (best[l.label] || 0), 0);
-      const w = getBodyweightAt(s.date);
-      if (t > 0 && w > 0) { vals.push(Math.round((t / w) * 100) / 100); dates.push(s.date); }
-    });
-    return { relTrend: vals, relTrendDates: dates };
-  })();
 
-  const buildScoreTrend = (calculateScore: (bodyweight: number, total: number, isMale: boolean) => number) => {
-    const values: number[] = [];
-    const dates: string[] = [];
+      const current = values.length ? values[values.length - 1] : 0;
+      const delta = values.length >= 2 ? current - values[0] : 0;
+      return { values, dates, current, delta };
+    };
 
-    totalTrend.forEach((total, idx) => {
-      const date = totalTrendDates[idx];
-      const bodyweight = getBodyweightAt(date);
-      const value = Math.round(calculateScore(bodyweight, total, isMale));
-      if (value > 0) {
-        values.push(value);
-        dates.push(date);
-      }
-    });
-
-    const current = values.length ? values[values.length - 1] : 0;
-    const delta = values.length >= 2 ? current - values[0] : 0;
-    return { values, dates, current, delta };
-  };
-
-  const dotsTrendCard = buildScoreTrend(calculateDots);
-  const wilksTrendCard = buildScoreTrend(calculateWilks);
+    return {
+      totalTrend: total.vals,
+      totalTrendDates: total.dates,
+      relTrend: rel.vals,
+      relTrendDates: rel.dates,
+      dotsTrendCard: buildScoreTrend(calculateDots),
+      wilksTrendCard: buildScoreTrend(calculateWilks),
+    };
+  }, [chrono, getBodyweightAt, isMale]);
 
   // --- Peso corporal no período ---
-  const bwEntries = getBodyweightSeriesInRange(bodyweightLog, from, to);
-  const bwSeries = bwEntries.map((e) => e.weight);
-  const bwDelta = bwSeries.length >= 2 ? Math.round((bwSeries[bwSeries.length - 1] - bwSeries[0]) * 10) / 10 : 0;
+  const { bwEntries, bwSeries, bwDelta } = useMemo(() => {
+    const entries = getBodyweightSeriesInRange(bodyweightLog, from, to);
+    const weights = entries.map((e) => e.weight);
+    return {
+      bwEntries: entries,
+      bwSeries: weights,
+      bwDelta: weights.length >= 2 ? Math.round((weights[weights.length - 1] - weights[0]) * 10) / 10 : 0,
+    };
+  }, [bodyweightLog, from, to]);
 
   // --- Volume por músculo ---
-  const muscleVal: Record<string, number> = {};
-  sessions.forEach((s) =>
-    s.exercises.forEach((ex) => {
-      const vol = ex.sets.reduce((a, set) => a + (set.completed ? (muscleMetric === 'tonnage' ? set.weight * set.reps : 1) : 0), 0);
-      if (!vol) return;
-      const { primary, secondary } = getExerciseMuscles(ex.name);
-      primary.forEach((m) => (muscleVal[m] = (muscleVal[m] || 0) + vol));
-      secondary.forEach((m) => (muscleVal[m] = (muscleVal[m] || 0) + vol * 0.5));
-    }),
-  );
-  const maxMuscle = Math.max(1, ...Object.values(muscleVal));
+  const { muscleVal, maxMuscle, topMuscles, hasMuscle } = useMemo(() => {
+    const vals: Record<string, number> = {};
+    sessions.forEach((s) =>
+      s.exercises.forEach((ex) => {
+        const vol = ex.sets.reduce((a, set) => a + (set.completed ? (muscleMetric === 'tonnage' ? set.weight * set.reps : 1) : 0), 0);
+        if (!vol) return;
+        const { primary, secondary } = getExerciseMuscles(ex.name);
+        primary.forEach((m) => (vals[m] = (vals[m] || 0) + vol));
+        secondary.forEach((m) => (vals[m] = (vals[m] || 0) + vol * 0.5));
+      }),
+    );
+    const top = (Object.entries(vals) as [MuscleGroup, number][])
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+    return { muscleVal: vals, maxMuscle: Math.max(1, ...Object.values(vals)), topMuscles: top, hasMuscle: top.length > 0 };
+  }, [sessions, muscleMetric]);
   const fillFor = (m: MuscleGroup): string => {
     const r = (muscleVal[m] || 0) / maxMuscle;
     if (r <= 0) return 'var(--bg-primary)';
@@ -389,10 +399,6 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
     const pct = Math.round((0.56 + Math.sqrt(r) * 0.44) * 100);
     return `color-mix(in srgb, var(--accent) ${pct}%, var(--bg-primary))`;
   };
-  const topMuscles = (Object.entries(muscleVal) as [MuscleGroup, number][])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4);
-  const hasMuscle = topMuscles.length > 0;
 
   // --- Tonelagem semanal ---
   const { weekBars, maxWeekBar } = useMemo(() => {
@@ -426,61 +432,72 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   }, [sessions, topExMetric]);
 
   // --- RPE médio por semana ---
-  const rpeWeek: Record<number, { sum: number; count: number }> = {};
-  sessions.forEach((s) => {
-    const k = weekStart(new Date(s.date).getTime());
-    s.exercises.forEach((ex) =>
-      ex.sets.forEach((set) => {
-        if (set.completed && set.rpe) {
-          rpeWeek[k] = rpeWeek[k] || { sum: 0, count: 0 };
-          rpeWeek[k].sum += set.rpe;
-          rpeWeek[k].count += 1;
-        }
-      }),
-    );
-  });
-  const rpeWeekKeys = Object.keys(rpeWeek)
-    .map(Number)
-    .sort((a, b) => a - b)
-    .slice(-8);
-  const rpeWeekVals = rpeWeekKeys.map((k) => Math.round((rpeWeek[k].sum / rpeWeek[k].count) * 10) / 10);
+  const { rpeWeekKeys, rpeWeekVals } = useMemo(() => {
+    const rpeWeek: Record<number, { sum: number; count: number }> = {};
+    sessions.forEach((s) => {
+      const k = weekStart(new Date(s.date).getTime());
+      s.exercises.forEach((ex) =>
+        ex.sets.forEach((set) => {
+          if (set.completed && set.rpe) {
+            rpeWeek[k] = rpeWeek[k] || { sum: 0, count: 0 };
+            rpeWeek[k].sum += set.rpe;
+            rpeWeek[k].count += 1;
+          }
+        }),
+      );
+    });
+    const keys = Object.keys(rpeWeek)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .slice(-8);
+    return { rpeWeekKeys: keys, rpeWeekVals: keys.map((k) => Math.round((rpeWeek[k].sum / rpeWeek[k].count) * 10) / 10) };
+  }, [sessions]);
 
   // --- Distribuição de RPE (balde ≤5 + escopo: treino inteiro ou só SBD) ---
-  const rpeCounts: Record<number, number> = { 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-  sessions.forEach((s) =>
-    s.exercises.forEach((ex) => {
-      if (rpeScope === 'sbd' && !LIFTS.some((l) => l.match(ex.name.toLowerCase()))) return;
-      ex.sets.forEach((set) => {
-        if (set.completed && set.rpe) {
-          const r = Math.round(set.rpe);
-          if (r <= 5) rpeCounts[5]++;
-          else if (r <= 10) rpeCounts[r]++;
-        }
-      });
-    }),
-  );
-  const maxRpe = Math.max(...Object.values(rpeCounts), 1);
-  const hasRpe = Object.values(rpeCounts).some((c) => c > 0);
+  const { rpeCounts, maxRpe, hasRpe } = useMemo(() => {
+    const counts: Record<number, number> = { 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+    sessions.forEach((s) =>
+      s.exercises.forEach((ex) => {
+        if (rpeScope === 'sbd' && !LIFTS.some((l) => l.match(ex.name.toLowerCase()))) return;
+        ex.sets.forEach((set) => {
+          if (set.completed && set.rpe) {
+            const r = Math.round(set.rpe);
+            if (r <= 5) counts[5]++;
+            else if (r <= 10) counts[r]++;
+          }
+        });
+      }),
+    );
+    return {
+      rpeCounts: counts,
+      maxRpe: Math.max(...Object.values(counts), 1),
+      hasRpe: Object.values(counts).some((c) => c > 0),
+    };
+  }, [sessions, rpeScope]);
 
   // --- Heatmap de frequência (últimas 5 semanas) ---
-  const dayCounts: Record<string, number> = {};
-  const dayWorkouts: Record<string, string[]> = {};
-  history.forEach((s) => {
-    const key = new Date(s.date).toDateString();
-    dayCounts[key] = (dayCounts[key] || 0) + 1;
-    if (!dayWorkouts[key]) dayWorkouts[key] = [];
-    dayWorkouts[key].push(s.name);
-  });
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const heatCells: number[] = [];
-  const heatDates: Date[] = [];
-  for (let i = 34; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    heatCells.push(dayCounts[d.toDateString()] || 0);
-    heatDates.push(new Date(d));
-  }
+  const { dayWorkouts, heatCells, heatDates } = useMemo(() => {
+    const dayCounts: Record<string, number> = {};
+    const workouts: Record<string, string[]> = {};
+    history.forEach((s) => {
+      const key = new Date(s.date).toDateString();
+      dayCounts[key] = (dayCounts[key] || 0) + 1;
+      if (!workouts[key]) workouts[key] = [];
+      workouts[key].push(s.name);
+    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cells: number[] = [];
+    const dates: Date[] = [];
+    for (let i = 34; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      cells.push(dayCounts[d.toDateString()] || 0);
+      dates.push(new Date(d));
+    }
+    return { dayWorkouts: workouts, heatCells: cells, heatDates: dates };
+  }, [history]);
+
   const heatStyle = (c: number): React.CSSProperties => {
     if (c <= 0) return { backgroundColor: 'var(--bg-tertiary)' };
     const op = c >= 3 ? 1 : c === 2 ? 0.7 : 0.4;
@@ -488,18 +505,20 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   };
 
   // --- Linha do tempo de PRs ---
-  const prs: { name: string; weight: number; e1rm: number; date: string }[] = [];
-  sessions.forEach((s) =>
-    s.exercises.forEach((ex) =>
-      ex.sets.forEach((set) => {
-        if (set.completed && set.isPr) {
-          prs.push({ name: ex.name, weight: set.weight, e1rm: calculateE1RM(set.weight, set.reps, set.rpe), date: s.date });
-        }
-      }),
-    ),
-  );
-  prs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const prsSBD = prs.filter((pr) => LIFTS.some((l) => l.match(pr.name.toLowerCase())));
+  const { prs, prsSBD } = useMemo(() => {
+    const all: { name: string; weight: number; e1rm: number; date: string }[] = [];
+    sessions.forEach((s) =>
+      s.exercises.forEach((ex) =>
+        ex.sets.forEach((set) => {
+          if (set.completed && set.isPr) {
+            all.push({ name: ex.name, weight: set.weight, e1rm: calculateE1RM(set.weight, set.reps, set.rpe), date: s.date });
+          }
+        }),
+      ),
+    );
+    all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return { prs: all, prsSBD: all.filter((pr) => LIFTS.some((l) => l.match(pr.name.toLowerCase()))) };
+  }, [sessions]);
   const prsFiltered = prFilter === 'sbd' ? prsSBD : prs;
 
   const periods: { id: Period; label: string }[] = [
