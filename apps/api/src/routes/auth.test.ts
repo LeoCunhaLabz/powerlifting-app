@@ -188,3 +188,116 @@ test('POST /auth/reset com token já usado responde 400 sem alterar dados', asyn
 
   await app.close()
 })
+
+// --- POST /auth/refresh: rotação atômica (issue #265) ---
+
+import { sessions as sessionsTable, users as usersTable } from '../db/schema.js'
+import { hashRefreshToken } from '../lib/auth.js'
+
+/**
+ * Mock focado no refresh: delete-por-hash com returning, select de user e o
+ * insert da nova sessão — tudo dentro de transaction. Registra os inserts para
+ * provar que a nova sessão foi criada (rotação) na mesma transação do delete.
+ */
+function createRefreshMockDb(opts: { session: { userId: string; expiresAt: Date } | null; user: { id: string; email: string } | null }) {
+  const inserted: Array<Record<string, unknown>> = []
+  const tx = {
+    delete() {
+      return {
+        where() {
+          return { async returning() { return opts.session ? [opts.session] : [] } }
+        },
+      }
+    },
+    select() {
+      return {
+        from(table: unknown) {
+          return {
+            where() {
+              return { async limit() { return table === usersTable && opts.user ? [opts.user] : [] } }
+            },
+          }
+        },
+      }
+    },
+    insert(table: unknown) {
+      return { async values(v: Record<string, unknown>) { if (table === sessionsTable) inserted.push(v) } }
+    },
+  }
+  return {
+    inserted,
+    async transaction<T>(fn: (t: typeof tx) => Promise<T>): Promise<T> { return fn(tx) },
+  }
+}
+
+async function buildRefreshApp(db: ReturnType<typeof createRefreshMockDb>) {
+  const app = Fastify()
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
+  app.decorate('db', db as never)
+  app.decorate('jwt', { sign: () => 'signed-access-token' } as never)
+  app.decorate('authenticate', async () => {})
+  await app.register(authRoutes)
+  return app
+}
+
+test('POST /auth/refresh rotaciona: nova sessão inserida na mesma transação, novo par retornado', async () => {
+  const db = createRefreshMockDb({
+    session: { userId: 'user-1', expiresAt: new Date(Date.now() + 60_000) },
+    user: { id: 'user-1', email: 'atleta@example.com' },
+  })
+  const app = await buildRefreshApp(db)
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/auth/refresh',
+    payload: { refreshToken: 'R0' },
+  })
+
+  assert.equal(response.statusCode, 200)
+  const body = response.json()
+  assert.equal(body.accessToken, 'signed-access-token')
+  assert.ok(body.refreshToken && body.refreshToken !== 'R0', 'refresh token rotacionado')
+  // A nova sessão foi criada (rotação atômica) com o hash do token novo.
+  assert.equal(db.inserted.length, 1)
+  assert.equal(db.inserted[0]?.refreshTokenHash, hashRefreshToken(body.refreshToken))
+
+  await app.close()
+})
+
+test('POST /auth/refresh com token inexistente responde 401 e NÃO cria sessão', async () => {
+  const db = createRefreshMockDb({ session: null, user: null })
+  const app = await buildRefreshApp(db)
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/auth/refresh',
+    payload: { refreshToken: 'inexistente' },
+  })
+
+  assert.equal(response.statusCode, 401)
+  assert.equal(response.json().code, 'INVALID_REFRESH_TOKEN')
+  assert.equal(db.inserted.length, 0)
+
+  await app.close()
+})
+
+test('POST /auth/refresh com token expirado responde 401 sem rotacionar', async () => {
+  const db = createRefreshMockDb({
+    session: { userId: 'user-1', expiresAt: new Date(Date.now() - 1000) },
+    user: { id: 'user-1', email: 'atleta@example.com' },
+  })
+  const app = await buildRefreshApp(db)
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/auth/refresh',
+    payload: { refreshToken: 'R0' },
+  })
+
+  assert.equal(response.statusCode, 401)
+  assert.equal(response.json().code, 'EXPIRED_REFRESH_TOKEN')
+  assert.equal(db.inserted.length, 0)
+
+  await app.close()
+})
