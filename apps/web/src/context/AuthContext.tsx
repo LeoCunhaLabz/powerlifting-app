@@ -3,15 +3,12 @@ import {
   login as apiLogin,
   register as apiRegister,
   logout as apiLogout,
-  refreshTokens as apiRefresh,
   getMe,
   loginWithGoogle as apiLoginWithGoogle,
   deleteAccount as apiDeleteAccount,
 } from '../services/authApi';
 import type { AuthUser } from '../services/authApi';
-
-const ACCESS_TOKEN_KEY = 'powerlifting_token';
-const REFRESH_TOKEN_KEY = 'powerlifting_refresh_token';
+import { saveTokens, clearTokens, getRefreshToken, getAccessToken, refreshSession } from '../services/session';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -29,54 +26,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function saveTokens(accessToken: string, refreshToken: string) {
-  try {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  } catch {
-    // ignora erros de cota/modo privado
-  }
-}
-
-function clearTokens() {
-  try {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-  } catch {
-    // ignora
-  }
-}
-
-function getSavedRefreshToken(): string | null {
-  try {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Ao montar: tenta restaurar sessão via refresh token salvo
+  // Ao montar: tenta restaurar sessão via refresh token salvo.
+  // refreshSession é single-flight + anti-clobber (#265): o StrictMode monta o
+  // efeito duas vezes em dev, e duas abas compartilham o localStorage — sem isso
+  // a chamada "perdedora" apagava os tokens que a vencedora acabara de salvar.
   useEffect(() => {
     const restore = async () => {
-      const savedRefresh = getSavedRefreshToken();
-      if (!savedRefresh) {
+      if (!getRefreshToken()) {
         setIsLoading(false);
         return;
       }
       try {
-        const tokens = await apiRefresh(savedRefresh);
-        const me = await getMe(tokens.accessToken);
-        saveTokens(tokens.accessToken, tokens.refreshToken);
-        setAccessToken(tokens.accessToken);
+        const accessToken = await refreshSession();
+        if (!accessToken) return; // sem sessão recuperável: refreshSession já limpou se preciso
+        const me = await getMe(accessToken);
+        // Relê: refreshSession pode ter reaproveitado o token de outra aba.
+        setAccessToken(getAccessToken());
         setUser(me);
       } catch {
-        // refresh inválido/expirado — limpa e pede novo login
-        clearTokens();
+        // getMe falhou (ex.: rede) — não desloga; a sessão pode estar viva.
       } finally {
         setIsLoading(false);
       }
@@ -99,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(async () => {
-    const savedRefresh = getSavedRefreshToken();
+    const savedRefresh = getRefreshToken();
     if (savedRefresh) {
       try {
         await apiLogout(savedRefresh);

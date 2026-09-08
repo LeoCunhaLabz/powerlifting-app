@@ -192,37 +192,57 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const tokenHash = hashRefreshToken(request.body.refreshToken)
 
-      const [session] = await app.db
-        .delete(sessions)
-        .where(eq(sessions.refreshTokenHash, tokenHash))
-        .returning({
-          id: sessions.id,
-          userId: sessions.userId,
-          expiresAt: sessions.expiresAt,
+      // Rotação atômica (issue #265): delete da sessão antiga e insert da nova
+      // numa transação. Antes, se o insert falhasse após o delete, o usuário
+      // ficava SEM sessão nenhuma. A transação retorna erros de sessão como
+      // valores (não throw) para não abortar por um 401 esperado.
+      type RefreshResult =
+        | { error: 'INVALID_REFRESH_TOKEN' | 'EXPIRED_REFRESH_TOKEN' }
+        | { accessToken: string; refreshToken: string }
+
+      const result = await app.db.transaction(async (tx): Promise<RefreshResult> => {
+        const [session] = await tx
+          .delete(sessions)
+          .where(eq(sessions.refreshTokenHash, tokenHash))
+          .returning({ userId: sessions.userId, expiresAt: sessions.expiresAt })
+
+        if (!session) {
+          return { error: 'INVALID_REFRESH_TOKEN' }
+        }
+        if (session.expiresAt.getTime() < Date.now()) {
+          return { error: 'EXPIRED_REFRESH_TOKEN' }
+        }
+
+        const [user] = await tx
+          .select({ id: users.id, email: users.email })
+          .from(users)
+          .where(eq(users.id, session.userId))
+          .limit(1)
+
+        if (!user) {
+          return { error: 'INVALID_REFRESH_TOKEN' }
+        }
+
+        const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
+        const refreshToken = generateRefreshToken()
+        await tx.insert(sessions).values({
+          userId: user.id,
+          refreshTokenHash: hashRefreshToken(refreshToken),
+          expiresAt: new Date(Date.now() + durationToMs(env.REFRESH_TOKEN_EXPIRES_IN)),
         })
 
-      if (!session) {
-        return reply.code(401).send({ code: 'INVALID_REFRESH_TOKEN', message: 'Sessão inválida. Entre novamente.' })
+        return { accessToken, refreshToken }
+      })
+
+      if ('error' in result) {
+        const message =
+          result.error === 'EXPIRED_REFRESH_TOKEN'
+            ? 'Sua sessão expirou. Entre novamente.'
+            : 'Sessão inválida. Entre novamente.'
+        return reply.code(401).send({ code: result.error, message })
       }
 
-      if (session.expiresAt.getTime() < Date.now()) {
-        return reply.code(401).send({ code: 'EXPIRED_REFRESH_TOKEN', message: 'Sua sessão expirou. Entre novamente.' })
-      }
-
-      const [user] = await app.db
-        .select({ id: users.id, email: users.email })
-        .from(users)
-        .where(eq(users.id, session.userId))
-        .limit(1)
-
-      if (!user) {
-        return reply.code(401).send({ code: 'INVALID_REFRESH_TOKEN', message: 'Sessão inválida. Entre novamente.' })
-      }
-
-      const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
-      const refreshToken = await issueRefreshToken(app, user.id)
-
-      return reply.send({ accessToken, refreshToken })
+      return reply.send({ accessToken: result.accessToken, refreshToken: result.refreshToken })
     },
   )
 

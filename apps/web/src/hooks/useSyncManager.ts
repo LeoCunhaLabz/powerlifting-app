@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { CustomExercise, DeletedWorkoutTombstone, WorkoutSession, WorkoutTemplate, Program, SyncStatus } from '@powerlifting/shared';
+import { authorizedFetch, getAccessToken } from '../services/session';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
-const TOKEN_KEY = 'powerlifting_token';
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 
 /** Payload do push: apenas os itens PENDENTES + tombstones de exclusão (#264). */
@@ -37,21 +37,10 @@ interface UseSyncManagerResult {
   pullFromServer: () => Promise<SyncServerData | null>;
 }
 
-function getToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-async function postSync(payload: SyncPayload, token: string): Promise<SyncServerData> {
-  const res = await fetch(`${API_BASE}/sync`, {
+async function postSync(payload: SyncPayload): Promise<SyncServerData> {
+  const res = await authorizedFetch(`${API_BASE}/sync`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 
@@ -77,10 +66,8 @@ async function postSync(payload: SyncPayload, token: string): Promise<SyncServer
   };
 }
 
-async function fetchPull(token: string): Promise<SyncServerData> {
-  const res = await fetch(`${API_BASE}/sync/pull`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+async function fetchPull(): Promise<SyncServerData> {
+  const res = await authorizedFetch(`${API_BASE}/sync/pull`);
 
   if (!res.ok) {
     throw new Error(`Pull falhou: ${res.status}`);
@@ -118,8 +105,7 @@ export function useSyncManager({ onSyncComplete }: UseSyncManagerOptions): UseSy
     async (payload: SyncPayload) => {
       if (isSyncing.current) return;
 
-      const token = getToken();
-      if (!token) {
+      if (!getAccessToken()) {
         // Sem autenticação: nada a fazer, mantém idle
         return;
       }
@@ -128,7 +114,7 @@ export function useSyncManager({ onSyncComplete }: UseSyncManagerOptions): UseSy
       setSyncStatus('syncing');
 
       try {
-        const result = await postSync(payload, token);
+        const result = await postSync(payload);
         retryCount.current = 0;
         pendingPayload.current = null;
         setSyncStatus('idle');
@@ -170,13 +156,12 @@ export function useSyncManager({ onSyncComplete }: UseSyncManagerOptions): UseSy
     [doSync],
   );
 
-  const pullFromServer = useCallback(async (): Promise<SyncPayload | null> => {
-    const token = getToken();
-    if (!token || !navigator.onLine) return null;
+  const pullFromServer = useCallback(async (): Promise<SyncServerData | null> => {
+    if (!getAccessToken() || !navigator.onLine) return null;
 
     setSyncStatus('syncing');
     try {
-      const result = await fetchPull(token);
+      const result = await fetchPull();
       setSyncStatus('idle');
       return result;
     } catch {
@@ -210,7 +195,7 @@ export function useSyncManager({ onSyncComplete }: UseSyncManagerOptions): UseSy
   // Sync periódico a cada 5 min quando online e autenticado
   useEffect(() => {
     const interval = setInterval(() => {
-      if (navigator.onLine && pendingPayload.current && getToken()) {
+      if (navigator.onLine && pendingPayload.current && getAccessToken()) {
         doSync(pendingPayload.current);
       }
     }, SYNC_INTERVAL_MS);
