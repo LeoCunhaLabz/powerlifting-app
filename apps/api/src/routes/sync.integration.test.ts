@@ -16,7 +16,15 @@ const USER_ID = '7d9bc183-a3d6-420f-83b2-534ef6e649bc'
 // (todo item cai no caminho de insert) e o objetivo é validar schemas, ids
 // legados, response shape e o endpoint de reset.
 // ---------------------------------------------------------------------------
-function createMockDb() {
+interface MockDb {
+  transaction<T>(fn: (tx: MockDb) => Promise<T>): Promise<T>
+  select(): { from: () => { where: () => { limit: () => Promise<unknown[]>; then: (resolve: (rows: unknown[]) => void) => void } } }
+  insert(): { values: (value: Record<string, unknown>) => { returning: () => Promise<Record<string, unknown>[]> } }
+  update(): { set: (patch: Record<string, unknown>) => { where: () => { returning: () => Promise<Record<string, unknown>[]> } } }
+  delete(): { where: () => { returning: () => Promise<unknown[]> } }
+}
+
+function createMockDb(): MockDb {
   // where() precisa ser awaitável (pull: `await select().from().where()`) E ter
   // .limit() (get: `... .where().limit(1)`). Um thenable com .limit cobre os dois.
   const emptyWhere = {
@@ -24,8 +32,8 @@ function createMockDb() {
     then: (resolve: (rows: unknown[]) => void) => resolve([]),
   }
 
-  const db = {
-    async transaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
+  const db: MockDb = {
+    async transaction<T>(fn: (tx: MockDb) => Promise<T>): Promise<T> {
       return fn(db)
     },
     select() {
