@@ -1,20 +1,32 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { CustomExercise, WorkoutSession, WorkoutTemplate, Program, SyncStatus } from '@powerlifting/shared';
+import type { CustomExercise, DeletedWorkoutTombstone, WorkoutSession, WorkoutTemplate, Program, SyncStatus } from '@powerlifting/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const TOKEN_KEY = 'powerlifting_token';
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 
+/** Payload do push: apenas os itens PENDENTES + tombstones de exclusão (#264). */
 interface SyncPayload {
   workouts: WorkoutSession[];
   templates: WorkoutTemplate[];
   customExercises: CustomExercise[];
   programs: Program[];
+  deletedWorkouts?: DeletedWorkoutTombstone[];
+}
+
+/** Dados vindos do servidor (eco do push ou pull). */
+interface SyncServerData {
+  workouts: WorkoutSession[];
+  templates: WorkoutTemplate[];
+  customExercises: CustomExercise[];
+  programs: Program[];
+  /** Só no eco do push: tombstones que o servidor processou. */
+  deletedWorkoutIds?: string[];
 }
 
 interface UseSyncManagerOptions {
   /** Chamada quando o servidor retorna dados mais recentes após sync/pull. */
-  onSyncComplete: (payload: SyncPayload) => void;
+  onSyncComplete: (payload: SyncServerData) => void;
 }
 
 interface UseSyncManagerResult {
@@ -22,7 +34,7 @@ interface UseSyncManagerResult {
   /** Dispara sync manualmente (ex.: ao completar um treino). */
   triggerSync: (payload: SyncPayload) => void;
   /** Baixa todos os dados do servidor (para novo dispositivo após login). */
-  pullFromServer: () => Promise<SyncPayload | null>;
+  pullFromServer: () => Promise<SyncServerData | null>;
 }
 
 function getToken(): string | null {
@@ -33,7 +45,7 @@ function getToken(): string | null {
   }
 }
 
-async function postSync(payload: SyncPayload, token: string): Promise<SyncPayload> {
+async function postSync(payload: SyncPayload, token: string): Promise<SyncServerData> {
   const res = await fetch(`${API_BASE}/sync`, {
     method: 'POST',
     headers: {
@@ -52,6 +64,7 @@ async function postSync(payload: SyncPayload, token: string): Promise<SyncPayloa
     templates: Array<{ data: unknown }>;
     customExercises: Array<{ data: unknown }>;
     programs: Array<{ data: unknown }>;
+    deletedWorkoutIds?: string[];
   };
 
   // O servidor devolve rows com { data: WorkoutSession } e { data: WorkoutTemplate }
@@ -60,10 +73,11 @@ async function postSync(payload: SyncPayload, token: string): Promise<SyncPayloa
     templates: data.templates.map((r) => r.data as WorkoutTemplate),
     customExercises: data.customExercises.map((r) => r.data as CustomExercise),
     programs: data.programs.map((r) => r.data as Program),
+    deletedWorkoutIds: data.deletedWorkoutIds ?? [],
   };
 }
 
-async function fetchPull(token: string): Promise<SyncPayload> {
+async function fetchPull(token: string): Promise<SyncServerData> {
   const res = await fetch(`${API_BASE}/sync/pull`, {
     headers: { Authorization: `Bearer ${token}` },
   });

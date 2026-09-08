@@ -21,6 +21,7 @@ export const Workout: React.FC = () => {
     const seen = new Set(EXERCISE_OPTIONS.map((o) => o.toLowerCase()));
     const merged = [...EXERCISE_OPTIONS];
     for (const c of customExercises) {
+      if (c.deleted) continue;
       if (!seen.has(c.name.toLowerCase())) { seen.add(c.name.toLowerCase()); merged.push(c.name); }
     }
     return merged;

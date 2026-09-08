@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { 
   AppState, 
   WorkoutSession, 
@@ -54,6 +54,30 @@ function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
 }
 import { isValidImportedState } from '../utils/validateAppState';
 import { useSyncManager } from '../hooks/useSyncManager';
+import { applyServerData } from '../utils/syncMerge';
+
+/** Assinatura dos flags de PR de uma sessão — detecta mudança derivada pelo recálculo. */
+function prSignature(s: WorkoutSession): string {
+  return s.exercises.map(ex => ex.sets.map(set => (set.isPr ? '1' : '0')).join('')).join('|');
+}
+
+/**
+ * Marca como pendentes de sync as sessões cujo conteúdo mudou: a editada (sempre) e
+ * qualquer outra cujos flags de PR foram recalculados. Sem isso o servidor guardaria
+ * os flags antigos e o pull os reverteria (issue #264).
+ */
+function markChangedPending(
+  before: WorkoutSession[],
+  after: WorkoutSession[],
+  editedId: string | null,
+  nowIso: string,
+): WorkoutSession[] {
+  const beforeSig = new Map(before.map(s => [s.id, prSignature(s)]));
+  return after.map(s => {
+    const changed = s.id === editedId || beforeSig.get(s.id) !== prSignature(s);
+    return changed ? { ...s, updatedAt: nowIso, syncedAt: undefined } : s;
+  });
+}
 
 interface WorkoutContextType {
   state: AppState;
@@ -248,6 +272,7 @@ const DEFAULT_STATE: AppState = {
   bodyweightLog: [],
   programs: [],
   customExercises: [],
+  deletedWorkouts: [],
 };
 
 const DEMO_ACCOUNT_EMAIL = 'leonardovalcesio@gmail.com';
@@ -570,55 +595,21 @@ function createDemoState(baseDate = new Date()): AppState {
   };
 }
 
-async function purgeServerData(token: string): Promise<{ workoutsDeleted: number; templatesDeleted: number; programsDeleted: number }> {
-  const pullResponse = await fetch(`${API_BASE}/sync/pull`, {
+/** Limpa todos os dados do usuário no servidor (transacional, inclui custom exercises). */
+async function purgeServerData(token: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/sync/reset`, {
+    method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });
-
-  if (!pullResponse.ok) {
-    throw new Error(`Falha ao listar dados remotos (${pullResponse.status}).`);
+  if (!response.ok) {
+    throw new Error(`Falha ao limpar dados remotos (${response.status}).`);
   }
-
-  const remote = await pullResponse.json() as {
-    workouts: Array<{ id: string }>;
-    templates: Array<{ id: string }>;
-    programs: Array<{ id: string }>;
-  };
-
-  const deleteById = async (path: 'workouts' | 'templates' | 'programs', id: string) => {
-    const response = await fetch(`${API_BASE}/${path}/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`Falha ao apagar ${path}/${id} (${response.status}).`);
-    }
-  };
-
-  for (const row of remote.workouts) {
-    await deleteById('workouts', row.id);
-  }
-  for (const row of remote.templates) {
-    await deleteById('templates', row.id);
-  }
-  for (const row of remote.programs) {
-    await deleteById('programs', row.id);
-  }
-
-  return {
-    workoutsDeleted: remote.workouts.length,
-    templatesDeleted: remote.templates.length,
-    programsDeleted: remote.programs.length,
-  };
 }
 
 // ---------------------------------------------------------------------------
-// Helper de merge puro — reutilizado em pullFromServer e no pull inicial de boot
-// Regras:
-//   - Workouts:  servidor vence para IDs existentes; locais-only são preservados
-//   - Templates: servidor vence para IDs já sincronizados (syncedAt definido);
-//               templates locais PENDENTES (sem syncedAt) são preservados para
-//               evitar perda antes do push terminar; built-ins nunca são substituídos
+// O merge com dados do servidor vive em utils/syncMerge.ts (applyServerData) —
+// puro e testado. O merge antigo daqui tinha os 3 defeitos da issue #264
+// (loop infinito, edição sobrescrita, treino excluído ressuscitando).
 // ---------------------------------------------------------------------------
 // Helper puro: índice da semana atual (0-based) a partir da data de início
 // e do número de semanas do mesociclo (ciclo volta ao 0 após weekCount semanas).
@@ -628,93 +619,6 @@ function currentWeekIndex(startDate: string, weekCount: number): number {
   const now = new Date();
   const elapsed = Math.max(0, Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000)));
   return weekCount > 0 ? elapsed % weekCount : 0;
-}
-
-function normalizeCustomExerciseName(name: string): string {
-  return name.trim().toLowerCase();
-}
-
-function getCustomExerciseSignature(customExercises: CustomExercise[]): string {
-  return [...customExercises]
-    .map((exercise) => `${exercise.id}:${normalizeCustomExerciseName(exercise.name)}`)
-    .sort()
-    .join('|');
-}
-
-function mergeCustomExercises(
-  prev: CustomExercise[],
-  incoming: CustomExercise[],
-  syncedAt: string,
-): CustomExercise[] {
-  const serverIds = new Set(incoming.map((exercise) => exercise.id));
-  const serverNames = new Set(incoming.map((exercise) => normalizeCustomExerciseName(exercise.name)));
-
-  return [
-    ...incoming.map((exercise) => ({ ...exercise, syncedAt })),
-    ...prev.filter(
-      (exercise) =>
-        !exercise.syncedAt &&
-        !serverIds.has(exercise.id) &&
-        !serverNames.has(normalizeCustomExerciseName(exercise.name)),
-    ),
-  ];
-}
-
-// ---------------------------------------------------------------------------
-function mergePullResult(
-  prev: AppState,
-  result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[]; programs: Program[] },
-  now: string,
-): AppState {
-  // Workouts
-  const serverWorkoutIds = new Set(result.workouts.map(w => w.id));
-  const localWorkoutsOnly = prev.history.filter(h => !serverWorkoutIds.has(h.id));
-  const mergedHistory = [
-    ...result.workouts.map(w => ({ ...w, syncedAt: now })),
-    ...localWorkoutsOnly,
-  ];
-
-  // Templates
-  const localCustomMap = new Map(
-    prev.templates.filter(t => !t.isBuiltIn).map(t => [t.id, t]),
-  );
-  const builtIns = prev.templates.filter(t => t.isBuiltIn);
-  const serverTplIds = new Set(result.templates.map(t => t.id));
-
-  const mergedTemplates = [
-    ...builtIns,
-    ...result.templates.map(t => {
-      const local = localCustomMap.get(t.id);
-      // Preservar versão local quando pendente (editada mas ainda não enviada)
-      if (local && !local.syncedAt) return local;
-      return { ...t, syncedAt: now };
-    }),
-    // Locais custom sem correspondência no servidor (novos, ainda não sincronizados)
-    ...prev.templates.filter(t => !t.isBuiltIn && !serverTplIds.has(t.id)),
-  ];
-
-  // Programs
-  const localProgramMap = new Map(prev.programs.map(p => [p.id, p]));
-  const serverProgramIds = new Set(result.programs.map(p => p.id));
-
-  const mergedPrograms = [
-    ...result.programs.map(p => {
-      const local = localProgramMap.get(p.id);
-      // Preservar versão local quando pendente (editada mas ainda não enviada)
-      if (local && !local.syncedAt) return local;
-      return { ...p, syncedAt: now };
-    }),
-    // Locais sem correspondência no servidor (novos, ainda não sincronizados)
-    ...prev.programs.filter(p => !serverProgramIds.has(p.id)),
-  ];
-
-  return {
-    ...prev,
-    history: mergedHistory,
-    templates: mergedTemplates,
-    customExercises: mergeCustomExercises(prev.customExercises, result.customExercises, now),
-    programs: mergedPrograms,
-  };
 }
 
 export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScopeId?: string | null; demoEmail?: string | null }> = ({ children, storageScopeId, demoEmail }) => {
@@ -738,6 +642,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         parsed.bodyweightLog = parsed.bodyweightLog || [];
         parsed.programs = (parsed as AppState).programs || [];
         parsed.customExercises = (parsed as AppState).customExercises || [];
+        parsed.deletedWorkouts = (parsed as AppState).deletedWorkouts || [];
         return parsed;
       }
     } catch (e) {
@@ -774,29 +679,24 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   // Sinaliza falha ao persistir no localStorage (cota cheia, modo privado, indisponivel)
   const [saveError, setSaveError] = useState<string | null>(null);
   const dismissSaveError = useCallback(() => setSaveError(null), []);
-  const lastSyncedCustomExercisesRef = useRef(
-    getCustomExerciseSignature(state.customExercises.filter((exercise) => !!exercise.syncedAt)),
-  );
 
   // --- Sync Manager ---
   const onSyncComplete = useCallback(
-    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[]; programs: Program[] }) => {
+    (result: { workouts: WorkoutSession[]; templates: WorkoutTemplate[]; customExercises: CustomExercise[]; programs: Program[]; deletedWorkoutIds?: string[] }) => {
       const now = new Date().toISOString();
-      lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
-      setState(prev => mergePullResult(prev, result, now));
+      setState(prev => applyServerData(prev, result, now));
     },
     [],
   );
 
   const { syncStatus, triggerSync, pullFromServer: syncPull } = useSyncManager({ onSyncComplete });
 
-  // Faz pull do servidor e merge com estado local (reutiliza mergePullResult)
+  // Faz pull do servidor e merge com estado local (reutiliza applyServerData)
   const pullFromServer = useCallback(async () => {
     const result = await syncPull();
     if (!result) return;
     const now = new Date().toISOString();
-    lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
-    setState(prev => mergePullResult(prev, result, now));
+    setState(prev => applyServerData(prev, result, now));
   }, [syncPull]);
 
   const reseedDemoData = useCallback(async (confirmationText: string) => {
@@ -827,30 +727,41 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     syncPull().then(result => {
       if (!result || cancelled) return;
       const now = new Date().toISOString();
-      lastSyncedCustomExercisesRef.current = getCustomExerciseSignature(result.customExercises);
-      setState(prev => mergePullResult(prev, result, now));
+      setState(prev => applyServerData(prev, result, now));
     });
     return () => { cancelled = true; };
   // Roda apenas uma vez ao montar
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Detecta itens sem syncedAt e dispara push automaticamente (built-ins excluídos)
+  // Detecta itens sem syncedAt e dispara push automaticamente (built-ins excluídos).
+  // O payload leva SÓ os pendentes (issue #264): antes ia o history INTEIRO a cada
+  // sync — ~2 queries por item no servidor — e a lista completa de exercícios
+  // customizados, que era exatamente o vetor do wipe entre devices.
   useEffect(() => {
-    const customTemplates = state.templates.filter(t => !t.isBuiltIn);
-    const customExerciseSignature = getCustomExerciseSignature(state.customExercises);
-    const hasPending =
-      state.history.some(s => !s.syncedAt) ||
-      customTemplates.some(t => !t.syncedAt) ||
-      state.customExercises.some(exercise => !exercise.syncedAt) ||
-      customExerciseSignature !== lastSyncedCustomExercisesRef.current ||
-      state.programs.some(p => !p.syncedAt);
-    if (hasPending) {
-      triggerSync({ workouts: state.history, templates: customTemplates, customExercises: state.customExercises, programs: state.programs });
+    const pendingWorkouts = state.history.filter(s => !s.syncedAt);
+    const pendingTemplates = state.templates.filter(t => !t.isBuiltIn && !t.syncedAt);
+    const pendingCustomExercises = state.customExercises.filter(e => !e.syncedAt);
+    const pendingPrograms = state.programs.filter(p => !p.syncedAt);
+    const pendingDeleted = (state.deletedWorkouts ?? []).filter(t => !t.syncedAt);
+    if (
+      pendingWorkouts.length > 0 ||
+      pendingTemplates.length > 0 ||
+      pendingCustomExercises.length > 0 ||
+      pendingPrograms.length > 0 ||
+      pendingDeleted.length > 0
+    ) {
+      triggerSync({
+        workouts: pendingWorkouts,
+        templates: pendingTemplates,
+        customExercises: pendingCustomExercises,
+        programs: pendingPrograms,
+        deletedWorkouts: pendingDeleted,
+      });
     }
   // triggerSync é estável (useCallback com deps [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.history, state.templates, state.customExercises, state.programs]);
+  }, [state.history, state.templates, state.customExercises, state.programs, state.deletedWorkouts]);
 
   // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
   // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
@@ -1106,7 +1017,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       ...activeWorkout,
       exercises: finalizedExercises,
       duration,
-      date: new Date().toISOString() // Set completion date/time
+      date: new Date().toISOString(), // Set completion date/time
+      updatedAt: new Date().toISOString(), // last-write-wins no sync (#264)
     };
 
     // Check for Personal Records (PRs) in the new workout
@@ -1329,47 +1241,65 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     setState(prev => {
       const target = prev.templates.find(t => t.id === templateId);
       if (!target || target.isBuiltIn) return prev;
-      const referencedByProgram = prev.programs.some(p => p.templateIds.includes(templateId));
-      if (referencedByProgram) {
-        return {
-          ...prev,
-          templates: prev.templates.map(t =>
-            t.id === templateId ? { ...t, deleted: true, archived: false } : t
-          ),
-        };
-      }
-      return { ...prev, templates: prev.templates.filter(t => t.id !== templateId) };
+      // SEMPRE soft-delete (mesmo sem programa referenciando): a exclusão precisa
+      // viajar no sync — remover do array fazia o pull ressuscitar a rotina (#264).
+      // updatedAt novo + syncedAt limpo marcam como pendente e vencem o LWW.
+      return {
+        ...prev,
+        templates: prev.templates.map(t =>
+          t.id === templateId
+            ? { ...t, deleted: true, archived: false, updatedAt: new Date().toISOString(), syncedAt: undefined }
+            : t
+        ),
+      };
     });
   }, []);
 
-  // Archive / unarchive a template
+  // Archive / unarchive a template (marca pendente: o flag precisa sincronizar — #264)
   const archiveTemplate = useCallback((templateId: string) => {
     setState(prev => ({
       ...prev,
-      templates: prev.templates.map(t => t.id === templateId ? { ...t, archived: true } : t),
+      templates: prev.templates.map(t =>
+        t.id === templateId ? { ...t, archived: true, updatedAt: new Date().toISOString(), syncedAt: undefined } : t
+      ),
     }));
   }, []);
 
   const unarchiveTemplate = useCallback((templateId: string) => {
     setState(prev => ({
       ...prev,
-      templates: prev.templates.map(t => t.id === templateId ? { ...t, archived: false } : t),
+      templates: prev.templates.map(t =>
+        t.id === templateId ? { ...t, archived: false, updatedAt: new Date().toISOString(), syncedAt: undefined } : t
+      ),
     }));
   }, []);
 
   const updateHistorySession = useCallback((updatedSession: WorkoutSession) => {
     setState(prev => {
+      const nowIso = new Date().toISOString();
       const newHistory = prev.history.map(s =>
         s.id === updatedSession.id ? updatedSession : s
       );
-      return { ...prev, history: recalculatePRs(newHistory) };
+      // markChangedPending: a sessão editada E as que tiveram PRs recalculados ficam
+      // pendentes (updatedAt novo, sem syncedAt) — sem isso o servidor mantinha a
+      // versão antiga e o pull desfazia a edição (issue #264).
+      const recalced = recalculatePRs(newHistory).sort((a, b) => b.date.localeCompare(a.date));
+      return { ...prev, history: markChangedPending(prev.history, recalced, updatedSession.id, nowIso) };
     });
   }, []);
 
   const deleteHistorySession = useCallback((sessionId: string) => {
     setState(prev => {
+      const nowIso = new Date().toISOString();
       const newHistory = prev.history.filter(s => s.id !== sessionId);
-      return { ...prev, history: recalculatePRs(newHistory) };
+      const recalced = recalculatePRs(newHistory).sort((a, b) => b.date.localeCompare(a.date));
+      return {
+        ...prev,
+        history: markChangedPending(prev.history, recalced, null, nowIso),
+        // Tombstone: a exclusão viaja no próximo push e o servidor marca deleted:true —
+        // sem isso o pull ressuscitava o treino (issue #264).
+        deletedWorkouts: [...(prev.deletedWorkouts ?? []), { id: sessionId, deletedAt: nowIso }],
+      };
     });
   }, []);
 
@@ -1443,17 +1373,29 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     });
   }, []);
 
-  // Cria exercício customizado — ignora vazio e duplicado (case-insensitive pelo nome)
+  // Cria exercício customizado — ignora vazio e duplicado (case-insensitive pelo nome).
+  // Re-adicionar um nome soft-deleted REVIVE a entrada (mantém o id → o LWW do sync
+  // resolve corretamente contra a exclusão anterior).
   const addCustomExercise = useCallback((name: string): string => {
     const trimmed = name.trim();
     if (!trimmed) return '';
     setState(prev => {
-      const exists = prev.customExercises.some(e => e.name.toLowerCase() === trimmed.toLowerCase());
-      if (exists) return prev;
+      const nowIso = new Date().toISOString();
+      const existing = prev.customExercises.find(e => e.name.toLowerCase() === trimmed.toLowerCase());
+      if (existing && !existing.deleted) return prev;
+      if (existing) {
+        return {
+          ...prev,
+          customExercises: prev.customExercises.map(e =>
+            e.id === existing.id ? { ...e, deleted: undefined, updatedAt: nowIso, syncedAt: undefined } : e
+          ),
+        };
+      }
       const entry: CustomExercise = {
         id: `cex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         name: trimmed,
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
+        updatedAt: nowIso,
       };
       return { ...prev, customExercises: [...prev.customExercises, entry] };
     });
@@ -1461,15 +1403,28 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   }, []);
 
   const removeCustomExercise = useCallback((id: string) => {
+    // Soft-delete pendente: remover do array fazia o pull ressuscitar o exercício (#264).
     setState(prev => ({
       ...prev,
-      customExercises: prev.customExercises.filter(e => e.id !== id),
+      customExercises: prev.customExercises.map(e =>
+        e.id === id ? { ...e, deleted: true, updatedAt: new Date().toISOString(), syncedAt: undefined } : e
+      ),
     }));
   }, []);
 
   // Reseta para conta em branco: zera dados do usuário, preservando as preferências (settings).
+  // Também limpa o SERVIDOR (POST /sync/reset): antes o reset era só local e o pull
+  // seguinte restaurava tudo — o botão simplesmente não funcionava (#264).
   const resetAllData = useCallback(() => {
-    setState(prev => ({ ...DEFAULT_STATE, settings: prev.settings }));
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      fetch(`${API_BASE}/sync/reset`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+        .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); })
+        .catch(() => {
+          setSaveError('Dados locais apagados, mas a limpeza no servidor falhou — eles podem voltar no próximo login. Repita o reset quando estiver online.');
+        });
+    }
+    setState(prev => ({ ...DEFAULT_STATE, settings: prev.settings, deletedWorkouts: [] }));
     setActiveWorkout(null);
     stopRestTimer();
   }, [stopRestTimer]);
@@ -1544,9 +1499,13 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     setState(prev => {
       const existingIndex = programData.id ? prev.programs.findIndex(p => p.id === programData.id) : -1;
       const updatedPrograms = [...prev.programs];
-      // Se o novo programa for marcado como ativo, desativa os demais
+      // Se o novo programa for marcado como ativo, desativa os demais — e marca os
+      // que MUDARAM como pendentes, senão a desativação nunca sincroniza e outro
+      // device fica com dois programas ativos (#264).
       const deactivated = programData.isActive
-        ? updatedPrograms.map(p => ({ ...p, isActive: false }))
+        ? updatedPrograms.map(p =>
+            p.isActive ? { ...p, isActive: false, updatedAt: new Date().toISOString(), syncedAt: undefined } : p
+          )
         : [...updatedPrograms];
       const program: Program = {
         id: programData.id || `program-${Date.now()}`,
@@ -1577,10 +1536,18 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
   const deleteProgram = useCallback((programId: string) => {
     setState(prev => {
-      const newPrograms = prev.programs.filter(p => p.id !== programId);
-      // Cleanup: rotinas soft-deleted que ficaram órfãs (sem programa) são removidas de vez.
+      // Soft-delete pendente: a exclusão precisa sincronizar (remover do array fazia
+      // o pull ressuscitar o programa — #264). isActive false garante que os
+      // find(p => p.isActive) espalhados pelo app nunca acham um programa excluído.
+      const newPrograms = prev.programs.map(p =>
+        p.id === programId
+          ? { ...p, deleted: true, isActive: false, updatedAt: new Date().toISOString(), syncedAt: undefined }
+          : p
+      );
+      const livePrograms = newPrograms.filter(p => !p.deleted);
+      // Cleanup: rotinas soft-deleted que ficaram órfãs (sem programa vivo) são removidas de vez.
       const prunedTemplates = prev.templates.filter(
-        t => !t.deleted || newPrograms.some(p => p.templateIds.includes(t.id)),
+        t => !t.deleted || livePrograms.some(p => p.templateIds.includes(t.id)),
       );
       return { ...prev, programs: newPrograms, templates: prunedTemplates };
     });

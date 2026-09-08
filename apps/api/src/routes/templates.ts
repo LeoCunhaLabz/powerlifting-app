@@ -2,30 +2,9 @@ import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { templates } from '../db/schema.js'
-
-// ---------------------------------------------------------------------------
-// Zod schemas (espelham os tipos de @powerlifting/shared sem importar o pacote)
-// ---------------------------------------------------------------------------
-
-const templateExerciseSchema = z.object({
-  name: z.string().min(1),
-  sets: z.array(
-    z.object({
-      reps: z.number().int().positive(),
-      rpe: z.number().min(6).max(10).optional(),
-      weightPercentage: z.number().min(0).max(100).optional(),
-      type: z.enum(['W', 'N', 'D']),
-    }),
-  ),
-})
-
-const workoutTemplateDataSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  description: z.string(),
-  exercises: z.array(templateExerciseSchema),
-  isBuiltIn: z.boolean().optional(),
-})
+// Schema de domínio da fonte única (paridade com @powerlifting/shared garantida
+// em compilação — issue #264). A cópia local antiga stripava notes/archived/deleted.
+import { workoutTemplateSchema as workoutTemplateDataSchema } from '../schemas/domain.js'
 
 const createBodySchema = z.object({
   data: workoutTemplateDataSchema,

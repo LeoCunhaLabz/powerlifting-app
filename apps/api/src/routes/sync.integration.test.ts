@@ -5,225 +5,76 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import type { FastifyRequest } from 'fastify'
 import { syncRoutes } from './sync.js'
 import { mapClientIdToDbUuid } from './syncId.js'
-import { customExercises, workouts, programs } from '../db/schema.js'
+import { programs } from '../db/schema.js'
 
 const USER_ID = '7d9bc183-a3d6-420f-83b2-534ef6e649bc'
 
-interface WorkoutRow {
-  id: string
-  userId: string
-  data: unknown
-  startedAt: Date
-  finishedAt: Date | null
-  createdAt: Date
-  syncedAt: Date | null
+// ---------------------------------------------------------------------------
+// Mock de db genérico para o fio rota→transação→repo→serialização.
+// As DECISÕES de sync (LWW, tombstones, upsert) são testadas de verdade em
+// syncLogic.test.ts com repo em memória; aqui o select devolve sempre vazio
+// (todo item cai no caminho de insert) e o objetivo é validar schemas, ids
+// legados, response shape e o endpoint de reset.
+// ---------------------------------------------------------------------------
+interface MockDb {
+  transaction<T>(fn: (tx: MockDb) => Promise<T>): Promise<T>
+  select(): { from: () => { where: () => { limit: () => Promise<unknown[]>; then: (resolve: (rows: unknown[]) => void) => void } } }
+  insert(): { values: (value: Record<string, unknown>) => { returning: () => Promise<Record<string, unknown>[]> } }
+  update(): { set: (patch: Record<string, unknown>) => { where: () => { returning: () => Promise<Record<string, unknown>[]> } } }
+  delete(): { where: () => { returning: () => Promise<unknown[]> } }
 }
 
-interface TemplateRow {
-  id: string
-  userId: string
-  data: unknown
-  createdAt: Date
-  updatedAt: Date
-}
+function createMockDb(): MockDb {
+  // where() precisa ser awaitável (pull: `await select().from().where()`) E ter
+  // .limit() (get: `... .where().limit(1)`). Um thenable com .limit cobre os dois.
+  const emptyWhere = {
+    limit: async () => [] as unknown[],
+    then: (resolve: (rows: unknown[]) => void) => resolve([]),
+  }
 
-interface CustomExerciseRow {
-  id: string
-  userId: string
-  data: unknown
-  createdAt: Date
-  updatedAt: Date
-}
-
-interface ProgramRow {
-  id: string
-  userId: string
-  data: unknown
-  createdAt: Date
-  updatedAt: Date
-}
-
-function createMockDb() {
-  const workoutsStore = new Map<string, WorkoutRow>()
-  const templatesStore = new Map<string, TemplateRow>()
-  const customExercisesStore = new Map<string, CustomExerciseRow>()
-  const programsStore = new Map<string, ProgramRow>()
-  let selectedTable: 'workouts' | 'templates' | 'customExercises' | 'programs' | null = null
-  let templateSelectCallCount = 0
-  let programSelectCallCount = 0
-  let lastWorkoutRow: WorkoutRow | null = null
-  let lastTemplateRow: TemplateRow | null = null
-  let lastCustomExerciseRows: CustomExerciseRow[] = []
-  let lastProgramRow: ProgramRow | null = null
-
-  return {
-    insert(table: unknown) {
-      const tableName = table === workouts ? 'workouts' : table === customExercises ? 'customExercises' : table === programs ? 'programs' : 'templates'
-
+  const db: MockDb = {
+    async transaction<T>(fn: (tx: MockDb) => Promise<T>): Promise<T> {
+      return fn(db)
+    },
+    select() {
+      return { from: () => ({ where: () => emptyWhere }) }
+    },
+    insert() {
       return {
         values(value: Record<string, unknown>) {
-          if (tableName === 'workouts') {
-            const row: WorkoutRow = {
-              id: String(value.id),
-              userId: String(value.userId),
-              data: value.data,
-              startedAt: value.startedAt as Date,
-              finishedAt: (value.finishedAt as Date | null) ?? null,
-              createdAt: new Date(),
-              syncedAt: (value.syncedAt as Date | null) ?? null,
-            }
-
-            return {
-              async onConflictDoNothing() {
-                const key = `${row.id}:${row.userId}`
-                if (!workoutsStore.has(key)) workoutsStore.set(key, row)
-                lastWorkoutRow = workoutsStore.get(key) ?? row
-              },
-            }
-          }
-
-          if (tableName === 'customExercises') {
-            const row: CustomExerciseRow = {
-              id: String(value.id),
-              userId: String(value.userId),
-              data: value.data,
-              createdAt: value.createdAt as Date,
-              updatedAt: value.updatedAt as Date,
-            }
-
-            return {
-              async returning() {
-                const key = `${row.id}:${row.userId}`
-                customExercisesStore.set(key, row)
-                lastCustomExerciseRows = [...customExercisesStore.values()]
-                return [row]
-              },
-            }
-          }
-
-          if (tableName === 'programs') {
-            const row: ProgramRow = {
-              id: String(value.id),
-              userId: String(value.userId),
-              data: value.data,
-              createdAt: value.createdAt as Date,
-              updatedAt: value.updatedAt as Date,
-            }
-
-            return {
-              async returning() {
-                const key = `${row.id}:${row.userId}`
-                programsStore.set(key, row)
-                lastProgramRow = row
-                return [row]
-              },
-            }
-          }
-
-          const row: TemplateRow = {
-            id: String(value.id),
-            userId: String(value.userId),
-            data: value.data,
-            createdAt: value.createdAt as Date,
-            updatedAt: value.updatedAt as Date,
-          }
-
-          return {
-            async returning() {
-              const key = `${row.id}:${row.userId}`
-              templatesStore.set(key, row)
-              lastTemplateRow = row
-              return [row]
-            },
-          }
+          return { returning: async () => [value] }
         },
       }
     },
-
-    select() {
-      return {
-        from(table: unknown) {
-          selectedTable = table === workouts ? 'workouts' : table === programs ? 'programs' : 'templates'
-          return this
-        },
-        where() {
-          return this
-        },
-        async limit() {
-          if (!selectedTable) return []
-
-          if (selectedTable === 'workouts') {
-            return lastWorkoutRow ? [lastWorkoutRow] : []
-          }
-
-          if (selectedTable === 'customExercises') {
-            return lastCustomExerciseRows
-          }
-
-          if (selectedTable === 'programs') {
-            programSelectCallCount += 1
-
-            // No primeiro select de program (fluxo de upsert), simula ausência para cair no insert.
-            if (programSelectCallCount === 1) return []
-
-            return lastProgramRow ? [lastProgramRow] : []
-          }
-
-          templateSelectCallCount += 1
-
-          // No primeiro select de template (fluxo de upsert), simula ausência para cair no insert.
-          if (templateSelectCallCount === 1) return []
-
-          return lastTemplateRow ? [lastTemplateRow] : []
-        },
-      }
-    },
-
-    delete(table: unknown) {
-      const tableName = table === customExercises ? 'customExercises' : null
-
-      return {
-        async where() {
-          if (tableName === 'customExercises') {
-            customExercisesStore.clear()
-            lastCustomExerciseRows = []
-          }
-          return []
-        },
-      }
-    },
-
     update() {
       return {
-        set() {
-          return {
-            where() {
-              return {
-                async returning() {
-                  return []
-                },
-              }
-            },
-          }
+        set(patch: Record<string, unknown>) {
+          return { where: () => ({ returning: async () => [patch] }) }
         },
       }
     },
+    delete() {
+      return { where: () => ({ returning: async () => [] }) }
+    },
   }
+
+  return db
 }
 
-test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', async () => {
+async function buildApp(mockDb: unknown) {
   const app = Fastify()
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
-
-  const mockDb = createMockDb()
-
   app.decorate('db', mockDb as never)
   app.decorate('authenticate', async (request: FastifyRequest) => {
     Object.assign(request, { user: { sub: USER_ID, email: 'athlete@example.com' } })
   })
-
   await app.register(syncRoutes)
+  return app
+}
+
+test('POST /sync aceita ids legados, preserva campos completos e confirma tombstones', async () => {
+  const app = await buildApp(createMockDb())
 
   const workoutId = 'session-1735689600000'
   const templateId = 'template-1735689600000'
@@ -239,19 +90,15 @@ test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', as
           name: 'Treino A',
           date: '2026-06-28T00:00:00.000Z',
           duration: 3600,
+          templateId,
+          updatedAt: '2026-06-28T01:00:00.000Z',
           exercises: [
             {
               id: 'ex-1',
               name: 'Agachamento',
-              sets: [
-                {
-                  id: 'set-1',
-                  weight: 100,
-                  reps: 5,
-                  completed: true,
-                  type: 'N',
-                },
-              ],
+              notes: 'cinto na última',
+              restSeconds: 240,
+              sets: [{ id: 'set-1', weight: 100, reps: 5, completed: true, type: 'N' }],
             },
           ],
         },
@@ -261,26 +108,16 @@ test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', as
           id: templateId,
           name: 'Upper A',
           description: 'Template de teste',
+          notes: 'foco em barra',
+          archived: false,
           exercises: [
-            {
-              name: 'Supino',
-              sets: [
-                {
-                  reps: 5,
-                  type: 'N',
-                },
-              ],
-            },
+            { name: 'Supino', expectedWeight: 80, restSeconds: 180, sets: [{ reps: 5, type: 'N' }] },
           ],
           updatedAt: '2026-06-28T00:00:00.000Z',
         },
       ],
       customExercises: [
-        {
-          id: 'cex-1735689600000',
-          name: 'Rosca Spider',
-          createdAt: '2026-06-28T00:00:00.000Z',
-        },
+        { id: 'cex-1735689600000', name: 'Rosca Spider', createdAt: '2026-06-28T00:00:00.000Z' },
       ],
       programs: [
         {
@@ -292,26 +129,28 @@ test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', as
           updatedAt: '2026-06-28T00:00:00.000Z',
         },
       ],
+      deletedWorkouts: [{ id: 'session-antiga', deletedAt: '2026-06-29T00:00:00.000Z' }],
     },
   })
 
   assert.equal(response.statusCode, 200)
 
   const body = response.json() as {
-    workouts: Array<{ id: string; data: { id: string } }>
-    templates: Array<{ id: string; data: { id: string } }>
-    customExercises: Array<{ id: string; data: { id: string; name: string } }>
-    programs: Array<{ id: string; data: { id: string; name: string } }>
+    workouts: Array<{ id: string; data: { id: string; templateId?: string; exercises: Array<{ notes?: string; restSeconds?: number }> } }>
+    templates: Array<{ id: string; data: { id: string; notes?: string } }>
+    customExercises: Array<{ id: string; data: { name: string } }>
+    programs: Array<{ id: string; data: { name: string } }>
+    deletedWorkoutIds: string[]
   }
 
-  assert.equal(body.workouts.length, 1)
-  assert.equal(body.templates.length, 1)
-  assert.equal(body.customExercises.length, 1)
-  assert.equal(body.programs.length, 1)
-  assert.equal(body.workouts[0]?.data.id, workoutId)
-  assert.equal(body.templates[0]?.data.id, templateId)
-  assert.equal(body.customExercises[0]?.data.name, 'Rosca Spider')
-  assert.equal(body.programs[0]?.data.name, 'Bloco de Força')
+  // Regressão anti-strip (#264): os campos que os schemas antigos APAGAVAM
+  // precisam sobreviver ao round-trip.
+  assert.equal(body.workouts[0]?.data.templateId, templateId)
+  assert.equal(body.workouts[0]?.data.exercises[0]?.notes, 'cinto na última')
+  assert.equal(body.workouts[0]?.data.exercises[0]?.restSeconds, 240)
+  assert.equal(body.templates[0]?.data.notes, 'foco em barra')
+
+  assert.deepEqual(body.deletedWorkoutIds, ['session-antiga'])
   assert.equal(body.workouts[0]?.id, mapClientIdToDbUuid(USER_ID, 'workout', workoutId))
   assert.equal(body.templates[0]?.id, mapClientIdToDbUuid(USER_ID, 'template', templateId))
   assert.equal(body.customExercises[0]?.id, mapClientIdToDbUuid(USER_ID, 'custom-exercise', 'cex-1735689600000'))
@@ -320,12 +159,35 @@ test('POST /sync aceita IDs legados e responde 200 com payload sincronizado', as
   await app.close()
 })
 
-test('GET /sync/pull retorna programs do usuário', async () => {
-  const app = Fastify()
-  app.setValidatorCompiler(validatorCompiler)
-  app.setSerializerCompiler(serializerCompiler)
+test('POST /sync sem o campo deletedWorkouts (cliente antigo) continua aceito', async () => {
+  const app = await buildApp(createMockDb())
 
-  const programRow: ProgramRow = {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/sync',
+    payload: { workouts: [], templates: [], customExercises: [], programs: [] },
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(response.json().deletedWorkoutIds, [])
+  await app.close()
+})
+
+test('POST /sync/reset apaga em transação e responde contagens', async () => {
+  const app = await buildApp(createMockDb())
+
+  const response = await app.inject({ method: 'POST', url: '/sync/reset' })
+
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(response.json(), {
+    ok: true,
+    deleted: { workouts: 0, templates: 0, customExercises: 0, programs: 0 },
+  })
+  await app.close()
+})
+
+test('GET /sync/pull retorna programs do usuário', async () => {
+  const programRow = {
     id: mapClientIdToDbUuid(USER_ID, 'program', 'program-1'),
     userId: USER_ID,
     data: {
@@ -350,21 +212,12 @@ test('GET /sync/pull retorna programs do usuário', async () => {
     },
   }
 
-  app.decorate('db', pullMockDb as never)
-  app.decorate('authenticate', async (request: FastifyRequest) => {
-    Object.assign(request, { user: { sub: USER_ID, email: 'athlete@example.com' } })
-  })
-
-  await app.register(syncRoutes)
+  const app = await buildApp(pullMockDb)
 
   const response = await app.inject({ method: 'GET', url: '/sync/pull' })
 
   assert.equal(response.statusCode, 200)
-
-  const body = response.json() as {
-    programs: Array<{ id: string; data: { name: string } }>
-  }
-
+  const body = response.json() as { programs: Array<{ data: { name: string } }> }
   assert.equal(body.programs.length, 1)
   assert.equal(body.programs[0]?.data.name, 'Bloco de Força')
 
