@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { 
   AppState, 
   WorkoutSession, 
@@ -13,6 +13,7 @@ import type {
   CustomExercise,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
+import { trySetItem, shouldClearActiveBackup } from '../utils/persistence';
 
 /** Recalculates isPr flags for all sessions chronologically. */
 function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
@@ -763,24 +764,30 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.history, state.templates, state.customExercises, state.programs, state.deletedWorkouts]);
 
+  // Sucesso da última gravação do estado principal — governa se a chave de backup
+  // do treino ativo pode ser removida (issue #266). Ref (não state): é lida por
+  // outro effect no MESMO commit, sem disparar re-render.
+  const lastStateSaveOk = useRef(true);
+
   // Escreve no localStorage com tratamento de erro: limpa o aviso no sucesso,
   // sinaliza ao usuario no caso de falha em vez de quebrar/perder dados em silencio.
   // Obs.: o setSaveError no sucesso usa update funcional que faz bail-out quando ja
   // esta null, entao nao ha render em cascata (o lint set-state-in-effect e falso-positivo aqui).
-  const safeSetItem = (key: string, value: string) => {
-    try {
-      localStorage.setItem(key, value);
+  const safeSetItem = (key: string, value: string): boolean => {
+    const ok = trySetItem(localStorage, key, value);
+    if (ok) {
       setSaveError(prev => (prev === null ? prev : null));
-    } catch (e) {
-      console.error(`Failed to save "${key}" to localStorage:`, e);
-      setSaveError('Não foi possível salvar localmente. O armazenamento pode estar cheio ou indisponível.');
+    } else {
+      console.error(`Failed to save "${key}" to localStorage (cota cheia ou indisponível)`);
+      setSaveError('Não foi possível salvar no dispositivo — o armazenamento pode estar cheio. Seu treino atual ainda está aberto; libere espaço ou exporte um backup em Mais › Configurações antes de recarregar.');
     }
+    return ok;
   };
 
   // Sync state to local storage on change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
-    safeSetItem(storageKeys.state, JSON.stringify(state));
+    lastStateSaveOk.current = safeSetItem(storageKeys.state, JSON.stringify(state));
   }, [state, storageKeys.state]);
 
   // Aplica o tema de acento no documento (lido pelo CSS via [data-theme])
@@ -793,7 +800,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     if (activeWorkout) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
       safeSetItem(storageKeys.activeWorkout, JSON.stringify(activeWorkout));
-    } else {
+    } else if (shouldClearActiveBackup(false, lastStateSaveOk.current)) {
+      // Só remove o backup se o estado (com o treino já no history) foi salvo. Se a
+      // gravação do estado falhou (cota), a chave de backup é a ÚNICA cópia do treino
+      // recém-finalizado — mantê-la evita a perda total no reload (issue #266).
       try { localStorage.removeItem(storageKeys.activeWorkout); } catch { /* SecurityError: falha silenciosa */ }
     }
   }, [activeWorkout, storageKeys.activeWorkout]);
