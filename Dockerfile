@@ -9,7 +9,11 @@ RUN npm ci
 
 COPY . .
 ARG VITE_API_URL="https://api-treino.cunhalabs.tech"
-RUN VITE_API_URL="${VITE_API_URL}" npm run build
+# Client ID do Google OAuth — valor PÚBLICO (vai no bundle JS de qualquer forma; o que é
+# secreto é o Client Secret, que este app não usa — fluxo GSI de ID token). Default
+# hardcoded para o build de produção do Dokploy; sobreponível por build arg.
+ARG VITE_GOOGLE_CLIENT_ID="260163007618-7buhki8asaektd6b3g9sr0ga2eamf1g6.apps.googleusercontent.com"
+RUN VITE_API_URL="${VITE_API_URL}" VITE_GOOGLE_CLIENT_ID="${VITE_GOOGLE_CLIENT_ID}" npm run build
 
 # Production stage
 FROM nginx:1.27-alpine

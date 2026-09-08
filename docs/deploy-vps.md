@@ -165,7 +165,7 @@ Configuradas em **Dokploy → api → Environment** (nunca commitadas):
 | `RESEND_API_KEY` | API key do [Resend](https://resend.com) — **obrigatória em produção**: sem ela, o e-mail de redefinição de senha não é enviado (apenas logado, e só fora de produção) |
 | `EMAIL_FROM` | Remetente dos e-mails, ex.: `ONYX <no-reply@dominio.com>` — necessário junto com `RESEND_API_KEY`, deve ser um domínio verificado no Resend |
 | `APP_PUBLIC_URL` | URL pública do frontend usada no link de redefinição (default: mesmo valor de `CORS_ORIGIN`) |
-| `GOOGLE_CLIENT_ID` | Client ID do Google OAuth — opcional; sem ela, o login com Google fica desabilitado |
+| `GOOGLE_CLIENT_ID` | Client ID do Google OAuth (**configurada em produção em 07/09/2026**, issue #263). Valor público — o mesmo entra no **build do web** via `ARG VITE_GOOGLE_CLIENT_ID` no `Dockerfile` raiz (default hardcoded, é público). O **Client Secret não é usado** neste app (fluxo GSI de ID token): não configure em lugar nenhum. O OAuth client no Google Cloud tem como origens autorizadas `https://treino.cunhalabs.tech` + `http://localhost`/`:5173`; redirect URIs vazios. |
 
 O `DATABASE_URL` aponta para o **hostname do recurso PostgreSQL do Dokploy** (visível em Dokploy → powerliftingdb → Connection), não para `localhost` nem para o hostname do `docker-compose.yml`.
 
