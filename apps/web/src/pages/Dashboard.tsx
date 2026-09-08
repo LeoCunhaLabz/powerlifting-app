@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { calculateE1RM, calculateDots, relativeStrength } from '../utils/powerlifting';
@@ -12,6 +12,9 @@ interface DashboardProps {
 }
 
 const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
+
+const tonnage = (s: WorkoutSession) =>
+  s.exercises.reduce((t, ex) => t + ex.sets.reduce((st, set) => st + (set.completed ? set.weight * set.reps : 0), 0), 0);
 
 export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavigateHistory }) => {
   const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight, getNextTemplate, deleteHistorySession } = useWorkout();
@@ -28,79 +31,88 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
 
   const u = settings.units;
 
-  // ---- Helpers ----
-  const tonnage = (s: WorkoutSession) =>
-    s.exercises.reduce((t, ex) => t + ex.sets.reduce((st, set) => st + (set.completed ? set.weight * set.reps : 0), 0), 0);
+  // ---- Agregações do histórico: recalculam só quando os dados mudam, não em hover/toggle (#267) ----
+  const {
+    weekSessionsCount, weekTonnage, avgWeeklySessions, weekStreak,
+    bestE1RM, bestTotal, bw, dots, sortedBw, bwTrend, series, best1RM, recentHistory,
+  } = useMemo(() => {
+    const startOfWeek = (() => {
+      const d = new Date();
+      const day = (d.getDay() + 6) % 7; // Monday = 0
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - day);
+      return d.getTime();
+    })();
 
-  const startOfWeek = (() => {
-    const d = new Date();
-    const day = (d.getDay() + 6) % 7; // Monday = 0
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - day);
-    return d.getTime();
-  })();
+    const weekSessions = history.filter((s) => new Date(s.date).getTime() >= startOfWeek);
+    const weekTonnage = weekSessions.reduce((t, s) => t + tonnage(s), 0);
 
-  const weekSessions = history.filter((s) => new Date(s.date).getTime() >= startOfWeek);
-  const weekTonnage = weekSessions.reduce((t, s) => t + tonnage(s), 0);
+    const last4wStart = new Date().getTime() - 28 * 86400000;
+    const avgWeeklySessions = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
 
-  const last4wStart = new Date().getTime() - 28 * 86400000;
-  const avgWeeklySessions = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
+    // Week streak (semanas consecutivas com ao menos 1 treino, terminando nesta semana)
+    const weekStreak = (() => {
+      const weeks = new Set(history.map((s) => Math.floor((new Date(s.date).getTime() - startOfWeek) / (7 * 86400000))));
+      let streak = 0;
+      let k = 0;
+      while (weeks.has(-k) || (k === 0 && weeks.has(0))) {
+        streak += 1;
+        k += 1;
+      }
+      return streak;
+    })();
 
-  // Week streak (semanas consecutivas com ao menos 1 treino, terminando nesta semana)
-  const weekStreak = (() => {
-    const weeks = new Set(history.map((s) => Math.floor((new Date(s.date).getTime() - startOfWeek) / (7 * 86400000))));
-    let streak = 0;
-    let k = 0;
-    while (weeks.has(-k) || (k === 0 && weeks.has(0))) {
-      streak += 1;
-      k += 1;
-    }
-    return streak;
-  })();
+    // SBD bests
+    const bestE1RM = SBD.map((n) => getMaxE1RM(n));
+    const bestTotal = Math.round(bestE1RM.reduce((a, b) => a + b, 0));
+    const bw = getBodyweightAt(new Date().toISOString());
+    const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
 
-  // SBD bests
-  const bestE1RM = SBD.map((n) => getMaxE1RM(n));
-  const bestTotal = Math.round(bestE1RM.reduce((a, b) => a + b, 0));
-  const bw = getBodyweightAt(new Date().toISOString());
-  const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
+    // Bodyweight trend
+    const sortedBw = [...bodyweightLog].sort((a, b) => a.date.localeCompare(b.date));
+    const bwTrend = sortedBw.length >= 2 ? Math.round((sortedBw[sortedBw.length - 1].weight - sortedBw[0].weight) * 10) / 10 : 0;
 
-  // Bodyweight trend
-  const sortedBw = [...bodyweightLog].sort((a, b) => a.date.localeCompare(b.date));
-  const bwTrend = sortedBw.length >= 2 ? Math.round((sortedBw[sortedBw.length - 1].weight - sortedBw[0].weight) * 10) / 10 : 0;
-
-  // Evolution series (running best total e1RM / força relativa per session, chronological)
-  const series = (() => {
-    const chrono = [...history].sort((a, b) => a.date.localeCompare(b.date));
-    const best: Record<string, number> = {};
-    const out: { total: number; rel: number }[] = [];
-    chrono.forEach((s) => {
-      s.exercises.forEach((ex) => {
-        const ln = ex.name.toLowerCase();
-        const key = SBD.find((n) => ln === n.toLowerCase());
-        if (!key) return;
-        ex.sets.forEach((set) => {
-          if (set.completed) {
-            const e = calculateE1RM(set.weight, set.reps, set.rpe);
-            if (e > (best[key] || 0)) best[key] = e;
-          }
+    // Evolution series (running best total e1RM / força relativa per session, chronological)
+    const series = (() => {
+      const chrono = [...history].sort((a, b) => a.date.localeCompare(b.date));
+      const best: Record<string, number> = {};
+      const out: { total: number; rel: number }[] = [];
+      chrono.forEach((s) => {
+        s.exercises.forEach((ex) => {
+          const ln = ex.name.toLowerCase();
+          const key = SBD.find((n) => ln === n.toLowerCase());
+          if (!key) return;
+          ex.sets.forEach((set) => {
+            if (set.completed) {
+              const e = calculateE1RM(set.weight, set.reps, set.rpe);
+              if (e > (best[key] || 0)) best[key] = e;
+            }
+          });
         });
+        const total = SBD.reduce((a, n) => a + (best[n] || 0), 0);
+        if (total > 0) out.push({ total: Math.round(total), rel: relativeStrength(total, getBodyweightAt(s.date)) });
       });
-      const total = SBD.reduce((a, n) => a + (best[n] || 0), 0);
-      if (total > 0) out.push({ total: Math.round(total), rel: relativeStrength(total, getBodyweightAt(s.date)) });
-    });
-    return out.slice(-12);
-  })();
+      return out.slice(-12);
+    })();
 
-  // Recordes reais de 1RM (melhor série com 1 repetição concluída) por levantamento SBD
-  const best1RM = SBD.map((n) => {
-    const ln = n.toLowerCase();
-    let max = 0;
-    history.forEach((s) => s.exercises.forEach((ex) => {
-      if (ex.name.toLowerCase() !== ln) return;
-      ex.sets.forEach((set) => { if (set.completed && set.reps === 1 && set.weight > max) max = set.weight; });
-    }));
-    return Math.round(max);
-  });
+    // Recordes reais de 1RM (melhor série com 1 repetição concluída) por levantamento SBD
+    const best1RM = SBD.map((n) => {
+      const ln = n.toLowerCase();
+      let max = 0;
+      history.forEach((s) => s.exercises.forEach((ex) => {
+        if (ex.name.toLowerCase() !== ln) return;
+        ex.sets.forEach((set) => { if (set.completed && set.reps === 1 && set.weight > max) max = set.weight; });
+      }));
+      return Math.round(max);
+    });
+
+    const recentHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
+
+    return {
+      weekSessionsCount: weekSessions.length, weekTonnage, avgWeeklySessions, weekStreak,
+      bestE1RM, bestTotal, bw, dots, sortedBw, bwTrend, series, best1RM, recentHistory,
+    };
+  }, [history, bodyweightLog, settings.gender, getMaxE1RM, getBodyweightAt]);
 
   const polyline = (vals: number[], w: number, h: number, pad = 6) => {
     if (vals.length === 0) return '';
@@ -134,7 +146,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const suggestedTemplate = getNextTemplate();
   const activeProgram = programs.find((p) => p.isActive);
   const fromProgram = !!(activeProgram && suggestedTemplate && activeProgram.templateIds.includes(suggestedTemplate.id));
-  const recentHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
   const handleResume = () => {
     if (!activeWorkout && suggestedTemplate) startWorkout(suggestedTemplate.id);
@@ -192,7 +203,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
       {/* Week summary */}
       <div style={styles.sectionLabel}>Esta semana</div>
       <div style={styles.statGrid}>
-        <div style={styles.statTile} role="group" aria-label={`Sessões: ${weekSessions.length} treinos concluídos nesta semana`} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessions.length}</div><div style={styles.statLbl}>SESSÕES</div></div>
+        <div style={styles.statTile} role="group" aria-label={`Sessões: ${weekSessionsCount} treinos concluídos nesta semana`} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessionsCount}</div><div style={styles.statLbl}>SESSÕES</div></div>
         <div style={styles.statTile} role="group" aria-label={`Tonelagem: ${(weekTonnage / 1000).toFixed(1)} toneladas levantadas nesta semana`} title="Tonelagem total levantada nesta semana"><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
         <div
           style={styles.statTile}
