@@ -47,3 +47,43 @@ jobs:
 
       - name: Build (API)
         run: npm run build:api
+
+  e2e:
+    name: E2E (golden path)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: powerlifting
+          POSTGRES_USER: powerlifting
+          POSTGRES_PASSWORD: powerlifting
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U powerlifting"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar browser do Playwright
+        run: npx playwright install --with-deps chromium
+
+      # O playwright.config.ts sobe a API (tsx, porta 3010) e o preview do build
+      # do web (porta 4173) — as migrations rodam no boot da API.
+      - name: E2E (golden path)
+        run: npm run test:e2e
+        env:
+          E2E_DATABASE_URL: postgresql://powerlifting:powerlifting@localhost:5432/powerlifting
