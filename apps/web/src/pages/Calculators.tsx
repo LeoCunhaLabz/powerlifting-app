@@ -505,7 +505,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '22px',
     fontWeight: '800',
     fontFamily: 'var(--font-display)',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
   },
   divider: {
     height: '1px',
@@ -527,7 +527,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '16px',
     fontWeight: '800',
     fontFamily: 'var(--font-display)',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
   },
   disclaimer: {
     fontSize: '10px',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import type { Program, WorkoutTemplate } from '@powerlifting/shared';
 import { ChevronLeft, ChevronRight, Play, CalendarDays } from 'lucide-react';
-import { toLocalDate, weekDayIdx, computeMissedTrainingDays } from '../utils/programProgress';
+import { toLocalDate, weekDayIdx, computeMissedTrainingDays, sessionDayKey } from '../utils/programProgress';
 import { SessionDetail } from '../components/SessionDetail';
 
 interface CalendarProps {
@@ -39,7 +39,10 @@ function buildCalendarDays(
   const sessionsByDate = new Map<string, string | undefined>();
   for (const s of history) {
     if (!s.templateId || !program.templateIds.includes(s.templateId)) continue;
-    sessionsByDate.set(s.date.slice(0, 10), s.templateId);
+    // sessionDayKey, não slice: s.date é ISO em UTC (toISOString) e o slice devolve o
+    // dia UTC — treino de sexta 21:30 em UTC-3 cairia na célula de sábado (as chaves
+    // da grade são locais). Ver #252.
+    sessionsByDate.set(sessionDayKey(s.date), s.templateId);
   }
   const doneDates = new Set(sessionsByDate.keys());
 
@@ -169,7 +172,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
   const u = state.settings.units;
   // Treinos realizados no dia selecionado (detalhe do treino concluído).
   const daySessions = selectedDay
-    ? state.history.filter(s => s.date.slice(0, 10) === selectedDay.date)
+    ? state.history.filter(s => sessionDayKey(s.date) === selectedDay.date)
     : [];
   // Dia não concluído: não há mais rotina prevista por dia (rodízio fixo removido) —
   // oferece iniciar a mesma sugestão única já usada no Início/Treinar.

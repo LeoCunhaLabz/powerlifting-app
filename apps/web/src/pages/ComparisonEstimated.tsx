@@ -468,7 +468,9 @@ const styles: Record<string, React.CSSProperties> = {
   progressFill: {
     display: 'block',
     height: '100%',
-    background: 'linear-gradient(90deg, var(--accent), #e6c27a)',
+    // Tom mais claro do accent via color-mix (o hex fixo #e6c27a era do tema brass e
+    // quebrava onyx/volt).
+    background: 'linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 72%, var(--text-primary)))',
   },
   inlineIcon: {
     display: 'inline-flex',

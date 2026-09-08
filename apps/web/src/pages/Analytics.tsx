@@ -23,7 +23,7 @@ interface LiftDef {
 const LIFTS: LiftDef[] = [
   { label: 'Agachamento', short: 'Agach.', color: 'var(--accent)', match: (n) => n.includes('agachamento') || n.includes('squat') },
   { label: 'Supino', short: 'Supino', color: '#7b8aa6', match: (n) => n.includes('supino') || n.includes('bench') },
-  { label: 'Terra', short: 'Terra', color: '#fafafa', match: (n) => n.includes('terra') || n.includes('deadlift') },
+  { label: 'Terra', short: 'Terra', color: 'var(--text-primary)', match: (n) => n.includes('terra') || n.includes('deadlift') },
 ];
 
 // RPE 5 representa o balde "≤5" (séries leves/aquecimento).

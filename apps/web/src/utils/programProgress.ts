@@ -10,6 +10,18 @@ export function toLocalDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Dia LOCAL (YYYY-MM-DD) de uma sessão.
+ *
+ * `session.date` em produção é ISO com hora em UTC (`toISOString()`): um simples
+ * `slice(0, 10)` devolveria o dia UTC — treino de sexta 21:30 em UTC-3 cairia no
+ * sábado. Uma data pura (`YYYY-MM-DD`) já É a chave local e não pode passar por
+ * `new Date()` (parseia como meia-noite UTC e deslocaria um dia para trás).
+ */
+export function sessionDayKey(date: string): string {
+  return date.length > 10 ? toLocalDate(new Date(date)) : date;
+}
+
 /** Índice 0=Seg…6=Dom para uma Date. */
 export function weekDayIdx(d: Date): number {
   return (d.getDay() + 6) % 7;
@@ -34,7 +46,7 @@ export function computeMissedTrainingDays(program: Program, history: ProgramSess
   const sessionCountByDate = new Map<string, number>();
   for (const s of history) {
     if (!s.templateId || !program.templateIds.includes(s.templateId)) continue;
-    const date = s.date.slice(0, 10);
+    const date = sessionDayKey(s.date);
     if (date >= startDate && date < today) {
       sessionCountByDate.set(date, (sessionCountByDate.get(date) ?? 0) + 1);
     }

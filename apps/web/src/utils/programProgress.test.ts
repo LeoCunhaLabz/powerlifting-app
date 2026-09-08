@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { computeMissedTrainingDays } from './programProgress';
+import { computeMissedTrainingDays, sessionDayKey, toLocalDate } from './programProgress';
 import type { Program } from '@powerlifting/shared';
+
+describe('sessionDayKey', () => {
+  it('data pura já é a chave local — não passa por new Date (que parsearia como UTC)', () => {
+    expect(sessionDayKey('2026-08-05')).toBe('2026-08-05');
+  });
+
+  it('ISO com hora converte para o dia LOCAL do timestamp', () => {
+    const iso = '2026-08-08T00:30:00.000Z';
+    // Independente do fuso do runner: deve bater com toLocalDate do mesmo instante
+    // (em UTC-3 é 2026-08-07; em UTC é 2026-08-08 — nunca o slice cego do ISO em fuso negativo).
+    expect(sessionDayKey(iso)).toBe(toLocalDate(new Date(iso)));
+  });
+});
 
 // Segunda-feira, para trainingDays previsível (0=Seg).
 const START = '2026-08-03';
