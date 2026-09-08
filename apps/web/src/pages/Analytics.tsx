@@ -170,8 +170,9 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   else if (period === '12w') from = now - 12 * 7 * 86400000;
   else if (period === 'year') from = now - 365 * 86400000;
   else if (period === 'custom') {
-    from = customStart ? new Date(customStart).getTime() : 0;
-    to = customEnd ? new Date(customEnd).getTime() + 86400000 : now;
+    // 'YYYY-MM-DD' puro parseia como meia-noite UTC; o sufixo de hora força o fuso local (#268)
+    from = customStart ? new Date(`${customStart}T00:00:00`).getTime() : 0;
+    to = customEnd ? new Date(`${customEnd}T23:59:59.999`).getTime() : now;
   }
   const inRange = (iso: string) => {
     const t = new Date(iso).getTime();

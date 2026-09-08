@@ -928,7 +928,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
               o => o.weekIndex === weekIdx && o.exerciseName === ex.name
             );
             if (!ov) return ex;
-            const baseSets = ex.sets.slice(0, ov.sets ?? ex.sets.length);
+            // ov.sets pode reduzir OU aumentar o nº de séries; extras clonam a última série base (#268)
+            const targetCount = ov.sets ?? ex.sets.length;
+            const lastBaseSet = ex.sets[ex.sets.length - 1];
+            const baseSets = lastBaseSet
+              ? Array.from({ length: targetCount }, (_, setIdx) => ex.sets[setIdx] ?? lastBaseSet)
+              : [];
             const maxE1RM = getMaxE1RM(ex.name);
             return {
               ...ex,
@@ -1454,6 +1459,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       const customTemplates = parsed.templates.filter((t) => !t.isBuiltIn);
       const normalized: AppState = {
         ...parsed,
+        // history decrescente: coluna "ANT." e "Repetir último treino" dependem da ordem (#268)
+        history: [...parsed.history].sort((a, b) => b.date.localeCompare(a.date)),
         templates: [...BUILT_IN_TEMPLATES, ...customTemplates],
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         bodyweightLog: parsed.bodyweightLog ?? [],
