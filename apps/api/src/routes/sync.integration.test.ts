@@ -21,7 +21,6 @@ function createMockDb() {
   // .limit() (get: `... .where().limit(1)`). Um thenable com .limit cobre os dois.
   const emptyWhere = {
     limit: async () => [] as unknown[],
-    // eslint-disable-next-line unicorn/no-thenable
     then: (resolve: (rows: unknown[]) => void) => resolve([]),
   }
 

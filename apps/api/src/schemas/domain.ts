@@ -53,6 +53,7 @@ type Exact<A, B> = SameKeys<A, B> extends true
   : false
 function assertExact<A, B>(_ok: Exact<A, B>): void {
   // Função vazia de propósito: o valor `true` só compila quando A ≡ B.
+  void _ok;
 }
 
 export const setStateSchema = z.object({
