@@ -1459,6 +1459,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       const customTemplates = parsed.templates.filter((t) => !t.isBuiltIn);
       const normalized: AppState = {
         ...parsed,
+        // history decrescente: coluna "ANT." e "Repetir último treino" dependem da ordem (#268)
+        history: [...parsed.history].sort((a, b) => b.date.localeCompare(a.date)),
         templates: [...BUILT_IN_TEMPLATES, ...customTemplates],
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         bodyweightLog: parsed.bodyweightLog ?? [],
