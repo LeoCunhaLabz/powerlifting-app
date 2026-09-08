@@ -413,10 +413,17 @@ export const Workout: React.FC = () => {
             <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
               <Check size={40} color="var(--accent)" style={{ marginBottom: 12 }} />
               <h3 style={styles.modalTitle}>Finalizar treino?</h3>
-              <p style={styles.confirmDesc}>{completedSets} de {totalSets} séries concluídas · {activeWorkout.exercises.length} exercícios.</p>
+              {completedSets === 0 ? (
+                <p style={styles.confirmDesc}>Nenhuma série foi marcada como concluída — finalizar agora <strong>descarta o treino</strong> e nada será salvo no histórico.</p>
+              ) : (
+                <p style={styles.confirmDesc}>{completedSets} de {totalSets} séries concluídas · {activeWorkout.exercises.length} exercícios.</p>
+              )}
               <div style={styles.confirmActions}>
                 <button onClick={() => setShowConfirmFinish(false)} style={styles.confirmBack}>Voltar</button>
-                <button onClick={() => { pendingFinishRef.current = true; completeActiveWorkout(); setShowConfirmFinish(false); }} style={styles.finishBtn}>Finalizar</button>
+                {/* Sem séries concluídas nada entra no history: não arma o pendingFinishRef,
+                    senão a próxima mudança do array (ex.: merge de sync) abre o resumo
+                    "Treino concluído" com uma sessão antiga. */}
+                <button onClick={() => { pendingFinishRef.current = completedSets > 0; completeActiveWorkout(); setShowConfirmFinish(false); }} style={completedSets === 0 ? styles.confirmDiscard : styles.finishBtn}>{completedSets === 0 ? 'Descartar' : 'Finalizar'}</button>
               </div>
             </div>
           </div>
@@ -451,7 +458,7 @@ export const Workout: React.FC = () => {
               <div style={styles.plateVal}>{plateCalcWeight} <span style={styles.plateUnit}>{u}</span></div>
               <button onClick={() => setPlateCalcWeight((p) => (p || 0) + 2.5)} style={styles.adjBtn}>+2.5</button>
             </div>
-            <PlateVisualizer weight={plateCalcWeight} barWeight={settings.barWeight} availablePlates={settings.availablePlates} units={u} />
+            <PlateVisualizer weight={plateCalcWeight} barWeight={settings.barWeight} availablePlates={[...new Set([...settings.availablePlates, ...settings.customPlates])].sort((a, b) => b - a)} units={u} />
             <button onClick={applyPlate} style={styles.applyPlate}>Aplicar peso à série</button>
           </div>
         </div>

@@ -210,7 +210,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     cursor: 'pointer',
-    animation: 'slideUpNav 0.25s ease-out',
+    animation: 'slideUp 0.25s ease-out',
   },
   expandedContainer: {
     position: 'absolute',
@@ -226,7 +226,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     boxShadow: '0 -8px 24px rgba(0,0,0,0.5)',
-    animation: 'slideUpNav 0.25s ease-out',
+    animation: 'slideUp 0.25s ease-out',
   },
   progressBar: {
     height: '3px',
