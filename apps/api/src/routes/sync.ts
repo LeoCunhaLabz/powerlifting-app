@@ -2,97 +2,19 @@ import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { customExercises, workouts, templates, programs } from '../db/schema.js'
-import { mapClientIdToDbUuid } from './syncId.js'
+import {
+  workoutSessionSchema,
+  workoutTemplateSchema,
+  customExerciseSchema,
+  programSchema,
+  deletedWorkoutTombstoneSchema,
+} from '../schemas/domain.js'
+import { performSync, type SyncRepo, type TableRepo, type EntityRow, type WorkoutRow } from './syncLogic.js'
 
 // ---------------------------------------------------------------------------
-// Schemas Zod (espelham @powerlifting/shared sem importar o pacote no backend)
-// ---------------------------------------------------------------------------
-
-const setStateSchema = z.object({
-  id: z.string(),
-  weight: z.number(),
-  reps: z.number().int().nonnegative(),
-  rpe: z.number().min(6).max(10).optional(),
-  rir: z.number().int().min(0).max(4).optional(),
-  completed: z.boolean(),
-  isPr: z.boolean().optional(),
-  percentage: z.number().optional(),
-  type: z.enum(['W', 'N', 'D']),
-})
-
-const exerciseStateSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  sets: z.array(setStateSchema),
-})
-
-const workoutSessionSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  date: z.string(),
-  duration: z.number().nonnegative(),
-  exercises: z.array(exerciseStateSchema),
-  notes: z.string().optional(),
-  syncedAt: z.string().optional(),
-})
-
-const templateExerciseSchema = z.object({
-  name: z.string().min(1),
-  sets: z.array(
-    z.object({
-      reps: z.number().int().positive(),
-      rpe: z.number().min(6).max(10).optional(),
-      weightPercentage: z.number().min(0).max(100).optional(),
-      type: z.enum(['W', 'N', 'D']),
-    }),
-  ),
-})
-
-const workoutTemplateSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  description: z.string(),
-  exercises: z.array(templateExerciseSchema),
-  isBuiltIn: z.boolean().optional(),
-  updatedAt: z.string().optional(),
-  syncedAt: z.string().optional(),
-})
-
-const customExerciseSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  createdAt: z.string(),
-  syncedAt: z.string().optional(),
-})
-
-const weekOverrideSchema = z.object({
-  weekIndex: z.number().int().nonnegative(),
-  exerciseName: z.string().min(1),
-  reps: z.number().int().positive().optional(),
-  weightPercentage: z.number().min(0).max(100).optional(),
-  rpe: z.number().min(6).max(10).optional(),
-  weight: z.number().optional(),
-  sets: z.number().int().positive().optional(),
-})
-
-const programSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  templateIds: z.array(z.string()),
-  isActive: z.boolean(),
-  createdAt: z.string(),
-  updatedAt: z.string().optional(),
-  startDate: z.string().optional(),
-  trainingDays: z.array(z.number().int().min(0).max(6)).optional(),
-  weekCount: z.number().int().positive().optional(),
-  weekOverrides: z.array(weekOverrideSchema).optional(),
-  archived: z.boolean().optional(),
-  syncedAt: z.string().optional(),
-})
-
-// ---------------------------------------------------------------------------
-// Response schemas
+// Schemas de request/response. Os schemas de DOMÍNIO vêm de ../schemas/domain
+// (fonte única, com paridade verificada em compilação contra @powerlifting/shared
+// — issue #264; antes cada rota tinha uma cópia divergente que STRIPAVA campos).
 // ---------------------------------------------------------------------------
 
 const workoutRowSchema = z.object({
@@ -102,26 +24,11 @@ const workoutRowSchema = z.object({
   startedAt: z.string().or(z.date()),
   finishedAt: z.string().or(z.date()).nullable(),
   createdAt: z.string().or(z.date()),
+  updatedAt: z.string().or(z.date()),
   syncedAt: z.string().or(z.date()).nullable(),
 })
 
-const templateRowSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
-  data: z.unknown(),
-  createdAt: z.string().or(z.date()),
-  updatedAt: z.string().or(z.date()),
-})
-
-const customExerciseRowSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
-  data: z.unknown(),
-  createdAt: z.string().or(z.date()),
-  updatedAt: z.string().or(z.date()),
-})
-
-const programRowSchema = z.object({
+const entityRowSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
   data: z.unknown(),
@@ -134,21 +41,80 @@ const syncBodySchema = z.object({
   templates: z.array(workoutTemplateSchema),
   customExercises: z.array(customExerciseSchema),
   programs: z.array(programSchema),
+  // Opcional para compatibilidade com clientes antigos que não enviam tombstones.
+  deletedWorkouts: z.array(deletedWorkoutTombstoneSchema).optional(),
 })
 
 const syncResponseSchema = z.object({
   workouts: z.array(workoutRowSchema),
-  templates: z.array(templateRowSchema),
-  customExercises: z.array(customExerciseRowSchema),
-  programs: z.array(programRowSchema),
+  templates: z.array(entityRowSchema),
+  customExercises: z.array(entityRowSchema),
+  programs: z.array(entityRowSchema),
+  deletedWorkoutIds: z.array(z.string()),
 })
 
 const pullResponseSchema = z.object({
   workouts: z.array(workoutRowSchema),
-  templates: z.array(templateRowSchema),
-  customExercises: z.array(customExerciseRowSchema),
-  programs: z.array(programRowSchema),
+  templates: z.array(entityRowSchema),
+  customExercises: z.array(entityRowSchema),
+  programs: z.array(entityRowSchema),
 })
+
+const resetResponseSchema = z.object({
+  ok: z.literal(true),
+  deleted: z.object({
+    workouts: z.number(),
+    templates: z.number(),
+    customExercises: z.number(),
+    programs: z.number(),
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// Repo drizzle: adapta as 4 tabelas à interface fina que a lógica pura usa.
+// `db` é a TRANSAÇÃO — o POST /sync inteiro é atômico (falha parcial não pode
+// mais deixar o usuário sem dados, como o delete-all de custom exercises fazia).
+// ---------------------------------------------------------------------------
+
+type DrizzleDb = Parameters<Parameters<import('../db/index.js').Db['transaction']>[0]>[0]
+
+function tableRepo<Row extends EntityRow>(
+  db: DrizzleDb,
+  table: typeof workouts | typeof templates | typeof programs | typeof customExercises,
+  userId: string,
+): TableRepo<Row> {
+  return {
+    async get(id) {
+      const [row] = await db
+        .select()
+        .from(table)
+        .where(and(eq(table.id, id), eq(table.userId, userId)))
+        .limit(1)
+      return row as Row | undefined
+    },
+    async insert(row) {
+      const [inserted] = await db.insert(table).values(row).returning()
+      return inserted as Row
+    },
+    async update(id, patch) {
+      const [updated] = await db
+        .update(table)
+        .set(patch)
+        .where(and(eq(table.id, id), eq(table.userId, userId)))
+        .returning()
+      return updated as Row
+    },
+  }
+}
+
+function createSyncRepo(db: DrizzleDb, userId: string): SyncRepo {
+  return {
+    workouts: tableRepo<WorkoutRow>(db, workouts, userId),
+    templates: tableRepo(db, templates, userId),
+    programs: tableRepo(db, programs, userId),
+    customExercises: tableRepo(db, customExercises, userId),
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -160,16 +126,11 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
    * POST /sync
    *
-   * Recebe o estado local do cliente (workouts + templates + programs) e faz
-   * upsert no banco usando o id do cliente como PK.
-   *
-   * Estratégia de conflito:
-   *   - Workouts: append-only. Se já existir no servidor (mesmo id + userId),
-   *     mantém o registro do servidor (workouts são imutáveis após conclusão).
-   *   - Templates e Programs: last-write-wins por updatedAt. Cliente e servidor
-   *     comparam timestamps; mais recente ganha.
-   *
-   * Retorna os registros como estão no servidor após o upsert.
+   * Recebe os itens PENDENTES do cliente e faz upsert last-write-wins por
+   * updatedAt em todas as entidades, numa única transação. Exclusões de
+   * workout chegam como tombstones e viram data.deleted = true no servidor
+   * (a linha fica, para o LWW derrotar pushes atrasados de outros devices).
+   * Semântica completa em ./syncLogic.ts.
    */
   app.post(
     '/sync',
@@ -182,152 +143,13 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const userId = request.user.sub
-      const { workouts: clientWorkouts, templates: clientTemplates, customExercises: clientCustomExercises, programs: clientPrograms } = request.body
       const now = new Date()
 
-      // --- Workouts: upsert append-only ---
-      const syncedWorkoutRows = await Promise.all(
-        clientWorkouts.map(async (w) => {
-          const dbWorkoutId = mapClientIdToDbUuid(userId, 'workout', w.id)
-
-          // Tenta inserir; se já existe (conflito de PK), ignora (mantém servidor)
-          await app.db
-            .insert(workouts)
-            .values({
-              id: dbWorkoutId,
-              userId,
-              data: w as Record<string, unknown>,
-              startedAt: new Date(w.date),
-              finishedAt: null,
-              syncedAt: now,
-            })
-            .onConflictDoNothing()
-
-          // Retorna o registro do servidor (inserido ou já existente)
-          const [row] = await app.db
-            .select()
-            .from(workouts)
-            .where(and(eq(workouts.id, dbWorkoutId), eq(workouts.userId, userId)))
-            .limit(1)
-
-          return row
-        }),
+      const result = await app.db.transaction(async (tx) =>
+        performSync(createSyncRepo(tx, userId), userId, request.body, now),
       )
 
-      // --- Templates: upsert last-write-wins por updatedAt ---
-      const syncedTemplateRows = await Promise.all(
-        clientTemplates
-          .filter((t) => !t.isBuiltIn) // built-in templates não são sincronizados
-          .map(async (t) => {
-            const dbTemplateId = mapClientIdToDbUuid(userId, 'template', t.id)
-            const clientUpdatedAt = t.updatedAt ? new Date(t.updatedAt) : now
-
-            // Verifica se já existe no servidor
-            const [existing] = await app.db
-              .select()
-              .from(templates)
-              .where(and(eq(templates.id, dbTemplateId), eq(templates.userId, userId)))
-              .limit(1)
-
-            if (!existing) {
-              // Não existe: insere
-              const [row] = await app.db
-                .insert(templates)
-                .values({
-                  id: dbTemplateId,
-                  userId,
-                  data: t as Record<string, unknown>,
-                  createdAt: now,
-                  updatedAt: clientUpdatedAt,
-                })
-                .returning()
-              return row
-            }
-
-            // Existe: last-write-wins — atualiza apenas se cliente é mais recente
-            if (clientUpdatedAt > existing.updatedAt) {
-              const [row] = await app.db
-                .update(templates)
-                .set({ data: t as Record<string, unknown>, updatedAt: clientUpdatedAt })
-                .where(and(eq(templates.id, dbTemplateId), eq(templates.userId, userId)))
-                .returning()
-              return row
-            }
-
-            return existing
-          }),
-      )
-
-      // --- Programs: upsert last-write-wins por updatedAt ---
-      const syncedProgramRows = await Promise.all(
-        clientPrograms.map(async (p) => {
-          const dbProgramId = mapClientIdToDbUuid(userId, 'program', p.id)
-          const clientUpdatedAt = p.updatedAt ? new Date(p.updatedAt) : now
-
-          const [existing] = await app.db
-            .select()
-            .from(programs)
-            .where(and(eq(programs.id, dbProgramId), eq(programs.userId, userId)))
-            .limit(1)
-
-          if (!existing) {
-            const [row] = await app.db
-              .insert(programs)
-              .values({
-                id: dbProgramId,
-                userId,
-                data: p as Record<string, unknown>,
-                createdAt: now,
-                updatedAt: clientUpdatedAt,
-              })
-              .returning()
-            return row
-          }
-
-          if (clientUpdatedAt > existing.updatedAt) {
-            const [row] = await app.db
-              .update(programs)
-              .set({ data: p as Record<string, unknown>, updatedAt: clientUpdatedAt })
-              .where(and(eq(programs.id, dbProgramId), eq(programs.userId, userId)))
-              .returning()
-            return row
-          }
-
-          return existing
-        }),
-      )
-
-      // --- Custom Exercises: lista autoritativa por usuário (substituição completa) ---
-      await app.db
-        .delete(customExercises)
-        .where(eq(customExercises.userId, userId))
-
-      const syncedCustomExerciseRows = await Promise.all(
-        clientCustomExercises.map(async (exercise) => {
-          const dbCustomExerciseId = mapClientIdToDbUuid(userId, 'custom-exercise', exercise.id)
-          const createdAt = new Date(exercise.createdAt)
-
-          const [row] = await app.db
-            .insert(customExercises)
-            .values({
-              id: dbCustomExerciseId,
-              userId,
-              data: exercise as Record<string, unknown>,
-              createdAt,
-              updatedAt: now,
-            })
-            .returning()
-
-          return row
-        }),
-      )
-
-      return reply.code(200).send({
-        workouts: syncedWorkoutRows.filter(Boolean),
-        templates: syncedTemplateRows.filter(Boolean),
-        customExercises: syncedCustomExerciseRows.filter(Boolean),
-        programs: syncedProgramRows.filter(Boolean),
-      })
+      return reply.code(200).send(result)
     },
   )
 
@@ -335,6 +157,8 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
    * GET /sync/pull
    *
    * Retorna todos os dados do usuário (para restaurar em novo dispositivo).
+   * Linhas com data.deleted = true SÃO retornadas — o cliente filtra no merge
+   * (precisa saber da exclusão para não ressuscitar a cópia local).
    */
   app.get(
     '/sync/pull',
@@ -360,6 +184,40 @@ export const syncRoutes: FastifyPluginAsyncZod = async (app) => {
         customExercises: userCustomExercises,
         programs: userPrograms,
       })
+    },
+  )
+
+  /**
+   * POST /sync/reset
+   *
+   * Apaga TODOS os dados do usuário no servidor, numa transação. Usado pelo
+   * "Resetar dados" do app (issue #264: o reset local era desfeito pelo pull
+   * seguinte) e pelo reseed da conta demo. Irreversível — a confirmação é
+   * responsabilidade da UI.
+   */
+  app.post(
+    '/sync/reset',
+    {
+      ...auth,
+      schema: {
+        response: { 200: resetResponseSchema },
+      },
+    },
+    async (request, reply) => {
+      const userId = request.user.sub
+
+      const deleted = await app.db.transaction(async (tx) => {
+        const w = await tx.delete(workouts).where(eq(workouts.userId, userId)).returning({ id: workouts.id })
+        const t = await tx.delete(templates).where(eq(templates.userId, userId)).returning({ id: templates.id })
+        const c = await tx
+          .delete(customExercises)
+          .where(eq(customExercises.userId, userId))
+          .returning({ id: customExercises.id })
+        const p = await tx.delete(programs).where(eq(programs.userId, userId)).returning({ id: programs.id })
+        return { workouts: w.length, templates: t.length, customExercises: c.length, programs: p.length }
+      })
+
+      return reply.code(200).send({ ok: true as const, deleted })
     },
   )
 }

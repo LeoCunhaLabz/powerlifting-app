@@ -2,37 +2,9 @@ import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { workouts } from '../db/schema.js'
-
-// ---------------------------------------------------------------------------
-// Zod schemas (espelham os tipos de @powerlifting/shared sem importar o pacote)
-// ---------------------------------------------------------------------------
-
-const setStateSchema = z.object({
-  id: z.string(),
-  weight: z.number(),
-  reps: z.number().int().nonnegative(),
-  rpe: z.number().min(6).max(10).optional(),
-  rir: z.number().int().min(0).max(4).optional(),
-  completed: z.boolean(),
-  isPr: z.boolean().optional(),
-  percentage: z.number().optional(),
-  type: z.enum(['W', 'N', 'D']),
-})
-
-const exerciseStateSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  sets: z.array(setStateSchema),
-})
-
-const workoutSessionDataSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  date: z.string(),
-  duration: z.number().nonnegative(),
-  exercises: z.array(exerciseStateSchema),
-  notes: z.string().optional(),
-})
+// Schema de domínio da fonte única (paridade com @powerlifting/shared garantida
+// em compilação — issue #264). A cópia local antiga stripava templateId/notes/restSeconds.
+import { workoutSessionSchema as workoutSessionDataSchema } from '../schemas/domain.js'
 
 const createBodySchema = z.object({
   data: workoutSessionDataSchema,
@@ -60,6 +32,7 @@ const workoutRowSchema = z.object({
   startedAt: z.string().or(z.date()),
   finishedAt: z.string().or(z.date()).nullable(),
   createdAt: z.string().or(z.date()),
+  updatedAt: z.string().or(z.date()),
   syncedAt: z.string().or(z.date()).nullable(),
 })
 

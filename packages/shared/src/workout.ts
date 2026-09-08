@@ -26,7 +26,19 @@ export interface WorkoutSession {
   exercises: ExerciseState[];
   notes?: string;
   templateId?: string; // ID do template usado para iniciar este treino
+  updatedAt?: string; // ISO — última modificação local (last-write-wins no sync)
   syncedAt?: string; // ISO — quando este registro foi sincronizado com o servidor pela última vez
+}
+
+/**
+ * Tombstone de treino excluído: fica FORA de `AppState.history` (que nunca contém
+ * sessões apagadas — nenhum consumidor precisa filtrar) e é enviado no push para o
+ * servidor marcar `deleted: true` no registro. Sem isso, o pull ressuscita o treino.
+ */
+export interface DeletedWorkoutTombstone {
+  id: string;
+  deletedAt: string; // ISO — momento da exclusão (last-write-wins contra edições antigas)
+  syncedAt?: string; // ISO — quando o servidor confirmou a exclusão
 }
 
 export interface TemplateExercise {
@@ -126,6 +138,8 @@ export interface Program {
   weekOverrides?: WeekOverride[];
   /** Programa arquivado: some das listas ativas, mas é preservado. */
   archived?: boolean;
+  /** Soft-delete: programa excluído. Mantido como tombstone para a exclusão sincronizar. */
+  deleted?: boolean;
   /** ISO — quando foi sincronizado com o servidor pela última vez. */
   syncedAt?: string;
 }
@@ -139,6 +153,9 @@ export interface CustomExercise {
   id: string;
   name: string;
   createdAt: string; // ISO
+  updatedAt?: string; // ISO — última modificação local (last-write-wins no sync)
+  /** Soft-delete: some do autocomplete, mas a exclusão precisa sincronizar. */
+  deleted?: boolean;
   syncedAt?: string; // ISO — quando foi sincronizado com o servidor
 }
 
@@ -150,4 +167,6 @@ export interface AppState {
   programs: Program[];
   /** Exercícios customizados criados pelo usuário (reutilizáveis na busca). */
   customExercises: CustomExercise[];
+  /** Tombstones de treinos excluídos, pendentes de (ou já) propagados ao servidor. */
+  deletedWorkouts?: DeletedWorkoutTombstone[];
 }

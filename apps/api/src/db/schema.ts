@@ -31,6 +31,9 @@ export const workouts = pgTable('workouts', {
   startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  // Última modificação aceita (last-write-wins do sync, issue #264). Workouts eram
+  // append-only e edições/exclusões do cliente eram silenciosamente descartadas.
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
 }, (table) => [
   index('workouts_user_id_idx').on(table.userId),
