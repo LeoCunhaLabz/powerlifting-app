@@ -86,7 +86,7 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
           <div style={styles.summaryName}>{user?.name ?? 'Atleta'} · {bw} {settings.units}</div>
           <div style={styles.summaryStats}>
             {user?.email && <span style={styles.summaryEmail}>{user.email}</span>}
-            <span>Total {Math.round(bestTotal)} {settings.units} · {dots} DOTS</span>
+            {bestTotal > 0 && <span>Total {Math.round(bestTotal)} {settings.units} · {dots} DOTS</span>}
           </div>
         </div>
         <button onClick={handleLogout} style={styles.logoutBtn} aria-label="Sair">

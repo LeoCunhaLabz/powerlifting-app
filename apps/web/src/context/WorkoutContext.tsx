@@ -874,15 +874,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       });
     });
 
-    // Fallback defaults if no history exists (realistic values for beginner lifter)
-    if (max === 0) {
-      if (lowerName.includes('agachamento') || lowerName.includes('squat')) return state.settings.units === 'kg' ? 100 : 225;
-      if (lowerName.includes('supino') || lowerName.includes('bench')) return state.settings.units === 'kg' ? 80 : 175;
-      if (lowerName.includes('terra') || lowerName.includes('deadlift')) return state.settings.units === 'kg' ? 120 : 265;
-      if (lowerName.includes('desenvolvimento') || lowerName.includes('press')) return state.settings.units === 'kg' ? 50 : 110;
-      return state.settings.units === 'kg' ? 60 : 135; // Default for accessories
-    }
-
+    // Sem dado real retorna 0 — nunca inventar valores (#285): dashboard/More mostram "—",
+    // prefill de %1RM fica vazio e a Comparação cai no próprio empty state (dataReady).
     return max;
   }, [state]);
 

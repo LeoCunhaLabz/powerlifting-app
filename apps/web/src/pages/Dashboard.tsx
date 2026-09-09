@@ -301,23 +301,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
         )}
       </div>
 
-      {/* PR compact */}
+      {/* PR compact — sem dado real não exibe valor nenhum (#285) */}
       <div style={styles.card}>
         <div style={styles.cardHead}>
           <span style={styles.prKicker}><Award size={14} /> RECORDES</span>
-          <span style={styles.dotsBadge}>{dots} DOTS</span>
+          {dots > 0 && <span style={styles.dotsBadge}>{dots} DOTS</span>}
         </div>
-        <div style={styles.prGrid}>
-          {SBD.map((n, i) => (
-            <div key={n} style={{ ...styles.prCol, ...(i === 1 ? styles.prColMid : {}) }}>
-              <span style={styles.prLbl}>{i === 0 ? 'AGACH.' : i === 1 ? 'SUPINO' : 'TERRA'}</span>
-              <span style={styles.prVal}>{bestE1RM[i]}</span>
-              <span style={styles.prSub}>e1RM</span>
-              <span style={styles.pr1rm}>{best1RM[i] > 0 ? `${best1RM[i]} ${u}` : '—'}<span style={styles.prSub}> 1RM</span></span>
+        {bestTotal > 0 ? (
+          <>
+            <div style={styles.prGrid}>
+              {SBD.map((n, i) => (
+                <div key={n} style={{ ...styles.prCol, ...(i === 1 ? styles.prColMid : {}) }}>
+                  <span style={styles.prLbl}>{i === 0 ? 'AGACH.' : i === 1 ? 'SUPINO' : 'TERRA'}</span>
+                  <span style={styles.prVal}>{bestE1RM[i] > 0 ? bestE1RM[i] : '—'}</span>
+                  <span style={styles.prSub}>e1RM</span>
+                  <span style={styles.pr1rm}>{best1RM[i] > 0 ? `${best1RM[i]} ${u}` : '—'}<span style={styles.prSub}> 1RM</span></span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div style={styles.prFooter}>Total estimado <strong style={{ color: 'var(--text-primary)' }}>{bestTotal} {u}</strong></div>
+            <div style={styles.prFooter}>Total estimado <strong style={{ color: 'var(--text-primary)' }}>{bestTotal} {u}</strong></div>
+          </>
+        ) : (
+          <div style={styles.emptyMini}>Registre treinos com agachamento, supino e terra para ver seus recordes e DOTS.</div>
+        )}
       </div>
 
       {/* Recent history */}
