@@ -36,6 +36,7 @@ npm run build       # build do apps/web (tsc -b + vite build)
 npm run preview     # servir o build de produção do apps/web
 npm run lint        # ESLint do apps/web (flat config)
 npm run test        # testes do apps/web (Vitest)
+npm run test:e2e    # E2E Playwright do golden path (sobe API + preview do web; requer Postgres em E2E_DATABASE_URL — roda no CI)
 npm run dev:api     # dev server do apps/api com hot-reload (tsx watch)
 npm run build:api   # compila apps/api (tsc → dist/)
 npm run start:api   # inicia o servidor compilado do apps/api

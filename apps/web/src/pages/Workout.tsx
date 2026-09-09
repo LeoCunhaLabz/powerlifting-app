@@ -375,6 +375,7 @@ export const Workout: React.FC = () => {
                   </select>
                   <button
                     onClick={() => updateSet(exIdx, setIdx, { completed: !set.completed })}
+                    aria-label={set.completed ? 'Desmarcar série' : 'Concluir série'}
                     style={{
                       ...styles.check,
                       backgroundColor: set.completed ? 'var(--accent)' : 'transparent',
