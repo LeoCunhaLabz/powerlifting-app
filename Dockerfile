@@ -8,7 +8,7 @@ COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci
 
 COPY . .
-ARG VITE_API_URL="https://api-treino.cunhalabs.tech"
+ARG VITE_API_URL="https://api.onyxtreino.com.br"
 # Client ID do Google OAuth — valor PÚBLICO (vai no bundle JS de qualquer forma; o que é
 # secreto é o Client Secret, que este app não usa — fluxo GSI de ID token). Default
 # hardcoded para o build de produção do Dokploy; sobreponível por build arg.
@@ -20,7 +20,7 @@ FROM nginx:1.27-alpine
 
 # Mesma origem de API usada no build do bundle — entra na CSP (connect-src) para que
 # o frontend possa chamar a API. ARG é por stage, por isso precisa ser repetido aqui.
-ARG VITE_API_URL="https://api-treino.cunhalabs.tech"
+ARG VITE_API_URL="https://api.onyxtreino.com.br"
 
 # Copiar build da stage anterior
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
