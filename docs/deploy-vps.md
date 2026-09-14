@@ -10,14 +10,35 @@ O app roda no **Dokploy** em um VPS próprio. Os três recursos (web, api, postg
 
 ```
 Internet → Traefik (TLS, gerenciado pelo Dokploy)
-              ├─ app.dominio.com  → web  (nginx não-root, porta 8080, rede dokploy-network)
-              └─ api.dominio.com  → api  (Node.js, porta 3000, rede dokploy-network)
-                                         └─ postgres (recurso gerenciado, mesma rede)
+              ├─ app.onyxtreino.com.br  → web  (nginx não-root, porta 8080, rede dokploy-network)
+              └─ api.onyxtreino.com.br  → api  (Node.js, porta 3000, rede dokploy-network)
+                                               └─ postgres (recurso gerenciado, mesma rede)
 ```
 
 - **Traefik** gerencia TLS (Let's Encrypt) e roteamento — configurado pelo Dokploy automaticamente.
 - **`dokploy-network`** é a rede Docker interna que conecta os três recursos sem expor portas ao host.
 - Os containers não expõem portas diretamente ao host; o Traefik roteia pelo nome do serviço.
+
+---
+
+## Domínio próprio (issue #291)
+
+Domínio **onyxtreino.com.br** (registrado via Hostinger, 09/2026). Mapa de hosts:
+
+| Host | Serve | Observação |
+|------|-------|------------|
+| `app.onyxtreino.com.br` | web (SPA) | Host canônico do app; o TWA da Play Store (#259) usa este host no `assetlinks.json` |
+| `api.onyxtreino.com.br` | api | |
+| `onyxtreino.com.br` / `www` | 301 → `app.` | **Temporário**: quando a landing (#250) existir, a raiz passa a servi-la |
+| `stats.onyxtreino.com.br` | (reservado) | Umami (#290) |
+| `treino.cunhalabs.tech` | 301 → `app.` | Domínio antigo do web; fica atado ao Traefik para TLS do redirect |
+| `api-treino.cunhalabs.tech` | api (legado) | Mantido **servindo** (sem redirect): bundles antigos em cache de PWA chamam esta origem; redirect em preflight CORS falharia |
+
+- **DNS (painel da Hostinger):** registros **A** de `@`, `www`, `app`, `api` e `stats` → IP da VPS.
+- **Redirects** vivem no [nginx.conf](../nginx.conf) (bloco de `server_name` dedicado, versionado). O Traefik precisa continuar roteando os hosts antigos para o `web` — sem isso não há quem responda o 301.
+- **Dokploy → cada application → Domains:** os hosts novos foram **adicionados** e os antigos **mantidos** (TLS de ambos).
+- **Pegadinha de migração:** `localStorage` é por origem — usuário sem conta perde os dados locais ao trocar de domínio. Com conta, basta logar no host novo que o sync puxa tudo. Feito pré-lançamento justamente por isso.
+- Ao mudar o domínio de novo: basta `VITE_API_URL` (CSP acompanha via `__API_ORIGIN__`), `CORS_ORIGIN`/`APP_PUBLIC_URL` no Dokploy, origens do GSI no Google Cloud, secrets `APP_URL`/`API_URL`, `robots.txt`/`sitemap.xml` e este runbook.
 
 ---
 
@@ -141,8 +162,9 @@ ssh -L 3000:localhost:3000 root@<ip-da-vps>
 
 ```bash
 ssh root@<ip> 'echo ok'                                  # conexão nova por chave
-curl -so /dev/null -w '%{http_code}\n' https://treino.cunhalabs.tech/       # 200
-curl -so /dev/null -w '%{http_code}\n' https://api-treino.cunhalabs.tech/health  # 200
+curl -so /dev/null -w '%{http_code}\n' https://app.onyxtreino.com.br/            # 200
+curl -so /dev/null -w '%{http_code}\n' https://api.onyxtreino.com.br/health      # 200
+curl -so /dev/null -w '%{http_code}\n' https://treino.cunhalabs.tech/            # 301 → app.onyxtreino.com.br
 ssh root@<ip> 'docker service ls'                        # tudo 1/1
 ```
 
@@ -157,7 +179,7 @@ Configuradas em **Dokploy → api → Environment** (nunca commitadas):
 | `PORT` | `3000` |
 | `HOST` | `0.0.0.0` |
 | `DATABASE_URL` | `postgresql://powerlifting:<senha>@<hostname-db-dokploy>:5432/powerlifting` |
-| `CORS_ORIGIN` | `https://app.dominio.com` (URL pública do frontend) |
+| `CORS_ORIGIN` | `https://app.onyxtreino.com.br` (URL pública do frontend — **uma** origem; o redirect 301 cobre os hosts antigos) |
 | `JWT_SECRET` | String aleatória ≥ 32 chars — gere com `openssl rand -base64 48` |
 | `JWT_EXPIRES_IN` | `15m` |
 | `REFRESH_TOKEN_EXPIRES_IN` | `7d` |
@@ -165,7 +187,7 @@ Configuradas em **Dokploy → api → Environment** (nunca commitadas):
 | `RESEND_API_KEY` | API key do [Resend](https://resend.com) — **obrigatória em produção**: sem ela, o e-mail de redefinição de senha não é enviado (apenas logado, e só fora de produção) |
 | `EMAIL_FROM` | Remetente dos e-mails, ex.: `ONYX <no-reply@dominio.com>` — necessário junto com `RESEND_API_KEY`, deve ser um domínio verificado no Resend |
 | `APP_PUBLIC_URL` | URL pública do frontend usada no link de redefinição (default: mesmo valor de `CORS_ORIGIN`) |
-| `GOOGLE_CLIENT_ID` | Client ID do Google OAuth (**configurada em produção em 07/09/2026**, issue #263). Valor público — o mesmo entra no **build do web** via `ARG VITE_GOOGLE_CLIENT_ID` no `Dockerfile` raiz (default hardcoded, é público). O **Client Secret não é usado** neste app (fluxo GSI de ID token): não configure em lugar nenhum. O OAuth client no Google Cloud tem como origens autorizadas `https://treino.cunhalabs.tech` + `http://localhost`/`:5173`; redirect URIs vazios. |
+| `GOOGLE_CLIENT_ID` | Client ID do Google OAuth (**configurada em produção em 07/09/2026**, issue #263). Valor público — o mesmo entra no **build do web** via `ARG VITE_GOOGLE_CLIENT_ID` no `Dockerfile` raiz (default hardcoded, é público). O **Client Secret não é usado** neste app (fluxo GSI de ID token): não configure em lugar nenhum. O OAuth client no Google Cloud tem como origens autorizadas `https://app.onyxtreino.com.br` + `https://treino.cunhalabs.tech` (manter durante a transição, #291) + `http://localhost`/`:5173`; redirect URIs vazios. |
 
 O `DATABASE_URL` aponta para o **hostname do recurso PostgreSQL do Dokploy** (visível em Dokploy → powerliftingdb → Connection), não para `localhost` nem para o hostname do `docker-compose.yml`.
 
@@ -180,8 +202,8 @@ Configurados em **GitHub → Settings → Secrets → Actions**:
 | `DOKPLOY_API_KEY` | API key do painel Dokploy (Settings → API → Generate) |
 | `DOKPLOY_APP_ID_WEB` | `applicationId` do serviço **web** (URL do painel: `.../application/<id>`) |
 | `DOKPLOY_APP_ID_API` | `applicationId` do serviço **api** |
-| `APP_URL` | URL pública do frontend (ex.: `https://app.dominio.com`) — usado no smoke test |
-| `API_URL` | URL pública da API (ex.: `https://api.dominio.com/health`) — usado no smoke test |
+| `APP_URL` | URL pública do frontend (`https://app.onyxtreino.com.br`) — usado no smoke test |
+| `API_URL` | URL pública da API (`https://api.onyxtreino.com.br/health`) — usado no smoke test |
 | `RESEND_API_KEY` | API key do [Resend](https://resend.com) para e-mails de deploy |
 | `MAIL_TO` | E-mail destinatário do resumo de deploy |
 
