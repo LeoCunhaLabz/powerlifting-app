@@ -14,6 +14,7 @@ import type {
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 import { trySetItem, shouldClearActiveBackup } from '../utils/persistence';
+import { trackEvent } from '../utils/analytics';
 
 /** Recalculates isPr flags for all sessions chronologically. */
 function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
@@ -1103,6 +1104,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
     setActiveWorkout(null);
     stopRestTimer();
+    trackEvent('treino-finalizado');
   }, [activeWorkout, state, stopRestTimer]);
 
   // Add exercise to active workout

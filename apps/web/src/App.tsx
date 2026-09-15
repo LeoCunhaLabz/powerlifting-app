@@ -15,6 +15,7 @@ import ComparisonEstimated from './pages/ComparisonEstimated';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
+import { trackTabView } from './utils/analytics';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
 
 type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history' | 'exercises' | 'prs' | 'comparison';
@@ -41,6 +42,11 @@ const AppContent: React.FC = () => {
     setHistoryInit(opts ?? null);
     setCurrentTab('history');
   };
+
+  // Pageview virtual por aba (Umami #290): sem router, a troca de aba é a navegação.
+  React.useEffect(() => {
+    trackTabView(currentTab);
+  }, [currentTab]);
 
   const syncIndicator = (() => {
     switch (syncStatus) {

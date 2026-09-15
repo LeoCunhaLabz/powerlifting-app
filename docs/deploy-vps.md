@@ -30,7 +30,7 @@ Domínio **onyxtreino.com.br** (registrado via Hostinger, 09/2026). Mapa de host
 | `app.onyxtreino.com.br` | web (SPA) | Host canônico do app; o TWA da Play Store (#259) usa este host no `assetlinks.json` |
 | `api.onyxtreino.com.br` | api | |
 | `onyxtreino.com.br` / `www` | 301 → `app.` | **Temporário**: quando a landing (#250) existir, a raiz passa a servi-la |
-| `stats.onyxtreino.com.br` | (reservado) | Umami (#290) |
+| `stats.onyxtreino.com.br` | Umami | Analytics self-hosted (#290) |
 | `treino.cunhalabs.tech` | 301 → `app.` | Domínio antigo do web; fica atado ao Traefik para TLS do redirect |
 | `api-treino.cunhalabs.tech` | api (legado) | Mantido **servindo** (sem redirect): bundles antigos em cache de PWA chamam esta origem; redirect em preflight CORS falharia |
 
@@ -48,9 +48,30 @@ Domínio **onyxtreino.com.br** (registrado via Hostinger, 09/2026). Mapa de host
 |---------|------|---------------|-------------|
 | **web** | Application | 8080 | Nginx non-root; imagem do `Dockerfile` raiz |
 | **api** | Application | 3000 | Node.js non-root; imagem do `apps/api/Dockerfile` |
-| **powerliftingdb** | PostgreSQL (gerenciado) | 5432 | Painel próprio no Dokploy com backups |
+| **powerliftingdb** | PostgreSQL (gerenciado) | 5432 | Painel próprio no Dokploy com backups; também hospeda o database `umami` (#290) |
+| **Umami** | Application | 3000 | Imagem `ghcr.io/umami-software/umami:postgresql-v2`; domínio `stats.onyxtreino.com.br` |
 
-> **Importante:** o auto-deploy do Dokploy **deve estar desligado** em ambas as applications (Settings da aplicação → Deployments → desativar "Auto deploy"). O único gatilho de deploy é o workflow `deploy.yml`.
+> **Importante:** o auto-deploy do Dokploy **deve estar desligado** nas applications do app (Settings da aplicação → Deployments → desativar "Auto deploy"). O único gatilho de deploy é o workflow `deploy.yml`. O Umami não entra no `deploy.yml` — atualiza-se sozinho, via redeploy manual (ver seção do Umami).
+
+---
+
+## Umami — instrumentação de uso (issue #290)
+
+Analytics **self-hosted, cookieless e LGPD-friendly** em `https://stats.onyxtreino.com.br`. Nenhum dado pessoal é coletado; o objetivo é medir MAU/retention para a decisão de paywall (~100 MAU, plano da #260).
+
+| Item | Valor |
+|------|-------|
+| Application no Dokploy | **Umami** (mesmo projeto/environment do app) |
+| Imagem | `ghcr.io/umami-software/umami:postgresql-v2` (major pinada) |
+| Banco | database `umami` (role `umami`) **dentro do recurso `powerliftingdb`** — zero RAM extra; backups do painel cobrem os dois |
+| Credenciais | senha do database em `/root/.umami-db-pass` na VPS (também no env da application); senha do admin do painel em `/root/.umami-admin-pass` (login `admin`) |
+| Website configurado | "ONYX" → `app.onyxtreino.com.br`, website-id `5cc70834-85d1-4c3d-9a0b-bb095626916e` (usado no `index.html`) |
+
+**Lado do web** (versionado no repo): tag `<script>` no `apps/web/index.html` com `data-domains="app.onyxtreino.com.br"` (dev/preview não registram) + origem `https://stats.onyxtreino.com.br` na CSP (`script-src` e `connect-src` em `nginx-security-headers.conf`). O wrapper `apps/web/src/utils/analytics.ts` é best-effort: com adblock ou script ausente, os eventos viram no-op.
+
+**Eventos além dos pageviews por aba:** `registro-concluido` (AuthContext) e `treino-finalizado` (WorkoutContext). Pendentes de outras issues: calculadora pública (#250) e clique de compartilhamento (#292).
+
+**Upgrade:** Dokploy → Umami → Deployments → Redeploy (re-pull da tag `postgresql-v2`; migrations rodam no boot). Major novo = trocar a tag na application.
 
 ---
 
