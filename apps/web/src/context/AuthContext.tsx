@@ -9,6 +9,7 @@ import {
 } from '../services/authApi';
 import type { AuthUser } from '../services/authApi';
 import { saveTokens, clearTokens, getRefreshToken, getAccessToken, refreshSession } from '../services/session';
+import { trackEvent } from '../utils/analytics';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -69,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveTokens(res.accessToken, res.refreshToken);
     setAccessToken(res.accessToken);
     setUser(res.user);
+    trackEvent('registro-concluido');
   }, []);
 
   const logout = useCallback(async () => {
