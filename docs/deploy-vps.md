@@ -155,8 +155,32 @@ ssh -L 3000:localhost:3000 root@<ip-da-vps>
 # e abrir http://localhost:3000 no browser
 ```
 
-- [ ] **Pendência (ação no painel do provedor):** bloquear a porta `3000` externa no firewall da Hostinger. O túnel continua funcionando (entra pela 22) e o runner do CI não é afetado (já usa `localhost:3000`).
+- [x] **Resolvida (issue #284, 15/09/2026):** porta `3000` externa bloqueada pelo **firewall do provedor** (ver seção abaixo). O túnel continua funcionando (entra pela 22) e o runner do CI não é afetado (usa `localhost:3000`) — confirmado com rerun do `deploy.yml`.
 - **Nunca** logar no painel via `http://<ip>:3000` de fora — a credencial de admin trafega sem TLS e o painel controla todos os deploys.
+
+### Firewall do provedor (Hostinger) — issue #284
+
+Firewall **"Bloquear Dokploy HTTP"** (id `357742`) ativo na VM (`1772200`). Semântica **default-deny**: só entra o que tem regra `accept` — a porta `3000` (e qualquer outra porta publicada por container) fica bloqueada por omissão. Regras:
+
+| Ação | Protocolo | Porta | Origem |
+|------|-----------|-------|--------|
+| accept | TCP | 22 | any (auth só por chave + fail2ban cobrem; origem fixa arriscaria lockout com IP residencial rotativo) |
+| accept | TCP | 80 | any (Traefik + desafio HTTP-01 do Let's Encrypt) |
+| accept | TCP | 443 | any (Traefik) |
+| accept | ICMP | any | any (ping para diagnóstico) |
+
+Gestão **via API da Hostinger** (token Bearer gerado no hPanel → Perfil → API), sem painel:
+
+```bash
+# Estado do firewall e regras
+curl -H "Authorization: Bearer $TOKEN" https://developers.hostinger.com/api/vps/v1/firewall/357742
+# Após editar regras, sincronizar com a VM (senão fica só no cadastro):
+curl -X POST -H "Authorization: Bearer $TOKEN" https://developers.hostinger.com/api/vps/v1/firewall/357742/sync/1772200
+# Rollback de emergência (ex.: lockout de SSH) — a API é externa, não passa pelo firewall:
+curl -X POST -H "Authorization: Bearer $TOKEN" https://developers.hostinger.com/api/vps/v1/firewall/357742/deactivate/1772200
+```
+
+Duas pegadinhas: a ativação/sync é **assíncrona** (a regra demora ~1 min para valer; `is_synced` no GET indica o estado) e criar/editar regra exige os campos `source_detail` (usar `"any"`) e `port` mesmo para ICMP (`"any"`).
 
 ### Verificação pós-mudança (rodar após qualquer mexida nesta seção)
 
@@ -165,6 +189,7 @@ ssh root@<ip> 'echo ok'                                  # conexão nova por cha
 curl -so /dev/null -w '%{http_code}\n' https://app.onyxtreino.com.br/            # 200
 curl -so /dev/null -w '%{http_code}\n' https://api.onyxtreino.com.br/health      # 200
 curl -so /dev/null -w '%{http_code}\n' https://treino.cunhalabs.tech/            # 301 → app.onyxtreino.com.br
+curl --connect-timeout 8 http://<ip>:3000/               # deve FALHAR (firewall #284)
 ssh root@<ip> 'docker service ls'                        # tudo 1/1
 ```
 
