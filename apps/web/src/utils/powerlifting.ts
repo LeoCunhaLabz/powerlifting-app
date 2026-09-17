@@ -95,18 +95,24 @@ export function relativeStrength(total: number, bodyweight: number): number {
 
 /**
  * DOTS Formula (standardized weight comparison)
+ *
+ * Coeficientes e clamp de peso corporal conforme o OpenPowerlifting
+ * (https://gitlab.com/openpowerlifting/opl-data/-/blob/main/crates/coefficients/src/dots.rs).
+ * Issue #309: os termos c/d/e estavam errados e a pontuação saía ~45% abaixo do real.
  */
 export function calculateDots(bodyweight: number, total: number, isMale: boolean): number {
   if (!(bodyweight > 0) || !(total > 0)) return 0;
 
-  // DOTS Coefficients
-  const a = isMale ? -0.000001093 : -0.0000010706;
+  // DOTS Coefficients (Tim Konertz)
+  const a = isMale ? -0.0000010930 : -0.0000010706;
   const b = isMale ? 0.0007391293 : 0.0005158568;
-  const c = isMale ? -0.19190192 : -0.11266519;
-  const d = isMale ? 24.7000574 : 16.6194945;
-  const e = isMale ? 263.18017 : 232.565;
+  const c = isMale ? -0.1918759221 : -0.1126655495;
+  const d = isMale ? 24.0900756 : 13.6175032;
+  const e = isMale ? -307.75076 : -57.96288;
 
-  const w = bodyweight;
+  // A fórmula só é válida na faixa 40–210 kg (masc.) / 40–150 kg (fem.); fora dela o
+  // OpenPowerlifting satura o peso corporal no limite em vez de extrapolar o polinômio.
+  const w = Math.min(Math.max(bodyweight, 40), isMale ? 210 : 150);
   const denominator = (a * Math.pow(w, 4)) + (b * Math.pow(w, 3)) + (c * Math.pow(w, 2)) + (d * w) + e;
   
   if (denominator === 0) return 0;

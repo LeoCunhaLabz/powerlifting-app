@@ -227,6 +227,27 @@ describe('calculateDots', () => {
     const result = calculateDots(80, 600, true)
     expect(Number(result.toFixed(2))).toBe(result)
   })
+
+  // Valores de referência calculados com os coeficientes oficiais do OpenPowerlifting
+  // (crates/coefficients/src/dots.rs). Regressão da issue #309: coeficientes errados
+  // davam 188,53 e 158,81 para estes casos.
+  it('masculino: 82,5 kg / 512,5 kg total = 347,16 (referência OpenPowerlifting)', () => {
+    expect(calculateDots(82.5, 512.5, true)).toBeCloseTo(347.16, 2)
+  })
+
+  it('feminino: 63 kg / 300 kg total = 322,65 (referência OpenPowerlifting)', () => {
+    expect(calculateDots(63, 300, false)).toBeCloseTo(322.65, 2)
+  })
+
+  it('aplica o clamp oficial de peso corporal (masc. 40–210 kg)', () => {
+    expect(calculateDots(30, 500, true)).toBe(calculateDots(40, 500, true))
+    expect(calculateDots(250, 500, true)).toBe(calculateDots(210, 500, true))
+  })
+
+  it('aplica o clamp oficial de peso corporal (fem. 40–150 kg)', () => {
+    expect(calculateDots(30, 300, false)).toBe(calculateDots(40, 300, false))
+    expect(calculateDots(180, 300, false)).toBe(calculateDots(150, 300, false))
+  })
 })
 
 // ─── calculateIpfGl ───────────────────────────────────────────────────────────
