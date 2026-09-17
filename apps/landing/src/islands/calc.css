@@ -14,6 +14,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* flex-wrap: em telas estreitas, o título (ex.: "CALCULADORA DOTS") + o seletor
+     (Masc./Fem., Barra 20/15 kg) não cabem numa linha só sem estourar a margem
+     direita do card; wrap deixa o seletor cair para a linha de baixo. */
+  flex-wrap: wrap;
+  row-gap: 10px;
   gap: 12px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
@@ -65,6 +70,10 @@
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--text-muted);
+  /* Reserva a altura de 2 linhas mesmo quando o texto cabe em 1 (ex.: "Total SBD
+     (kg)" ao lado de "Peso corporal (kg)", que quebra em telas estreitas) — sem
+     isso os dois campos do grid ficam com os controles desalinhados verticalmente. */
+  min-height: 24px;
 }
 
 .field__control {
@@ -216,6 +225,13 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+/* Faixa de valores (ex.: 1RM: "162,3 a 175,0"), usada dentro de .result__num.
+   Reduz o tamanho relativo ao número único, senão dois valores lado a lado
+   estouram a largura do card no mobile. */
+.result-range {
+  font-size: 0.62em;
 }
 
 .result__hint {

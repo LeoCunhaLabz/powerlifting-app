@@ -7,7 +7,7 @@ import { ROUTES } from '../../lib/site';
 <CalcLayout
   title="Calculadora de 1RM por RPE"
   h1="Calculadora de 1RM por RPE"
-  lead="Carga, repetições e RPE da série viram um 1RM estimado pela tabela RTS — com Brzycki e Epley de contraprova. É o e1RM que o ONYX usa para programar por %1RM."
+  lead="Carga, repetições e RPE da série viram uma faixa de 1RM estimado pela tabela RTS, Brzycki e Epley. É o e1RM que o ONYX usa para programar por %1RM."
   description="Estime seu 1RM online e grátis a partir de carga, repetições e RPE (tabela RTS de Mike Tuchscherer), com as fórmulas de Brzycki e Epley. Sem login."
   path={ROUTES.calc1rm}
   breadcrumb="1RM por RPE"
@@ -18,19 +18,20 @@ import { ROUTES } from '../../lib/site';
     <h2>Por que usar RPE no lugar de testar o máximo</h2>
     <p>
       Testar 1RM cansa e traz risco. Com <strong>RPE</strong> (Rate of Perceived Exertion, de 6,5 a 10), você
-      registra quantas repetições ainda tinha na manga em uma série normal de treino — RPE 8 significa "faltaram
-      duas" — e a tabela RTS converte isso em percentual do 1RM. Fica um estimado atualizado toda semana, sem dia
+      registra quantas repetições ainda tinha na manga em uma série normal de treino (RPE 8 significa "faltaram
+      duas"), e a tabela RTS converte isso em percentual do 1RM. Fica um estimado atualizado toda semana, sem dia
       de teste.
     </p>
     <h2>As três fórmulas</h2>
     <ul>
-      <li><strong>Tabela RTS</strong> — carga ÷ percentual (reps × RPE). Só vale até 12 repetições.</li>
-      <li><strong>Brzycki</strong> — carga ÷ (1,0278 − 0,0278 × reps). Tende a ser conservadora em séries longas.</li>
-      <li><strong>Epley</strong> — carga × (1 + reps ÷ 30). Um pouco mais otimista que Brzycki acima de 5 reps.</li>
+      <li><strong>Tabela RTS:</strong> carga ÷ percentual (reps × RPE). Só vale até 12 repetições.</li>
+      <li><strong>Brzycki:</strong> carga ÷ (1,0278 − 0,0278 × reps). Tende a ser conservadora em séries longas.</li>
+      <li><strong>Epley:</strong> carga × (1 + reps ÷ 30). Um pouco mais otimista que Brzycki acima de 5 reps.</li>
     </ul>
     <p>
-      No app, o e1RM de cada série alimenta a evolução, os recordes e a prescrição por %1RM das rotinas —
-      sobre o seu estimado de hoje, não sobre um máximo antigo.
+      Por isso o ONYX mostra uma faixa (do menor ao maior valor entre os três métodos) em vez de um número só:
+      é mais honesto sobre a incerteza real da estimativa. No app, o e1RM de cada série alimenta a evolução, os
+      recordes e a prescrição por %1RM das rotinas, sobre o seu estimado de hoje, não sobre um máximo antigo.
     </p>
   </Fragment>
 </CalcLayout>

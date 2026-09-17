@@ -30,7 +30,19 @@ export default function OneRmCalculator() {
   const inTable = valid && rpeVal !== undefined && r <= 12;
   const pct = inTable ? RPE_PERCENTAGES[r]?.[rpeVal] : undefined;
 
-  const main = rpeVal !== undefined ? e1rmRts : brzycki;
+  // Faixa em vez de um número só (produto: diferentes métodos dão estimativas
+  // diferentes; mostrar só um deles passa uma falsa precisão). RTS só entra quando
+  // há RPE e a tabela cobre as repetições — fora disso ela cai no próprio Brzycki
+  // internamente (calculateE1RM), o que duplicaria o valor sem mudar a faixa.
+  const methods = valid
+    ? [
+        ...(inTable ? [{ label: 'Tabela RTS', value: e1rmRts }] : []),
+        { label: 'Brzycki', value: brzycki },
+        { label: 'Epley', value: epley },
+      ]
+    : [];
+  const rangeMin = methods.length ? Math.min(...methods.map((m) => m.value)) : 0;
+  const rangeMax = methods.length ? Math.max(...methods.map((m) => m.value)) : 0;
 
   return (
     <div className="calc">
@@ -87,22 +99,29 @@ export default function OneRmCalculator() {
         </div>
 
         <Result
-          label={rpeVal !== undefined ? 'e1RM · tabela RTS' : 'e1RM · Brzycki'}
+          label="Faixa de e1RM estimado"
           unit="kg"
           hint={
             !valid
               ? 'Informe carga e repetições maiores que zero.'
               : rpeVal !== undefined && !inTable
-                ? 'Acima de 12 repetições a tabela RTS não se aplica; usamos Brzycki.'
+                ? 'Acima de 12 repetições a tabela RTS não se aplica; a faixa usa Brzycki e Epley.'
                 : pct !== undefined
-                  ? `${formatKg(w)} kg × ${r} @ RPE ${formatKg(rpeVal!)} = ${formatNumber(pct * 100, 0)}% do 1RM`
+                  ? `${formatKg(w)} kg × ${r} @ RPE ${formatKg(rpeVal!)} = ${formatNumber(pct * 100, 0)}% do 1RM pela tabela RTS`
                   : undefined
           }
         >
-          {valid ? <AnimatedNumber value={main} decimals={1} /> : '—'}
+          {valid ? (
+            <span className="result-range">
+              <AnimatedNumber value={rangeMin} decimals={1} /> a <AnimatedNumber value={rangeMax} decimals={1} />
+            </span>
+          ) : (
+            '—'
+          )}
         </Result>
 
-        <div className="calc__grid">
+        <div className={inTable ? 'calc__grid calc__grid--3' : 'calc__grid'}>
+          {inTable && <Stat label="Tabela RTS" value={`${formatKg(e1rmRts)} kg`} />}
           <Stat label="Brzycki" value={valid ? `${formatKg(brzycki)} kg` : '—'} sub="sem RPE" />
           <Stat label="Epley" value={valid ? `${formatKg(epley)} kg` : '—'} sub="sem RPE" />
         </div>
@@ -140,8 +159,9 @@ export default function OneRmCalculator() {
           </table>
         </div>
         <p className="calc__note">
-          e1RM = carga ÷ percentual da tabela (Mike Tuchscherer, RTS). Brzycki e Epley servem de contraprova
-          quando não há RPE registrado. Arredondamento para 0,1 kg, igual ao app.
+          A faixa mostra o menor e o maior valor entre os métodos disponíveis: quanto mais próximos, mais confiável
+          a estimativa. e1RM = carga ÷ percentual da tabela (Mike Tuchscherer, RTS). Brzycki e Epley servem de
+          contraprova quando não há RPE registrado. Arredondamento para 0,1 kg, igual ao app.
         </p>
       </div>
     </div>
