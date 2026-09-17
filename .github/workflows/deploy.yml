@@ -40,17 +40,26 @@ jobs:
       - name: Lint (API)
         run: npm run lint:api
 
+      - name: Lint (landing)
+        run: npm run lint:landing
+
       - name: Testes (web)
         run: npm run test
 
       - name: Testes (API)
         run: npm run test:api
 
+      - name: Testes (landing)
+        run: npm run test:landing
+
       - name: Build (web)
         run: npm run build
 
       - name: Build (API)
         run: npm run build:api
+
+      - name: Type-check + Build (landing)
+        run: npm run check:landing && npm run build:landing
 
   # 2) Deploy: dispara o build/deploy no Dokploy via API REST com API key,
   #    para o frontend e a API. Cada app tem seu applicationId (secret).
@@ -199,6 +208,9 @@ jobs:
           wait_dokploy "api" "$APP_ID_API" || rc=1
           check_url "frontend" "$APP_URL" || rc=1
           check_url "api" "$API_URL" || rc=1
+          # Landing (#250): mesmo container do web, host da raiz. URL fixa — o domínio
+          # já está hardcoded no nginx.conf, não é segredo.
+          check_url "landing" "https://onyxtreino.com.br/" || rc=1
           if [ "$rc" -ne 0 ]; then
             echo "status=fail" >> "$GITHUB_OUTPUT"
             exit 1
