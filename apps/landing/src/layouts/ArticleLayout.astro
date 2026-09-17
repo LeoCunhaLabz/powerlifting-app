@@ -46,14 +46,14 @@ const updatedLabel = updatedAt
   : null;
 ---
 
-<BaseLayout title={title} description={description} path={path} jsonLd={jsonLd}>
+<BaseLayout title={title} description={description} path={path} jsonLd={jsonLd} readingProgress>
   <article class="article">
     <div class="container article__inner">
       <nav class="article__crumbs" aria-label="Você está em">
         <a href="/">ONYX</a><span aria-hidden="true">/</span><span>{crumbLabel}</span>
       </nav>
 
-      <div class="prose">
+      <div class="prose" id="article-content">
         <h1>{heading}</h1>
         {updatedLabel && <p class="meta">Última atualização: {updatedLabel}</p>}
         <slot />
@@ -65,7 +65,7 @@ const updatedLabel = updatedAt
           <h2 class="article__cta-title">
             {relatedCalc ? 'Faça esse cálculo com seus próprios números.' : 'Isso tudo já roda dentro do seu treino.'}
           </h2>
-          <p>Registre com RPE, programe por %1RM e acompanhe DOTS, Wilks e IPF GL no seu histórico — grátis, em pt-BR, offline.</p>
+          <p>Registre com RPE, programe por %1RM e acompanhe DOTS, Wilks e IPF GL no seu histórico, grátis, em pt-BR e offline.</p>
         </div>
         {
           relatedCalc ? (
@@ -87,6 +87,37 @@ const updatedLabel = updatedAt
     </div>
   </article>
 </BaseLayout>
+
+<script>
+  // Progresso de leitura: mede o quanto do conteúdo do artigo (#article-content)
+  // já passou pela viewport, do topo até o texto inteiro ter rolado para cima.
+  const el = document.getElementById('article-content');
+  const fill = document.getElementById('reading-progress-fill');
+
+  if (el && fill) {
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const elTop = el.offsetTop;
+      const elHeight = el.offsetHeight;
+      const denom = elHeight - window.innerHeight;
+      const pct = denom > 0 ? ((window.scrollY - elTop) / denom) * 100 : 100;
+      fill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', update);
+  }
+</script>
 
 <style>
   .article__inner {

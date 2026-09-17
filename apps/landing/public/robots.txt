@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://onyxtreino.com.br/sitemap-index.xml
+Sitemap: https://onyxtreino.com.br/sitemap-0.xml
