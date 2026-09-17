@@ -4,7 +4,7 @@ Guia para agentes de codificação (e humanos) trabalharem nesta codebase. Leia 
 
 ## O que é o projeto
 
-App **mobile-first** de tracking de powerlifting em **React 19 + TypeScript + Vite**, organizado como **monorepo** com npm workspaces. O frontend (`apps/web`) é hoje **client-side**, com estado global em React Context persistido em `localStorage`. Um backend (`apps/api`) e um banco de dados estão sendo introduzidos de forma incremental pelas issues da fase 2. UI em **português (pt-BR)**.
+App **mobile-first** de tracking de powerlifting em **React 19 + TypeScript + Vite**, organizado como **monorepo** com npm workspaces. O frontend (`apps/web`) é hoje **client-side**, com estado global em React Context persistido em `localStorage`. Um backend (`apps/api`) e um banco de dados estão sendo introduzidos de forma incremental pelas issues da fase 2. A **landing page pública** (`apps/landing`, Astro) vive na raiz do domínio; o app fica em `app.`. UI em **português (pt-BR)**.
 
 ## Estrutura do monorepo
 
@@ -12,14 +12,16 @@ App **mobile-first** de tracking de powerlifting em **React 19 + TypeScript + Vi
 powerlifting-app/
 ├─ apps/
 │  ├─ web/          ← frontend React (Vite) — código em apps/web/src/
-│  └─ api/          ← backend Fastify + TypeScript — código em apps/api/src/
+│  ├─ api/          ← backend Fastify + TypeScript — código em apps/api/src/
+│  └─ landing/      ← landing pública (Astro + ilhas React) — código em apps/landing/src/
 ├─ packages/
 │  └─ shared/       ← tipos de domínio compartilhados (@powerlifting/shared)
 ├─ package.json     ← raiz: npm workspaces + scripts que delegam
 ├─ .env.example     ← variáveis de ambiente do docker-compose (raiz)
-├─ Dockerfile       ← build do web a partir do workspace
-├─ nginx.conf       ← config do nginx do web (COPIADA para a imagem — é a que roda)
-├─ nginx-security-headers.conf  ← headers de segurança + CSP, incluídos pelo nginx.conf
+├─ Dockerfile       ← build do web E da landing a partir do workspace (mesma imagem nginx)
+├─ nginx.conf       ← config do nginx (COPIADA para a imagem — é a que roda): app + landing por host
+├─ nginx-security-headers.conf          ← headers + CSP do host do app (app.onyxtreino.com.br)
+├─ nginx-landing-security-headers.conf  ← headers + CSP do host da landing (onyxtreino.com.br)
 └─ docker-compose.yml  ← stack local (web + api + postgres); produção usa Dokploy
 ```
 
@@ -42,10 +44,16 @@ npm run build:api   # compila apps/api (tsc → dist/)
 npm run start:api   # inicia o servidor compilado do apps/api
 npm run lint:api    # ESLint do apps/api (flat config)
 npm run test:api    # testes do apps/api (Node test runner via tsx)
+npm run dev:landing     # dev server do Astro (apps/landing) em :4321
+npm run build:landing   # build estático da landing (apps/landing/dist)
+npm run preview:landing # serve o build da landing
+npm run check:landing   # type-check (tsc --noEmit) das ilhas/utils da landing
+npm run lint:landing    # ESLint do apps/landing
+npm run test:landing    # testes da landing (Vitest: formatação, dados do comparativo, anilhas)
 ```
 
-> Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web` ou `-w @powerlifting/api`.
-> Há testes no web e na API. Em mudanças de backend, rode também `npm run test:api`.
+> Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web`, `-w @powerlifting/api` ou `-w @powerlifting/landing`.
+> Há testes no web, na API e na landing. Em mudanças de backend, rode também `npm run test:api`.
 
 ### Variáveis de ambiente da API
 
@@ -126,12 +134,27 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 - Estilos inline pontuais (objeto `styles`) são aceitáveis quando seguem o padrão já usado nos componentes.
 - Ícones via `lucide-react`.
 
+### Landing page pública — `apps/landing` (issue #250)
+
+Site estático em **Astro 5 + ilhas React** servido na raiz de `onyxtreino.com.br` pelo mesmo nginx do app (`server` block próprio no `nginx.conf`). Spec de design em [docs/superpowers/specs/2026-09-16-landing-page-design.md](docs/superpowers/specs/2026-09-16-landing-page-design.md). Regras que não são óbvias:
+
+- **Astro 5, não 7**: o Dockerfile e o CI rodam Node 20 e o Astro 7 exige Node ≥ 22.12. Só subir de major junto com o Node da imagem/CI.
+- **Cálculos vêm do app** pelo alias `@onyx/calc` → `apps/web/src/utils/powerlifting.ts` (definido em `astro.config.mjs` + `tsconfig.json`). Não duplique fórmulas na landing; se precisar de algo novo, adicione no `powerlifting.ts` (puro, testado) e importe.
+- **Tokens** em `apps/landing/src/styles/tokens.css` espelham o `apps/web/src/index.css` (+ 3 tokens só da landing: `--hairline`, `--bg-table`, `--accent-hover`). Tema Brass fixo. Fontes via Google Fonts, **Outfit inclui o peso 900** do wordmark.
+- **reactbits.dev sempre na variante TS + CSS**, copiado para `src/components/reactbits/` (sem pacote, sem Tailwind); ver o README da pasta com origem, licença e adaptações. **gsap/motion só hidratam em desktop sem `prefers-reduced-motion`** (`client:media="(min-width: 1024px) and (prefers-reduced-motion: no-preference)"`); mobile e crawler recebem o HTML estático do servidor. A calculadora DOTS do hero é `client:load` e já chega renderizada com valores calculados.
+- **URLs limpas sem barra final**: `build.format: 'file'` gera `/calculadoras/dots.html` e o nginx resolve com `try_files $uri $uri.html $uri/index.html`. Toda página declara `path` no `BaseLayout` (canonical, og:url, JSON-LD).
+- **CSP da landing vem do nginx** (`nginx-landing-security-headers.conf`), não do `experimental.csp` do Astro — ele injeta hash em `style-src`, o que faz o browser ignorar `'unsafe-inline'` e bloquear os `style="…"` do HTML. Ao adicionar integração externa nova na landing, atualize essa CSP no mesmo PR.
+- **Comparativo** (`src/data/comparativo.ts`): toda célula tem `fonte` (issue #255 ou verificação manual); o teste garante isso. Mobile colapsa Strong/Hevy/Outros em `outrosApps`.
+- **Umami**: script só entra com `PUBLIC_UMAMI_WEBSITE_ID` no build (build arg do Dockerfile); evento `calculadora-publica {tipo}` na primeira edição de cada calculadora.
+- **og-image**: `npm run og-image -w @powerlifting/landing` renderiza `scripts/og.html` com o Chromium do Playwright e salva `public/og-image.png` (commitado; regerar ao mudar a arte).
+
 ## Antes de finalizar
 
 - [ ] `npm run lint` sem **novos** erros (se houver erros pré-existentes, trate em PR separado).
 - [ ] `npm run build` passa (type-check incluso).
 - [ ] `npm run test` passa (Vitest — funções puras em `apps/web/src/utils/`).
 - [ ] `npm run test:api` passa (Node test runner para rotas/utilitários da API).
+- [ ] Se tocou em `apps/landing` ou em `powerlifting.ts`: `npm run lint:landing`, `npm run check:landing`, `npm run test:landing` e `npm run build:landing` passam.
 - [ ] Sem imports/variáveis não utilizados.
 - [ ] Textos de UI em pt-BR.
 - [ ] Nenhuma dependência nova desnecessária.

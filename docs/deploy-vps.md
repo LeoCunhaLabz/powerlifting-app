@@ -10,10 +10,13 @@ O app roda no **Dokploy** em um VPS próprio. Os três recursos (web, api, postg
 
 ```
 Internet → Traefik (TLS, gerenciado pelo Dokploy)
-              ├─ app.onyxtreino.com.br  → web  (nginx não-root, porta 8080, rede dokploy-network)
+              ├─ onyxtreino.com.br      → web  (nginx: landing estática do Astro, /usr/share/nginx/landing)
+              ├─ app.onyxtreino.com.br  → web  (nginx: SPA do app, /usr/share/nginx/html)
               └─ api.onyxtreino.com.br  → api  (Node.js, porta 3000, rede dokploy-network)
                                                └─ postgres (recurso gerenciado, mesma rede)
 ```
+
+O `web` é **um só container** (nginx não-root, porta 8080) com dois `server` blocks: a landing (#250) e o app são separados pelo `Host` — mesma imagem, mesmo deploy.
 
 - **Traefik** gerencia TLS (Let's Encrypt) e roteamento — configurado pelo Dokploy automaticamente.
 - **`dokploy-network`** é a rede Docker interna que conecta os três recursos sem expor portas ao host.
@@ -27,9 +30,10 @@ Domínio **onyxtreino.com.br** (registrado via Hostinger, 09/2026). Mapa de host
 
 | Host | Serve | Observação |
 |------|-------|------------|
+| `onyxtreino.com.br` | web (landing Astro) | Raiz = landing pública (#250): home, calculadoras, privacidade/termos, sitemap |
+| `www.onyxtreino.com.br` | 301 → apex | Um host canônico para o SEO |
 | `app.onyxtreino.com.br` | web (SPA) | Host canônico do app; o TWA da Play Store (#259) usa este host no `assetlinks.json` |
 | `api.onyxtreino.com.br` | api | |
-| `onyxtreino.com.br` / `www` | 301 → `app.` | **Temporário**: quando a landing (#250) existir, a raiz passa a servi-la |
 | `stats.onyxtreino.com.br` | Umami | Analytics self-hosted (#290) |
 | `treino.cunhalabs.tech` | 301 → `app.` | Domínio antigo do web; fica atado ao Traefik para TLS do redirect |
 | `api-treino.cunhalabs.tech` | api (legado) | Mantido **servindo** (sem redirect): bundles antigos em cache de PWA chamam esta origem; redirect em preflight CORS falharia |
@@ -69,7 +73,9 @@ Analytics **self-hosted, cookieless e LGPD-friendly** em `https://stats.onyxtrei
 
 **Lado do web** (versionado no repo): tag `<script>` no `apps/web/index.html` com `data-domains="app.onyxtreino.com.br"` (dev/preview não registram) + origem `https://stats.onyxtreino.com.br` na CSP (`script-src` e `connect-src` em `nginx-security-headers.conf`). O wrapper `apps/web/src/utils/analytics.ts` é best-effort: com adblock ou script ausente, os eventos viram no-op.
 
-**Eventos além dos pageviews por aba:** `registro-concluido` (AuthContext) e `treino-finalizado` (WorkoutContext). Pendentes de outras issues: calculadora pública (#250) e clique de compartilhamento (#292).
+**Eventos além dos pageviews por aba:** `registro-concluido` (AuthContext) e `treino-finalizado` (WorkoutContext). Pendente de outra issue: clique de compartilhamento (#292).
+
+**Landing (#250):** precisa de um **segundo website** no painel do Umami (Settings → Websites → Add): nome "ONYX Landing", domínio `onyxtreino.com.br`. O website-id resultante entra no Dokploy → web → **Build args** como `PUBLIC_UMAMI_WEBSITE_ID=<id>` (o Dockerfile o passa para o `astro build`; vazio = sem script, que é o caso de dev/preview/CI). Evento da landing: `calculadora-publica` com `tipo` em `hero-dots | dots | 1rm | anilhas`, disparado uma vez por página na primeira edição. Passo manual — **ainda não feito** na abertura do PR da #250.
 
 **Upgrade:** Dokploy → Umami → Deployments → Redeploy (re-pull da tag `postgresql-v2`; migrations rodam no boot). Major novo = trocar a tag na application.
 
@@ -81,8 +87,9 @@ O nginx do `web` é configurado por **dois arquivos versionados na raiz**, copia
 
 | Arquivo | Vai para | Papel |
 |---------|----------|-------|
-| [nginx.conf](../nginx.conf) | `/etc/nginx/conf.d/default.conf` | `server` na porta 8080, cache, fallback de SPA, `robots.txt`/`sitemap.xml` |
-| [nginx-security-headers.conf](../nginx-security-headers.conf) | `/etc/nginx/security-headers.conf` | Os 6 headers de segurança + CSP, definidos uma vez |
+| [nginx.conf](../nginx.conf) | `/etc/nginx/conf.d/default.conf` | `server` blocks na porta 8080: redirects (host antigo, `www`), **landing** (`onyxtreino.com.br`, root `/usr/share/nginx/landing`, `try_files $uri $uri.html $uri/index.html`, 404 real) e **app** (`default_server`, fallback de SPA, `robots.txt`/`sitemap.xml`) |
+| [nginx-security-headers.conf](../nginx-security-headers.conf) | `/etc/nginx/security-headers.conf` | Os 6 headers de segurança + CSP **do app**, definidos uma vez |
+| [nginx-landing-security-headers.conf](../nginx-landing-security-headers.conf) | `/etc/nginx/landing-security-headers.conf` | Headers + CSP **da landing** (mais restrita: sem API, sem GSI; só fonts + Umami). Usa `'unsafe-inline'` em script/style por decisão documentada no próprio arquivo (o `experimental.csp` do Astro foi testado e descartado) |
 
 Dois detalhes que **não são óbvios** e já causaram bug:
 
@@ -92,6 +99,22 @@ Dois detalhes que **não são óbvios** e já causaram bug:
 A CSP libera, além de `'self'`: a origem da API (`connect-src`), o Google Identity Services (`script-src`/`frame-src`/`connect-src`/`style-src` em `https://accounts.google.com/gsi/*`) e os webfonts do Google. **Ao adicionar qualquer integração externa nova no frontend, a CSP precisa ser atualizada no mesmo PR** — senão o recurso é bloqueado silenciosamente no browser (só aparece no console).
 
 O `Dockerfile` roda `nginx -t` durante o build, então erro de sintaxe na config quebra o build em vez de subir para produção.
+
+**Smoke test local dos hosts** (após `docker build -t onyx-web .`), sem depender de DNS — de dentro do container, variando o `Host`:
+
+```bash
+docker run -d --name onyx-web-test onyx-web
+X() { docker exec onyx-web-test wget -qS --tries=1 -O /dev/null --header "Host: $1" "http://127.0.0.1:8080$2" 2>&1 | grep -E "HTTP/|Location|Content-Security"; }
+X onyxtreino.com.br /                    # 200 + CSP da landing
+X onyxtreino.com.br /calculadoras/dots   # 200 (URL limpa → dots.html)
+X onyxtreino.com.br /nao-existe          # 404 (404.html do Astro)
+X www.onyxtreino.com.br /                # 301 → https://onyxtreino.com.br/
+X app.onyxtreino.com.br /                # 200 + CSP do app (accounts.google.com)
+X treino.cunhalabs.tech /                # 301 → https://app.onyxtreino.com.br/
+docker rm -f onyx-web-test
+```
+
+> No Git Bash do Windows, prefixe com `MSYS_NO_PATHCONV=1` para o `/tmp` e os paths não serem convertidos.
 
 > **Histórico:** até a issue #245, o `Dockerfile` **gerava a config inline** com `printf` e o `nginx.conf` do repo era código morto — produção rodou meses sem nenhum header de segurança e sem o `no-cache` do PWA. Nunca volte a gerar essa config no `Dockerfile`.
 
@@ -306,8 +329,8 @@ push → main
        e-mail com resumo (Resend)
 ```
 
-- O deploy **nunca acontece** se lint/testes/build do web ou da API falharem.
-- O smoke test espera o Dokploy terminar o build/rollout antes de testar a URL pública (evita falso negativo com VPS sob carga).
+- O deploy **nunca acontece** se lint/testes/build do web, da API ou da landing falharem (o gate roda também `lint:landing`, `test:landing`, `check:landing` e `build:landing`).
+- O smoke test espera o Dokploy terminar o build/rollout antes de testar as URLs públicas (evita falso negativo com VPS sob carga). Além de `APP_URL` e `API_URL`, testa `https://onyxtreino.com.br/` (landing, URL fixa no workflow).
 - Pull Requests são validados pelo `ci.yml` (lint → testes → build do web e da API) antes do merge.
 
 ---
