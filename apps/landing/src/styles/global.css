@@ -211,6 +211,9 @@ svg {
 /* Prosa (privacidade, termos, evergreen) */
 .prose {
   max-width: 760px;
+  /* Sem isso, um link com URL crua sem espaços (ex.: powerliftingbrazil.wixsite.com/…)
+     não tem onde quebrar e estoura a largura da página no mobile. */
+  overflow-wrap: break-word;
 }
 
 .prose h1 {
