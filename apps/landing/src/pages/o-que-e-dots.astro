@@ -1,0 +1,82 @@
+---
+import ArticleLayout from '../layouts/ArticleLayout.astro';
+import { calculateDots, calculateWilks } from '@onyx/calc';
+import { formatNumber } from '../lib/format';
+import { LEGAL_UPDATED_AT, ROUTES } from '../lib/site';
+
+// Amostra calculada de verdade (gate 3 da spec): mesmo caso usado no hero.
+const sampleDots = calculateDots(82.5, 512.5, true);
+const sampleWilks = calculateWilks(82.5, 512.5, true);
+---
+
+<ArticleLayout
+  title="O que é DOTS? Como funciona a fórmula de força relativa"
+  description="DOTS explicado: por que ele existe, como o cálculo funciona, em que difere de Wilks e IPF GL, e o que uma pontuação alta ou baixa significa na prática."
+  path={ROUTES.oQueEDots}
+  updatedAt={LEGAL_UPDATED_AT}
+  relatedCalc={{ href: ROUTES.calcDots, label: 'Calcular meu DOTS' }}
+>
+  <p>
+    <strong>DOTS</strong> (Dots Score) é uma fórmula que converte o seu total levantado (agachamento + supino +
+    terra) em uma pontuação que pode ser comparada entre atletas de pesos corporais diferentes. É a fórmula que
+    o <a href="https://www.openpowerlifting.org/" target="_blank" rel="noopener noreferrer">OpenPowerlifting</a>
+    usa para os rankings gerais do site, e a mais comum hoje para responder à pergunta "quem é mais forte, de
+    verdade, considerando o peso de cada um".
+  </p>
+
+  <h2>O problema que o DOTS resolve</h2>
+  <p>
+    Levantar 300 kg de total a 60 kg de peso corporal é uma proeza muito maior do que levantar 300 kg a 140 kg.
+    Comparar totais brutos entre pesos diferentes não diz muita coisa. Antes do DOTS, a fórmula de referência era
+    o <strong>Wilks</strong>; antes dele, tabelas de "classe de peso" fixas. Todas essas abordagens têm o mesmo
+    objetivo: neutralizar a vantagem natural que o peso corporal dá à força bruta, para que a pontuação reflita
+    força relativa.
+  </p>
+
+  <h2>Como o cálculo funciona</h2>
+  <p>
+    O DOTS multiplica o seu total por um coeficiente que depende só do seu peso corporal e do seu sexo — não da
+    sua categoria de peso. O coeficiente vem de um polinômio de quarto grau ajustado estatisticamente sobre uma
+    base grande de resultados de competição, de forma que o DOTS médio fique parecido em qualquer faixa de peso.
+    Na prática:
+  </p>
+  <p>
+    <strong>Exemplo:</strong> 82,5 kg de peso corporal e 512,5 kg de total (agachamento + supino + terra) dão
+    <strong>{formatNumber(sampleDots, 2)} pontos</strong> de DOTS — e, para efeito de comparação, {formatNumber(sampleWilks, 2)} pontos
+    de Wilks para o mesmo caso. As duas fórmulas concordam bastante para pesos corporais medianos e divergem mais
+    nos extremos (atletas muito leves ou muito pesados), que foi justamente o problema que motivou a criação do DOTS.
+  </p>
+
+  <h2>DOTS, Wilks e IPF GL: qual a diferença</h2>
+  <table>
+    <thead>
+      <tr><th>Fórmula</th><th>Mantida por</th><th>Uso típico</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>DOTS</td><td>Tim Konertz (2019), adotada pelo OpenPowerlifting</td><td>Rankings gerais, comparação entre federações e categorias</td></tr>
+      <tr><td>Wilks (clássico)</td><td>Robert Wilks</td><td>Fórmula oficial da IPF até 2018; ainda aparece em planilhas e rankings antigos</td></tr>
+      <tr><td>IPF GL Points</td><td>IPF</td><td>Fórmula oficial atual da IPF (2020) para pontuar campeonatos; muda entre raw e equipado</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Nenhuma das três é "mais correta" no sentido absoluto — são ajustes estatísticos diferentes sobre bases de
+    dados diferentes. O que importa é comparar maçãs com maçãs: não misture pontuações de fórmulas diferentes no
+    mesmo ranking.
+  </p>
+
+  <h2>O que uma pontuação de DOTS significa na prática</h2>
+  <p>
+    Não existe um corte oficial único, mas como referência aproximada, calibrada sobre os rankings do
+    OpenPowerlifting: pontuações abaixo de ~300 costumam marcar a fase iniciante/intermediária, entre ~300 e ~400
+    já é um nível competitivo sólido em quase qualquer categoria, e acima de ~460 aparece perto do topo dos
+    rankings nacionais. São faixas aproximadas — o nível "sobe" continuamente, não em degraus.
+  </p>
+
+  <h2>Como usar isso no seu treino</h2>
+  <p>
+    DOTS é uma métrica de <em>progresso</em>, não um alvo isolado de uma sessão. Ele é mais útil acompanhado ao
+    longo de meses: se o seu total sobe mas o peso corporal também sobe, o DOTS mostra se a força ganhou de fato
+    ou só acompanhou o peso. No ONYX, o DOTS entra automaticamente no seu histórico a cada treino registrado —
+    sem precisar recalcular na mão.
+  </p>
+</ArticleLayout>

@@ -1,11 +1,12 @@
 import { useId, useState } from 'react';
 import { calculateE1RM, calculateE1RMBrzycki, calculateE1RMEpley, RPE_PERCENTAGES } from '@onyx/calc';
 import { formatKg, formatNumber, parseDecimal } from '../lib/format';
+import { RPE_TABLE_COLUMNS } from '../lib/rpe';
 import { NumberField, Stat, Result } from './ui';
 import { useFirstUse } from './useFirstUse';
 import AnimatedNumber from './AnimatedNumber';
 
-const RPE_OPTIONS = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5] as const;
+const RPE_OPTIONS = RPE_TABLE_COLUMNS;
 const REPS_ROWS = Object.keys(RPE_PERCENTAGES)
   .map(Number)
   .sort((a, b) => a - b);

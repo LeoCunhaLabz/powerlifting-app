@@ -261,6 +261,12 @@ svg {
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
+  /* display:block preserva o layout interno de tabela (linhas/colunas) mas faz a
+     caixa externa se comportar como um bloco normal: se o conteúdo não couber
+     (célula com frase longa, sem quebra possível), rola só a tabela, nunca a página. */
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .prose th,

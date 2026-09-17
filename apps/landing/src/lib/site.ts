@@ -22,7 +22,30 @@ export const ROUTES = {
   calcAnilhas: '/calculadoras/anilhas',
   privacidade: '/privacidade',
   termos: '/termos',
+  oQueEDots: '/o-que-e-dots',
+  tabelaRpe: '/tabela-de-rpe',
+  comoCalcular1rm: '/como-calcular-1rm',
+  programasPowerlifting: '/programas-de-powerlifting',
+  calendarioCompeticoes: '/calendario-competicoes-powerlifting-brasil',
 } as const;
+
+/**
+ * Páginas evergreen (issue #250, escopo composto de SEO): conteúdo educativo pt-BR,
+ * cada uma porta de entrada orgânica própria. Fonte única para o footer (sitewide) e
+ * para o "leia também" cruzado entre elas (ArticleLayout).
+ */
+export interface EvergreenPage {
+  href: (typeof ROUTES)[keyof typeof ROUTES];
+  label: string;
+}
+
+export const EVERGREEN_PAGES: EvergreenPage[] = [
+  { href: ROUTES.oQueEDots, label: 'O que é DOTS' },
+  { href: ROUTES.tabelaRpe, label: 'Tabela de RPE' },
+  { href: ROUTES.comoCalcular1rm, label: 'Como calcular 1RM' },
+  { href: ROUTES.programasPowerlifting, label: 'Programas de powerlifting' },
+  { href: ROUTES.calendarioCompeticoes, label: 'Calendário de competições no Brasil' },
+];
 
 export const NAV_LINKS = [
   { href: '/#calculadoras', label: 'Calculadoras' },

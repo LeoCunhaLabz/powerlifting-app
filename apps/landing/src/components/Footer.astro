@@ -1,50 +1,103 @@
 ---
-import { ROUTES } from '../lib/site';
+import Logo from './Logo.astro';
+import { EVERGREEN_PAGES, ROUTES } from '../lib/site';
 const year = new Date().getFullYear();
 ---
 
 <footer class="footer">
-  <div class="container footer__inner">
-    <span>© {year} ONYX · onyxtreino.com.br</span>
-    <nav class="footer__links" aria-label="Rodapé">
-      <a href={ROUTES.calcDots}>Calculadora DOTS</a>
+  <div class="container footer__grid">
+    <div class="footer__brand">
+      <Logo size={22} />
+      <p>O diário de treino que fala a língua do powerlifting.</p>
+    </div>
+
+    <nav class="footer__col" aria-label="Calculadoras">
+      <span class="footer__heading">Calculadoras</span>
+      <a href={ROUTES.calcDots}>DOTS · Wilks · IPF GL</a>
       <a href={ROUTES.calc1rm}>1RM por RPE</a>
       <a href={ROUTES.calcAnilhas}>Anilhas</a>
+    </nav>
+
+    <nav class="footer__col" aria-label="Aprenda">
+      <span class="footer__heading">Aprenda</span>
+      {EVERGREEN_PAGES.map((p) => <a href={p.href}>{p.label}</a>)}
+    </nav>
+
+    <nav class="footer__col" aria-label="ONYX">
+      <span class="footer__heading">ONYX</span>
       <a href={ROUTES.privacidade}>Privacidade</a>
       <a href={ROUTES.termos}>Termos</a>
     </nav>
+  </div>
+  <div class="container footer__legal">
+    <span>© {year} ONYX · onyxtreino.com.br</span>
   </div>
 </footer>
 
 <style>
   .footer {
     border-top: 1px solid var(--hairline);
-    padding: 22px 0 28px;
-    font-size: 12px;
-    color: var(--text-muted);
+    padding-top: 44px;
+    font-size: 13px;
   }
 
-  .footer__inner {
+  .footer__grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 32px;
+  }
+
+  .footer__brand {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px 24px;
-    flex-wrap: wrap;
-    text-align: center;
+    flex-direction: column;
+    gap: 12px;
   }
 
-  .footer__links {
+  .footer__brand p {
+    font-size: 13px;
+    max-width: 240px;
+  }
+
+  .footer__col {
     display: flex;
-    gap: 12px 24px;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .footer__links a {
+  .footer__heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
     color: var(--text-muted);
+    margin-bottom: 2px;
   }
 
-  .footer__links a:hover {
+  .footer__col a {
     color: var(--text-secondary);
+  }
+
+  .footer__col a:hover {
+    color: var(--text-primary);
+  }
+
+  .footer__legal {
+    margin-top: 36px;
+    padding: 20px 0;
+    border-top: 1px solid var(--hairline);
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  @media (max-width: 767px) {
+    .footer__grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 28px 20px;
+    }
+
+    .footer__brand {
+      grid-column: 1 / -1;
+    }
   }
 </style>

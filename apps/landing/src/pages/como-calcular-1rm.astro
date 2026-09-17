@@ -1,0 +1,79 @@
+---
+import ArticleLayout from '../layouts/ArticleLayout.astro';
+import { calculateE1RM, calculateE1RMBrzycki, calculateE1RMEpley } from '@onyx/calc';
+import { formatKg } from '../lib/format';
+import { LEGAL_UPDATED_AT, ROUTES } from '../lib/site';
+
+// Amostra calculada de verdade.
+const w = 150;
+const r = 5;
+const rpe = 8;
+const rts = calculateE1RM(w, r, rpe);
+const brzycki = calculateE1RMBrzycki(w, r);
+const epley = calculateE1RMEpley(w, r);
+---
+
+<ArticleLayout
+  title="Como calcular seu 1RM sem testar o máximo"
+  description="Três formas de estimar seu 1RM a partir de uma série normal de treino: tabela RTS por RPE, Brzycki e Epley. Quando usar cada uma e um exemplo com números reais."
+  path={ROUTES.comoCalcular1rm}
+  updatedAt={LEGAL_UPDATED_AT}
+  relatedCalc={{ href: ROUTES.calc1rm, label: 'Calcular meu 1RM' }}
+>
+  <p>
+    <strong>1RM</strong> (uma repetição máxima) é o maior peso que você levanta uma única vez, com boa técnica.
+    Testá-lo de verdade cansa o sistema nervoso, consome dias de recuperação e carrega risco de lesão —
+    principalmente fora de temporada de competição. Na maior parte do tempo, é melhor <strong>estimar</strong> o
+    1RM (e1RM) a partir de uma série normal de treino.
+  </p>
+
+  <h2>As três formas de estimar</h2>
+  <h3>1. Tabela RTS (por RPE)</h3>
+  <p>
+    Se você registra RPE nas suas séries, a <a href={ROUTES.tabelaRpe}>tabela de RPE da RTS</a> converte carga +
+    repetições + RPE diretamente em percentual do 1RM — e daí em e1RM. É a mais precisa das três porque considera
+    o esforço percebido, não só o número de repetições.
+  </p>
+  <h3>2. Brzycki</h3>
+  <p>
+    <code>1RM = carga ÷ (1,0278 − 0,0278 × repetições)</code>. Não depende de RPE, só de carga e repetições.
+    Tende a ser conservadora (subestimar) em séries de muitas repetições.
+  </p>
+  <h3>3. Epley</h3>
+  <p>
+    <code>1RM = carga × (1 + repetições ÷ 30)</code>. Também sem RPE. Costuma ficar um pouco acima da Brzycki
+    a partir de 5–6 repetições.
+  </p>
+
+  <h2>Exemplo com os três métodos</h2>
+  <p>Uma série de <strong>150 kg × 5 repetições a RPE 8</strong> (faltavam duas na barra) estima:</p>
+  <table>
+    <thead>
+      <tr><th>Método</th><th>e1RM</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Tabela RTS (com RPE)</td><td>{formatKg(rts)} kg</td></tr>
+      <tr><td>Brzycki (sem RPE)</td><td>{formatKg(brzycki)} kg</td></tr>
+      <tr><td>Epley (sem RPE)</td><td>{formatKg(epley)} kg</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Repare que a estimativa com RPE ({formatKg(rts)} kg) fica abaixo das estimativas sem RPE: Brzycki e Epley
+    assumem que a série foi até o limite técnico, enquanto RPE 8 diz que ainda sobrava fôlego — por isso o 1RM
+    real projetado é mais conservador e, na prática, mais confiável.
+  </p>
+
+  <h2>Qual usar</h2>
+  <ul>
+    <li>Registra RPE em toda série? Use a tabela RTS — é o método mais informado.</li>
+    <li>Não registra RPE, ou a série foi até a falha? Brzycki e Epley servem de contraprova; olhe as duas e desconfie de valores muito distantes um do outro.</li>
+    <li>Séries acima de 10–12 repetições: as três fórmulas perdem precisão. Prefira testar em faixas de repetição mais baixas (1 a 6) quando precisar de uma estimativa confiável.</li>
+  </ul>
+
+  <h2>Para que serve o e1RM depois de calculado</h2>
+  <p>
+    O e1RM é a base de qualquer prescrição por <strong>%1RM</strong>: um programa que pede "4×5 a 80%" só faz
+    sentido em cima de um 1RM atualizado — não de um máximo testado há seis meses. No ONYX, cada série registrada
+    atualiza o e1RM automaticamente, e as rotinas por percentual usam sempre o valor mais recente.
+  </p>
+</ArticleLayout>
