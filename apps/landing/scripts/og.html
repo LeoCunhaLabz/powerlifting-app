@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=block"
+    />
+    <style>
+      /* Arte og-image 1200×630 (issue #250 / #249). Renderizada por scripts/og-image.mjs
+         com Playwright e salva em public/og-image.png. Tokens do design system ONYX. */
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        background: #060606;
+        color: #fafafa;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+        background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
+        background-size: 26px 26px;
+      }
+      .fade {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 70% 60% at 30% 40%, transparent 30%, #060606 95%);
+      }
+      .wrap {
+        position: relative; height: 100%;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 72px 80px;
+        gap: 48px;
+      }
+      .copy { display: flex; flex-direction: column; gap: 26px; max-width: 640px; }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand span {
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 900; font-size: 30px;
+        letter-spacing: 3px; color: #fafafa;
+      }
+      .kicker {
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 15px;
+        letter-spacing: 3px; text-transform: uppercase; color: #e3a83b;
+      }
+      h1 {
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 58px;
+        line-height: 1.06; letter-spacing: -0.02em; color: #fafafa;
+      }
+      h1 em { font-style: normal; color: #e3a83b; }
+      .sub { font-size: 24px; line-height: 1.45; color: #9a9aa0; }
+      .card {
+        width: 380px; flex: 0 0 auto;
+        background: #161616; border: 1px solid #242424; border-radius: 18px;
+        box-shadow: 0 30px 80px rgba(0,0,0,.6);
+        overflow: hidden;
+      }
+      .card__head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 20px 24px; border-bottom: 1px solid #242424;
+      }
+      .card__title {
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 13px;
+        letter-spacing: 2px; text-transform: uppercase; color: #9a9aa0;
+      }
+      .seg { display: flex; background: #1e1e1e; border: 1px solid #242424; border-radius: 12px; padding: 3px; gap: 2px; }
+      .seg span { font-weight: 700; font-size: 12px; padding: 6px 14px; border-radius: 9px; color: #9a9aa0; }
+      .seg span.on { background: #e3a83b; color: #1a1304; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 22px 24px 8px; }
+      .lbl { font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: #5c5c61; display: block; margin-bottom: 8px; }
+      .inp {
+        background: #1e1e1e; border: 1px solid #242424; border-radius: 8px; padding: 12px 14px;
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 20px; color: #fafafa;
+      }
+      .inp.on { border-color: #e3a83b; box-shadow: 0 0 0 3px rgba(227,168,59,.12); }
+      .res {
+        margin: 12px 24px 24px;
+        background: linear-gradient(135deg, rgba(227,168,59,.12), transparent);
+        border: 1px solid rgba(227,168,59,.3); border-radius: 8px; padding: 18px 20px;
+      }
+      .res .lbl { color: #e3a83b; margin-bottom: 4px; }
+      .res .num {
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 64px; line-height: 1; color: #e3a83b;
+      }
+      .res .num small { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 14px; color: #9a9aa0; margin-left: 10px; }
+      .url {
+        position: absolute; right: 80px; bottom: 34px;
+        font-family: 'Outfit', system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 1px; color: #5c5c61;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="fade"></div>
+    <div class="wrap">
+      <div class="copy">
+        <div class="brand">
+          <svg width="44" height="44" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="34" stroke="#e3a83b" stroke-width="14"></circle></svg>
+          <span>ONYX</span>
+        </div>
+        <div class="kicker">Diário de treino · Powerlifting</div>
+        <h1>O diário de treino que fala a língua do <em>powerlifting</em>.</h1>
+        <p class="sub">RPE, %1RM, DOTS e total SBD — grátis, em português, offline.</p>
+      </div>
+      <div class="card">
+        <div class="card__head">
+          <span class="card__title">Calculadora DOTS</span>
+          <div class="seg"><span class="on">Masc.</span><span>Fem.</span></div>
+        </div>
+        <div class="grid">
+          <div><span class="lbl">Peso corporal (kg)</span><div class="inp">82,5</div></div>
+          <div><span class="lbl">Total SBD (kg)</span><div class="inp on">512,5</div></div>
+        </div>
+        <div class="res">
+          <span class="lbl">DOTS Score</span>
+          <div class="num" id="dots">—<small>pts</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="url">onyxtreino.com.br</div>
+  </body>
+</html>

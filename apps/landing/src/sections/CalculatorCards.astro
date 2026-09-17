@@ -1,0 +1,186 @@
+---
+import SpotlightCard from '../components/reactbits/SpotlightCard';
+import SectionHeader from '../components/SectionHeader.astro';
+import PlateBar from '../islands/PlateBar';
+import { calculateDots, calculateE1RM, calculatePlates, DEFAULT_PLATES_KG } from '@onyx/calc';
+import { formatKg, formatNumber } from '../lib/format';
+import { ROUTES } from '../lib/site';
+
+// Amostras calculadas de verdade no build (gate 3 da spec: nada de número inventado).
+const sampleDots = calculateDots(82.5, 512.5, true);
+const sampleE1rm = calculateE1RM(150, 5, 8);
+const samplePlates = calculatePlates(142.5, 20, DEFAULT_PLATES_KG);
+
+const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
+---
+
+<section id="calculadoras" class="section calcs" aria-labelledby="calcs-title">
+  <div class="container">
+    <div class="calcs__head">
+      <SectionHeader
+        kicker="Calculadoras públicas"
+        title="Ferramentas de plataforma, sem login."
+        lead="Os mesmos cálculos que o app usa no treino — abertos para qualquer um, direto no navegador."
+      />
+    </div>
+
+    <div class="calcs__grid">
+      <SpotlightCard client:media={MEDIA} className="calcs__card">
+        <a class="calcs__link" href={ROUTES.calcDots}>
+          <span class="calcs__label">DOTS · Wilks · IPF GL</span>
+          <p>Seu total no contexto: pontos por peso corporal, nas três fórmulas que o esporte usa.</p>
+          <div class="calcs__sample">
+            <span class="num calcs__big">{formatNumber(sampleDots, 1)}</span>
+            <span class="calcs__unit">DOTS · 82,5 kg / 512,5 kg</span>
+          </div>
+          <span class="calcs__cta">Calcular DOTS →</span>
+        </a>
+      </SpotlightCard>
+
+      <SpotlightCard client:media={MEDIA} className="calcs__card">
+        <a class="calcs__link" href={ROUTES.calc1rm}>
+          <span class="calcs__label">1RM por RPE</span>
+          <p>e1RM pela tabela RTS — com Brzycki e Epley de contraprova.</p>
+          <div class="calcs__sample">
+            <span class="num calcs__big">{formatKg(sampleE1rm)}</span>
+            <span class="calcs__unit">kg · 150 × 5 @ RPE 8</span>
+          </div>
+          <span class="calcs__cta">Estimar 1RM →</span>
+        </a>
+      </SpotlightCard>
+
+      <SpotlightCard client:media={MEDIA} className="calcs__card">
+        <a class="calcs__link" href={ROUTES.calcAnilhas}>
+          <span class="calcs__label">Anilhas</span>
+          <p>A barra montada por lado, nas cores oficiais IPF.</p>
+          <div class="calcs__sample calcs__sample--bar">
+            <PlateBar plates={samplePlates.plates} scale={0.6} />
+            <span class="num calcs__mid">{formatKg(142.5)} <span class="calcs__unit">kg</span></span>
+          </div>
+          <span class="calcs__cta">Montar a barra →</span>
+        </a>
+      </SpotlightCard>
+    </div>
+  </div>
+</section>
+
+<style>
+  .calcs__head {
+    margin-bottom: 40px;
+  }
+
+  .calcs__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .calcs :global(.calcs__card) {
+    display: flex;
+    padding: 0;
+  }
+
+  .calcs__link {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 28px;
+    width: 100%;
+    color: inherit;
+    position: relative;
+    z-index: 1;
+  }
+
+  .calcs__link p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .calcs__label {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .calcs__sample {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .calcs__sample--bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .calcs__sample--bar :global(.bar) {
+    min-height: 0;
+    padding: 8px 6px;
+    background: transparent;
+    border: none;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .calcs__big {
+    font-size: 34px;
+  }
+
+  .calcs__mid {
+    font-size: 18px;
+  }
+
+  .calcs__unit {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .calcs__cta {
+    margin-top: auto;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .calcs__link:hover .calcs__cta {
+    color: var(--accent-hover);
+  }
+
+  @media (max-width: 1023px) {
+    .calcs__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .calcs__head {
+      margin-bottom: 24px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .calcs__link {
+      padding: 18px;
+      gap: 8px;
+    }
+
+    .calcs__link p {
+      display: none;
+    }
+
+    .calcs__sample {
+      display: none;
+    }
+
+    .calcs__cta {
+      margin-top: 4px;
+    }
+  }
+</style>

@@ -1,0 +1,50 @@
+---
+import { ROUTES } from '../lib/site';
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <span>© {year} ONYX · onyxtreino.com.br</span>
+    <nav class="footer__links" aria-label="Rodapé">
+      <a href={ROUTES.calcDots}>Calculadora DOTS</a>
+      <a href={ROUTES.calc1rm}>1RM por RPE</a>
+      <a href={ROUTES.calcAnilhas}>Anilhas</a>
+      <a href={ROUTES.privacidade}>Privacidade</a>
+      <a href={ROUTES.termos}>Termos</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--hairline);
+    padding: 22px 0 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .footer__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px 24px;
+    flex-wrap: wrap;
+    text-align: center;
+  }
+
+  .footer__links {
+    display: flex;
+    gap: 12px 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .footer__links a {
+    color: var(--text-muted);
+  }
+
+  .footer__links a:hover {
+    color: var(--text-secondary);
+  }
+</style>

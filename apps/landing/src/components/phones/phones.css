@@ -1,0 +1,198 @@
+/* UI recriada (estilizada) das telas do app dentro dos frames. Compartilhado pelos 3 frames. */
+
+.ph-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ph-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ph-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.ph-title--lg {
+  font-size: 20px;
+}
+
+.ph-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.ph-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.ph-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.ph-label--md {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  font-weight: 800;
+}
+
+.ph-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-pill);
+  padding: 4px 9px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.ph-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.ph-card--lg {
+  border-radius: var(--radius-lg);
+}
+
+.ph-card--accent {
+  background: var(--accent-gradient);
+  border-color: var(--accent-border);
+}
+
+.ph-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.ph-set {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.ph-set__idx {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: 14px;
+}
+
+.ph-set__prev {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 52px;
+}
+
+.ph-set__val {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.ph-set__rpe {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.ph-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ph-check--empty {
+  background: transparent;
+  border: 1px solid var(--border-focus);
+}
+
+.ph-grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ph-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+}
+
+.ph-stat .ph-num {
+  font-size: 18px;
+}
+
+.ph-seg {
+  display: inline-flex;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.ph-seg span {
+  font-weight: 700;
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+}
+
+.ph-seg span.is-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.ph-btn {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 0;
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.ph-badge {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+}

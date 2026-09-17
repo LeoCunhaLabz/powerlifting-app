@@ -1,0 +1,59 @@
+---
+import PhoneFrame from './PhoneFrame.astro';
+import './phones.css';
+---
+
+<PhoneFrame tilt="left" fab="bar" activeTab={2}>
+  <div class="ph-row">
+    <div class="ph-col">
+      <span class="ph-title">Treino A · Semana 5</span>
+      <span class="ph-sub">Madcow 5x5 · 6 exercícios</span>
+    </div>
+    <span class="ph-pill">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      12:34
+    </span>
+  </div>
+  <span class="ph-label ph-label--md" style="margin-top:6px">Agachamento livre</span>
+  <div class="ph-col" style="gap:6px">
+    <div class="ph-card ph-set">
+      <span class="ph-set__idx">1</span><span class="ph-set__prev">ANT. 140×5</span>
+      <span class="ph-set__val">142,5 × 5</span><span class="ph-set__rpe">RPE 7,5</span>
+      <span class="ph-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="3.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>
+    </div>
+    <div class="ph-card ph-set">
+      <span class="ph-set__idx">2</span><span class="ph-set__prev">ANT. 140×5</span>
+      <span class="ph-set__val">142,5 × 5</span><span class="ph-set__rpe">RPE 8</span>
+      <span class="ph-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="3.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>
+    </div>
+    <div class="ph-card ph-set" style="border-color:var(--accent-border)">
+      <span class="ph-set__idx" style="color:var(--accent)">3</span><span class="ph-set__prev">ANT. 140×5</span>
+      <span class="ph-set__val">145 × 5</span><span class="ph-set__rpe" style="color:var(--accent)">RPE 8,5</span>
+      <span class="ph-check ph-check--empty"></span>
+    </div>
+  </div>
+  <div class="rest">
+    <span>Descanso</span>
+    <span class="ph-num" style="font-size:18px;color:var(--accent)">2:30</span>
+  </div>
+</PhoneFrame>
+
+<style>
+  .rest {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+</style>

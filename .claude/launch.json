@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "landing-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "-w", "@powerlifting/landing", "--", "--port", "4321", "--host", "127.0.0.1"],
+      "port": 4321
+    },
+    {
+      "name": "landing-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@powerlifting/landing", "--", "--port", "4321"],
+      "port": 4321
+    }
+  ]
+}

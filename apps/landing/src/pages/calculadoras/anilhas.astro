@@ -1,0 +1,44 @@
+---
+import CalcLayout from '../../layouts/CalcLayout.astro';
+import PlateCalculator from '../../islands/PlateCalculator';
+import { ROUTES } from '../../lib/site';
+---
+
+<CalcLayout
+  title="Calculadora de anilhas"
+  h1="Calculadora de anilhas"
+  lead="Digite a carga alvo e veja a barra montada por lado, nas cores oficiais IPF. Desmarque as anilhas que a sua academia não tem."
+  description="Calcule quais anilhas colocar de cada lado da barra para chegar na carga alvo. Barra de 20 ou 15 kg, cores IPF, inventário ajustável. Online, grátis e sem login."
+  path={ROUTES.calcAnilhas}
+  breadcrumb="Anilhas"
+>
+  <PlateCalculator client:load />
+
+  <Fragment slot="how">
+    <h2>Como a barra é montada</h2>
+    <p>
+      O cálculo desconta a barra, divide o restante por dois e preenche cada lado da anilha mais pesada para a mais
+      leve (algoritmo guloso). Se a combinação disponível não fecha exatamente, a calculadora mostra quanto falta
+      e com quanto a barra fica.
+    </p>
+    <h2>Cores das anilhas IPF</h2>
+    <table>
+      <thead>
+        <tr><th>Anilha</th><th>Cor</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>25 kg</td><td>Vermelha</td></tr>
+        <tr><td>20 kg</td><td>Azul</td></tr>
+        <tr><td>15 kg</td><td>Amarela</td></tr>
+        <tr><td>10 kg</td><td>Verde</td></tr>
+        <tr><td>5 kg</td><td>Branca</td></tr>
+        <tr><td>2,5 kg</td><td>Preta</td></tr>
+        <tr><td>1,25 / 0,5 / 0,25 kg</td><td>Cromada (fracionárias)</td></tr>
+      </tbody>
+    </table>
+    <p>
+      No app, essa visualização aparece dentro da série que você está registrando, com o inventário de anilhas
+      da sua academia salvo nas configurações.
+    </p>
+  </Fragment>
+</CalcLayout>

@@ -19,6 +19,12 @@
     "dev:api": "npm run dev -w @powerlifting/api",
     "build:api": "npm run build -w @powerlifting/api",
     "start:api": "npm run start -w @powerlifting/api",
-    "lint:api": "npm run lint -w @powerlifting/api"
+    "lint:api": "npm run lint -w @powerlifting/api",
+    "dev:landing": "npm run dev -w @powerlifting/landing",
+    "build:landing": "npm run build -w @powerlifting/landing",
+    "preview:landing": "npm run preview -w @powerlifting/landing",
+    "check:landing": "npm run check -w @powerlifting/landing",
+    "lint:landing": "npm run lint -w @powerlifting/landing",
+    "test:landing": "npm run test -w @powerlifting/landing"
   }
 }

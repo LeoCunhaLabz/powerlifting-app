@@ -1,0 +1,132 @@
+---
+/** Moldura de celular (HTML/CSS) para a seção "O app". Conteúdo via slot. */
+interface Props {
+  size?: 'md' | 'lg';
+  tilt?: 'left' | 'right' | 'none';
+  activeTab?: 0 | 1 | 2 | 3 | 4;
+  /** Ícone do FAB central: + (treinar) ou halter (treino ativo). */
+  fab?: 'plus' | 'bar';
+  class?: string;
+}
+const { size = 'md', tilt = 'none', activeTab = 0, fab = 'plus', class: className = '' } = Astro.props;
+---
+
+<div class={`phone phone--${size} phone--tilt-${tilt} ${className}`}>
+  <div class="phone__screen">
+    <slot />
+  </div>
+  <div class="phone__nav" aria-hidden="true">
+    {
+      [0, 1, 2, 3, 4].map((i) =>
+        i === 2 ? (
+          <div class="phone__fab">
+            {fab === 'plus' ? (
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="2.8"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="2.6"><path d="M6.5 6.5l11 11"></path><path d="M3 3l1 1"></path><path d="M18 22l4-4"></path><path d="M2 6l4-4"></path><path d="M3 10l7-7"></path><path d="M14 21l7-7"></path></svg>
+            )}
+          </div>
+        ) : (
+          <div class={`phone__tab${activeTab === i ? ' is-active' : ''}`} />
+        )
+      )
+    }
+  </div>
+</div>
+
+<style>
+  .phone {
+    position: relative;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 34px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    width: 290px;
+    height: 560px;
+    flex: 0 0 auto;
+  }
+
+  .phone--lg {
+    width: 320px;
+    height: 640px;
+    border-radius: 38px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.65);
+  }
+
+  .phone--tilt-left {
+    transform: rotate(-2deg);
+  }
+
+  .phone--tilt-right {
+    transform: rotate(2deg);
+  }
+
+  .phone__screen {
+    flex: 1;
+    padding: 36px 14px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .phone--lg .phone__screen {
+    padding: 40px 16px 0;
+    gap: 12px;
+  }
+
+  .phone__nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 56px;
+    background: rgba(10, 10, 10, 0.95);
+    border-top: 1px solid var(--border-color);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+    justify-items: center;
+  }
+
+  .phone__tab {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--text-muted);
+  }
+
+  .phone__tab.is-active {
+    border-color: var(--accent);
+  }
+
+  .phone__fab {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: var(--accent);
+    transform: translateY(-16px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 640px) {
+    .phone,
+    .phone--lg {
+      width: min(290px, 100%);
+      height: 560px;
+      border-radius: 34px;
+    }
+
+    .phone--lg .phone__screen {
+      padding: 36px 14px 0;
+      gap: 10px;
+    }
+  }
+</style>

@@ -1,0 +1,119 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_URL, SITE_NAME, DEFAULT_DESCRIPTION } from '../lib/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Caminho canônico sem barra final (ex.: "/calculadoras/dots"). Default: URL atual. */
+  path?: string;
+  ogImage?: string;
+  /** Um ou mais objetos JSON-LD (schema.org). */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = DEFAULT_DESCRIPTION,
+  path,
+  ogImage = '/og-image.png',
+  jsonLd,
+  noindex = false,
+} = Astro.props;
+
+const pathname = path ?? Astro.url.pathname.replace(/\/$/, '');
+const canonical = `${SITE_URL}${pathname === '' ? '/' : pathname}`;
+const ogImageAbs = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;
+const fullTitle = title.includes(SITE_NAME) ? title : `${title} · ${SITE_NAME}`;
+const jsonLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+
+// Umami (#290): só entra quando o build define o website-id da landing (build arg do
+// Dockerfile). Sem ele, dev/preview não carregam nada — e nunca registram.
+const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta name="theme-color" content="#060606" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImageAbs} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ONYX — diário de treino de powerlifting" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageAbs} />
+
+    <!-- Fontes: Outfit (display; inclui 900 do wordmark) + Plus Jakarta Sans (corpo) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    />
+
+    {jsonLdList.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
+
+    {
+      umamiId && (
+        <script
+          is:inline
+          defer
+          src="https://stats.onyxtreino.com.br/script.js"
+          data-website-id={umamiId}
+          data-domains="onyxtreino.com.br"
+        />
+      )
+    }
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <Nav />
+    <main id="conteudo">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .skip-link {
+    position: absolute;
+    left: 16px;
+    top: -100px;
+    z-index: 100;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .skip-link:focus {
+    top: 12px;
+  }
+</style>

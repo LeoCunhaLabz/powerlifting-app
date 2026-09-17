@@ -1,0 +1,98 @@
+---
+import AnimatedContent from '../components/reactbits/AnimatedContent';
+import SectionHeader from '../components/SectionHeader.astro';
+import { DIFFERENTIALS, type DifferentialIcon } from '../data/diferenciais';
+
+const ICONS: Record<DifferentialIcon, string> = {
+  bars: '<path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path>',
+  percent: '<path d="M19 5L5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle>',
+  clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
+  wifi: '<path d="M1 9c4-4 9-6 11-6s7 2 11 6"></path><path d="M5 13c2.5-2.5 5-4 7-4s4.5 1.5 7 4"></path><circle cx="12" cy="18" r="1.5"></circle>',
+  globe: '<circle cx="12" cy="12" r="9"></circle><path d="M3.5 9h17"></path><path d="M3.5 15h17"></path><path d="M12 3a15 15 0 0 1 0 18"></path><path d="M12 3a15 15 0 0 0 0 18"></path>',
+  check: '<path d="M20 6L9 17l-5-5"></path>',
+};
+
+const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
+---
+
+<section id="recursos" class="section diff" aria-labelledby="diff-title">
+  <div class="container">
+    <div class="diff__head">
+      <SectionHeader kicker="Por que não um app genérico" title="Feito para quem treina com barra." />
+    </div>
+
+    <div class="diff__grid">
+      {
+        DIFFERENTIALS.map((d, i) => (
+          <AnimatedContent client:media={MEDIA} distance={40} duration={0.6} delay={i * 0.06} threshold={0.15} className="diff__reveal">
+            <article class="card diff__card">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[d.icon]} />
+              <h3 class="diff__title">{d.title}</h3>
+              <p>{d.text}</p>
+            </article>
+          </AnimatedContent>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .diff {
+    padding-top: 8px;
+  }
+
+  .diff__head {
+    margin-bottom: 40px;
+  }
+
+  .diff__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .diff :global(.diff__reveal) {
+    display: flex;
+  }
+
+  .diff__card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 26px;
+    width: 100%;
+  }
+
+  .diff__title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .diff__card p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 1023px) {
+    .diff__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .diff__head {
+      margin-bottom: 24px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .diff__grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .diff__card {
+      padding: 18px;
+    }
+  }
+</style>

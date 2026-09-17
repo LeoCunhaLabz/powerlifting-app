@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../sections/Hero.astro';
+import VocabStrip from '../sections/VocabStrip.astro';
+import CalculatorCards from '../sections/CalculatorCards.astro';
+import Differentials from '../sections/Differentials.astro';
+import AppShowcase from '../sections/AppShowcase.astro';
+import Comparison from '../sections/Comparison.astro';
+import FinalCta from '../sections/FinalCta.astro';
+import { SITE_URL, APP_URL, DEFAULT_DESCRIPTION, HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site';
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'ONYX',
+    url: SITE_URL,
+    inLanguage: 'pt-BR',
+    description: DEFAULT_DESCRIPTION,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'ONYX — Powerlifting',
+    applicationCategory: 'HealthApplication',
+    operatingSystem: 'Web, Android',
+    url: APP_URL,
+    inLanguage: 'pt-BR',
+    description: `${HERO_TITLE_PREFIX}${HERO_TITLE_ACCENT}: ${HERO_SUBTITLE}`,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
+    featureList: [
+      'Registro de treino com RPE',
+      'Prescrição por %1RM sobre o e1RM atual',
+      'DOTS, Wilks e IPF GL nativos',
+      'Offline (PWA) com sincronização',
+      'Calculadora de anilhas',
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title="ONYX — O diário de treino que fala a língua do powerlifting"
+  description={DEFAULT_DESCRIPTION}
+  path="/"
+  jsonLd={jsonLd}
+>
+  <Hero />
+  <VocabStrip />
+  <CalculatorCards />
+  <Differentials />
+  <AppShowcase />
+  <Comparison />
+  <FinalCta />
+</BaseLayout>

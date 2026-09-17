@@ -1,0 +1,160 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { SITE_URL, APP_URL, CTA_PRIMARY, ROUTES } from '../lib/site';
+
+interface Props {
+  title: string;
+  h1: string;
+  lead: string;
+  description: string;
+  path: string;
+  breadcrumb: string;
+}
+const { title, h1, lead, description, path, breadcrumb } = Astro.props;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: title,
+    url: `${SITE_URL}${path}`,
+    description,
+    inLanguage: 'pt-BR',
+    isPartOf: { '@type': 'WebSite', name: 'ONYX', url: SITE_URL },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'ONYX', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Calculadoras', item: `${SITE_URL}/#calculadoras` },
+      { '@type': 'ListItem', position: 3, name: breadcrumb, item: `${SITE_URL}${path}` },
+    ],
+  },
+];
+
+const others = [
+  { href: ROUTES.calcDots, label: 'DOTS · Wilks · IPF GL' },
+  { href: ROUTES.calc1rm, label: '1RM por RPE' },
+  { href: ROUTES.calcAnilhas, label: 'Anilhas' },
+].filter((o) => o.href !== path);
+---
+
+<BaseLayout title={title} description={description} path={path} jsonLd={jsonLd}>
+  <article class="calcpage">
+    <div class="container calcpage__inner">
+      <header class="calcpage__head">
+        <nav class="calcpage__crumbs" aria-label="Você está em">
+          <a href="/">ONYX</a><span aria-hidden="true">/</span><a href="/#calculadoras">Calculadoras</a><span aria-hidden="true">/</span><span>{breadcrumb}</span>
+        </nav>
+        <h1 class="calcpage__title">{h1}</h1>
+        <p class="lead">{lead}</p>
+      </header>
+
+      <div class="calcpage__island">
+        <slot />
+      </div>
+
+      <section class="calcpage__how prose" aria-label="Como funciona">
+        <slot name="how" />
+      </section>
+
+      <aside class="calcpage__cta card">
+        <div>
+          <span class="kicker">No app</span>
+          <h2 class="calcpage__cta-title">Esse cálculo roda sozinho a cada série.</h2>
+          <p>Registre com RPE, programe por %1RM e acompanhe DOTS, Wilks e IPF GL no seu histórico — grátis, em pt-BR, offline.</p>
+        </div>
+        <a class="btn btn--primary" href={APP_URL}>{CTA_PRIMARY}</a>
+      </aside>
+
+      <nav class="calcpage__others" aria-label="Outras calculadoras">
+        <span class="label">Outras calculadoras</span>
+        {others.map((o) => <a href={o.href}>{o.label} →</a>)}
+      </nav>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .calcpage__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding-top: 56px;
+    padding-bottom: 88px;
+    max-width: 880px;
+  }
+
+  .calcpage__head {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .calcpage__crumbs {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .calcpage__crumbs a {
+    color: var(--text-muted);
+  }
+
+  .calcpage__crumbs a:hover {
+    color: var(--text-secondary);
+  }
+
+  .calcpage__title {
+    font-size: clamp(30px, 4vw, 44px);
+  }
+
+  .calcpage__how :global(h2) {
+    margin-top: 0;
+  }
+
+  .calcpage__cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px;
+    background: var(--accent-gradient), var(--bg-secondary);
+    border-color: var(--accent-border);
+  }
+
+  .calcpage__cta-title {
+    font-size: 22px;
+    margin: 8px 0 8px;
+  }
+
+  .calcpage__cta p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .calcpage__others {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 640px) {
+    .calcpage__inner {
+      gap: 28px;
+      padding-top: 32px;
+      padding-bottom: 56px;
+    }
+
+    .calcpage__cta {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 20px;
+    }
+  }
+</style>
