@@ -1,0 +1,30 @@
+---
+interface Props {
+  kicker: string;
+  title: string;
+  lead?: string;
+  align?: 'left' | 'center';
+}
+const { kicker, title, lead, align = 'left' } = Astro.props;
+---
+
+<div class={`sh sh--${align}`}>
+  <span class="kicker">{kicker}</span>
+  <h2 class="h2">{title}</h2>
+  {lead && <p class="lead">{lead}</p>}
+</div>
+
+<style>
+  .sh {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 640px;
+  }
+
+  .sh--center {
+    align-items: center;
+    text-align: center;
+    margin: 0 auto;
+  }
+</style>

@@ -1,0 +1,60 @@
+---
+import Logo from '../components/Logo.astro';
+import { APP_URL, CTA_PRIMARY } from '../lib/site';
+---
+
+<section class="section section--hairline-top cta" aria-labelledby="cta-title">
+  <div class="container cta__inner">
+    <Logo size={40} wordmark={false} />
+    <h2 id="cta-title" class="cta__title">Comece pelo cálculo. Fique pelo diário.</h2>
+    <p class="lead">Sua conta guarda histórico, e1RM e recordes — grátis, em pt-BR, offline.</p>
+    <div class="cta__btns">
+      <a class="btn btn--primary" href={APP_URL}>{CTA_PRIMARY}</a>
+      <a class="btn btn--secondary" href={APP_URL}>Ver o app</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta {
+    background: linear-gradient(135deg, rgba(227, 168, 59, 0.07), transparent 55%);
+    padding-top: 88px;
+    padding-bottom: 72px;
+  }
+
+  .cta__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    text-align: center;
+  }
+
+  .cta__title {
+    font-size: clamp(26px, 3.2vw, 38px);
+  }
+
+  .cta__btns {
+    display: flex;
+    gap: 14px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  @media (max-width: 640px) {
+    .cta {
+      padding-top: 56px;
+      padding-bottom: 48px;
+    }
+
+    .cta__btns {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .cta__btns .btn {
+      width: 100%;
+    }
+  }
+</style>

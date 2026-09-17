@@ -1,0 +1,37 @@
+---
+import CalcLayout from '../../layouts/CalcLayout.astro';
+import ScoreCalculator from '../../islands/ScoreCalculator';
+import { ROUTES } from '../../lib/site';
+---
+
+<CalcLayout
+  title="Calculadora DOTS, Wilks e IPF GL"
+  h1="Calculadora DOTS, Wilks e IPF GL"
+  lead="Informe peso corporal e seus levantamentos. O total SBD vira pontos nas três fórmulas que o powerlifting usa para comparar atletas de pesos diferentes."
+  description="Calcule DOTS, Wilks e IPF GL Points online e grátis a partir do peso corporal e do total SBD (agachamento, supino e terra). Fórmulas oficiais, sem login."
+  path={ROUTES.calcDots}
+  breadcrumb="DOTS · Wilks · IPF GL"
+>
+  <ScoreCalculator client:load />
+
+  <Fragment slot="how">
+    <h2>O que cada pontuação significa</h2>
+    <p>
+      <strong>DOTS</strong> é a fórmula usada pela maioria das federações e pelo OpenPowerlifting para comparar
+      força relativa: multiplica o total por um coeficiente que depende do peso corporal e do sexo. Um DOTS de 300
+      costuma marcar a transição para intermediário; acima de 400 já é nível competitivo alto na maioria das
+      categorias.
+    </p>
+    <p>
+      <strong>Wilks</strong> (versão clássica) foi a fórmula oficial da IPF até 2018 e ainda aparece em muitos
+      rankings e planilhas. <strong>IPF GL Points</strong> é a fórmula atual da IPF (2020): a escala é diferente —
+      atletas de elite ficam perto de 100 pontos — e muda entre raw e equipado.
+    </p>
+    <h2>Como o cálculo é feito</h2>
+    <p>
+      Os coeficientes são os publicados pelo OpenPowerlifting. DOTS e Wilks usam um polinômio do peso corporal;
+      IPF GL usa uma exponencial. Arredondamos para 0,01, exatamente como no app — a calculadora aqui e a do seu
+      histórico rodam o mesmo código.
+    </p>
+  </Fragment>
+</CalcLayout>

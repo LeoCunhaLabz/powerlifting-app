@@ -1,0 +1,73 @@
+/*
+ * Tokens da landing ONYX.
+ * Base: apps/web/src/index.css (design system do app) — mantenha os valores em
+ * sincronia. Os tokens marcados como "só landing" vêm da spec de design
+ * (docs/superpowers/specs/2026-09-16-landing-page-design.md) e não existem no app.
+ */
+:root {
+  /* Superfícies */
+  --bg-page: #000000;
+  --bg-primary: #060606;
+  --bg-secondary: #161616;
+  --bg-tertiary: #1e1e1e;
+  --bg-table: #0d0d0d; /* só landing: superfície da tabela comparativa */
+
+  /* Texto */
+  --text-primary: #fafafa;
+  --text-secondary: #9a9aa0;
+  --text-muted: #5c5c61;
+
+  /* Linhas */
+  --border-color: #242424;
+  --border-focus: #4a4a4a;
+  --hairline: #1a1a1a; /* só landing: divisórias mais sutis que --border-color */
+
+  /* Acento (tema Brass fixo na landing) */
+  --accent: #e3a83b;
+  --accent-soft: rgba(227, 168, 59, 0.12);
+  --accent-border: rgba(227, 168, 59, 0.3);
+  --accent-ink: #1a1304;
+  --accent-hover: #f0c06a; /* só landing: hover de link */
+  --accent-gradient: linear-gradient(135deg, var(--accent-soft), transparent);
+
+  /* Cores de anilhas (padrão IPF) — único uso de cor fora do brass */
+  --plate-25: #ef4444;
+  --plate-20: #3b82f6;
+  --plate-15: #eab308;
+  --plate-10: #10b981;
+  --plate-5: #f3f4f6;
+  --plate-2-5: #111827;
+  --plate-frac: #6b7280;
+
+  /* Tipografia */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+
+  /* Raios */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+
+  /* Layout */
+  --container: 1440px;
+  --gutter: 64px;
+  --section-y: 96px;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --gutter: 32px;
+    --section-y: 72px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --gutter: 20px;
+    --section-y: 44px;
+  }
+}

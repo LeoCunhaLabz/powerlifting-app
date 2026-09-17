@@ -1,0 +1,93 @@
+---
+import ProseLayout from '../layouts/ProseLayout.astro';
+import { APP_URL, LEGAL_UPDATED_AT, ROUTES } from '../lib/site';
+
+const CONTACT = 'contato@onyxtreino.com.br';
+---
+
+<ProseLayout
+  title="Termos de Uso"
+  description="Condições para usar o site e o aplicativo ONYX: conta, uso aceitável, limitações, propriedade intelectual e encerramento."
+  path={ROUTES.termos}
+  updatedAt={LEGAL_UPDATED_AT}
+>
+  <p>
+    Ao usar o site <a href="/">onyxtreino.com.br</a> ou o aplicativo <a href={APP_URL}>ONYX</a>, você concorda com
+    estes termos. Se não concordar, não use o serviço. Leia também a
+    <a href={ROUTES.privacidade}>Política de Privacidade</a>, que faz parte destes termos.
+  </p>
+
+  <h2>1. O serviço</h2>
+  <p>
+    O ONYX é um diário de treino de powerlifting: registra sessões, séries, RPE, calcula estimativas de 1RM
+    (e1RM), pontuações relativas (DOTS, Wilks, IPF GL) e organiza rotinas e programas. As calculadoras públicas do
+    site funcionam sem conta. O serviço é oferecido <strong>gratuitamente</strong> no momento; se um dia houver
+    recursos pagos, o essencial do diário permanecerá gratuito e você será avisado com antecedência.
+  </p>
+
+  <h2>2. Não é orientação médica nem de treinamento</h2>
+  <p>
+    Os cálculos são <strong>estimativas matemáticas</strong> baseadas em fórmulas públicas (tabela RTS, Brzycki,
+    Epley, coeficientes DOTS/Wilks/IPF GL). Eles não substituem a avaliação de um profissional de educação física
+    ou de saúde. Levantamento de peso envolve risco de lesão: você é o único responsável por decidir cargas,
+    volume e técnica, e por treinar com supervisão adequada quando necessário.
+  </p>
+
+  <h2>3. Conta</h2>
+  <ul>
+    <li>Você precisa ter 18 anos ou mais.</li>
+    <li>Informe dados verdadeiros e mantenha sua senha em sigilo. Você responde pelo que acontece na sua conta.</li>
+    <li>Uma pessoa, uma conta. Não crie contas automatizadas nem compartilhe credenciais.</li>
+    <li>Você pode excluir a conta a qualquer momento em <em>Configurações → Excluir conta</em>; a exclusão é imediata e irreversível.</li>
+  </ul>
+
+  <h2>4. Uso aceitável</h2>
+  <p>É proibido:</p>
+  <ul>
+    <li>tentar acessar contas, dados ou sistemas de terceiros, ou contornar mecanismos de segurança;</li>
+    <li>sobrecarregar o serviço com requisições automatizadas, raspagem em massa ou ataques de negação de serviço;</li>
+    <li>usar o serviço para fins ilegais ou para violar direitos de terceiros;</li>
+    <li>copiar, redistribuir ou revender o serviço como se fosse seu.</li>
+  </ul>
+
+  <h2>5. Seus dados e seu conteúdo</h2>
+  <p>
+    Os treinos, rotinas e demais registros que você cria são seus. Você nos concede apenas a licença necessária
+    para armazená-los, sincronizá-los entre seus dispositivos e exibi-los para você. Você pode exportar tudo em
+    JSON a qualquer momento (<em>Configurações → Backup</em>).
+  </p>
+
+  <h2>6. Disponibilidade e mudanças</h2>
+  <p>
+    O ONYX é mantido por um desenvolvedor independente e oferecido "como está". Fazemos o possível para mantê-lo
+    disponível e sem erros, mas não garantimos funcionamento ininterrupto. Podemos alterar, suspender ou
+    descontinuar recursos; em caso de encerramento do serviço, avisaremos com antecedência razoável para que você
+    exporte seus dados. Recomendamos manter backups periódicos (exportação JSON).
+  </p>
+
+  <h2>7. Limitação de responsabilidade</h2>
+  <p>
+    Na máxima extensão permitida pela lei brasileira, o ONYX não responde por lesões, perdas de dados, lucros
+    cessantes ou outros danos indiretos decorrentes do uso ou da impossibilidade de uso do serviço. Nada nestes
+    termos afasta direitos que a legislação de defesa do consumidor garanta a você.
+  </p>
+
+  <h2>8. Propriedade intelectual</h2>
+  <p>
+    A marca ONYX, o design e o código do serviço pertencem ao seu responsável. Os componentes de interface de
+    terceiros usados no site são licenciados por seus autores. As fórmulas de força (DOTS, Wilks, IPF GL, RTS) são
+    de domínio público ou de seus respectivos autores e federações.
+  </p>
+
+  <h2>9. Encerramento</h2>
+  <p>
+    Podemos suspender ou encerrar contas que violem estes termos. Você pode encerrar a sua a qualquer momento
+    excluindo a conta no app.
+  </p>
+
+  <h2>10. Lei aplicável e contato</h2>
+  <p>
+    Estes termos são regidos pelas leis da República Federativa do Brasil. Dúvidas ou solicitações:
+    <a href={`mailto:${CONTACT}`}>{CONTACT}</a>.
+  </p>
+</ProseLayout>

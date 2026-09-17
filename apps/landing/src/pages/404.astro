@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ROUTES } from '../lib/site';
+---
+
+<BaseLayout title="Página não encontrada" description="Essa página não existe no ONYX." path="/404" noindex>
+  <section class="nf container">
+    <span class="kicker">Erro 404</span>
+    <h1 class="nf__title">Essa página não existe.</h1>
+    <p class="lead">Talvez você queira uma das calculadoras ou voltar para o início.</p>
+    <nav class="nf__links" aria-label="Atalhos">
+      <a class="btn btn--primary" href={ROUTES.home}>Voltar ao início</a>
+      <a class="btn btn--secondary" href={ROUTES.calcDots}>Calculadora DOTS</a>
+    </nav>
+  </section>
+</BaseLayout>
+
+<style>
+  .nf {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    padding-top: 96px;
+    padding-bottom: 120px;
+    max-width: 720px;
+  }
+
+  .nf__title {
+    font-size: clamp(30px, 4vw, 44px);
+  }
+
+  .nf__links {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+</style>

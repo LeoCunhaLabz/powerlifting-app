@@ -32,7 +32,8 @@ O projeto é um **monorepo** (npm workspaces): o frontend (`apps/web`) é **clie
 | Estilo | CSS puro (`apps/web/src/index.css`), design system **ONYX** com temas de acento (Onyx · Brass · Volt) |
 | Persistência | `localStorage` (frontend client-side; sincronização com a API prevista na fase 3) |
 | Backend | Fastify 5 + PostgreSQL 16 + Drizzle ORM + `@fastify/jwt` |
-| Deploy | Docker (multi-stage) + Nginx (non-root, porta 8080) |
+| Landing | Astro 5 + ilhas React (`apps/landing`), HTML estático na raiz de `onyxtreino.com.br`; calculadoras públicas reutilizam `powerlifting.ts`; componentes [reactbits.dev](https://reactbits.dev) (TS + CSS) copiados no repo |
+| Deploy | Docker (multi-stage) + Nginx (non-root, porta 8080) servindo app e landing por host |
 | CI/CD | GitHub Actions (lint → testes → build → deploy Dokploy → smoke test) |
 
 ---
@@ -74,6 +75,9 @@ npm run test
 | `npm run build:api` | Compila a API TypeScript para `apps/api/dist/`. |
 | `npm run lint:api` | ESLint da API. |
 | `npm run start:api` | Inicia o servidor compilado da API. |
+| `npm run dev:landing` | Dev server do Astro da landing (`:4321`). |
+| `npm run build:landing` | Build estático da landing em `apps/landing/dist/`. |
+| `npm run check:landing` / `lint:landing` / `test:landing` | Type-check, ESLint e Vitest da landing. |
 
 ---
 
@@ -204,6 +208,17 @@ powerlifting-app/
           More.tsx            # Hub "Mais" (Análises · Calculadoras · Configurações)
         utils/
           powerlifting.ts     # Cálculos puros (e1RM, Wilks, DOTS, IPF GL, anilhas)
+    landing/                 # Landing pública (Astro 5 + ilhas React) — onyxtreino.com.br
+      astro.config.mjs       # site, sitemap, alias @onyx/calc → apps/web/src/utils/powerlifting.ts
+      public/                # marca, robots.txt, og-image.png
+      scripts/og-image.mjs   # gera a og-image com o Chromium do Playwright
+      src/
+        pages/               # index, calculadoras/{dots,1rm,anilhas}, privacidade, termos, 404
+        sections/            # seções da home (Hero, Comparativo, …)
+        islands/             # calculadoras React (client:load)
+        components/reactbits # componentes reactbits.dev copiados (TS + CSS)
+        data/                # comparativo (com fonte por célula), diferenciais, cores de anilhas
+        styles/              # tokens (espelho do index.css) + global
   packages/
     shared/                  # Tipos de domínio compartilhados (@powerlifting/shared)
       src/

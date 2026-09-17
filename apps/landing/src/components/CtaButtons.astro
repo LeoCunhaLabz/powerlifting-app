@@ -1,0 +1,44 @@
+---
+import { APP_URL, CTA_PRIMARY, CTA_CALCULATORS } from '../lib/site';
+
+interface Props {
+  secondaryHref?: string;
+  secondaryLabel?: string;
+  stack?: boolean;
+}
+const { secondaryHref = '/#calculadoras', secondaryLabel = CTA_CALCULATORS, stack = false } = Astro.props;
+---
+
+<div class={`ctas${stack ? ' ctas--stack' : ''}`}>
+  <a class="btn btn--primary" href={APP_URL}>{CTA_PRIMARY}</a>
+  <a class="btn btn--secondary" href={secondaryHref}>
+    <span>{secondaryLabel}</span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path>
+    </svg>
+  </a>
+</div>
+
+<style>
+  .ctas {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .ctas .btn--secondary svg {
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 640px) {
+    .ctas {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .ctas .btn {
+      width: 100%;
+    }
+  }
+</style>

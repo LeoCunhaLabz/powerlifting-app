@@ -1,0 +1,159 @@
+---
+import DotsCalculator from '../islands/DotsCalculator';
+import DotGrid from '../components/reactbits/DotGrid';
+import CtaButtons from '../components/CtaButtons.astro';
+import { HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site';
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  {/* Fundo: dot grid em CSS (sempre) + versão interativa gsap só em desktop sem reduced-motion */}
+  <div class="hero__bg" aria-hidden="true">
+    <DotGrid
+      client:media="(min-width: 1024px) and (prefers-reduced-motion: no-preference)"
+      dotSize={2}
+      gap={24}
+      baseColor="#1a1a1a"
+      activeColor="#e3a83b"
+      proximity={120}
+      shockRadius={200}
+      shockStrength={4}
+      returnDuration={1.2}
+      className="hero__dotgrid"
+    />
+    <div class="hero__fade"></div>
+  </div>
+
+  <div class="container hero__inner">
+    <div class="hero__copy">
+      <span class="kicker">Diário de treino · Powerlifting</span>
+      <h1 id="hero-title" class="hero__title">
+        {HERO_TITLE_PREFIX}<span class="hero__accent">{HERO_TITLE_ACCENT}</span>.
+      </h1>
+      <p class="hero__sub">{HERO_SUBTITLE}</p>
+      <CtaButtons />
+      <p class="hero__note">Sem cartão. As calculadoras funcionam sem conta, direto no navegador.</p>
+    </div>
+
+    <div class="hero__calc">
+      <DotsCalculator client:load />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    background-image: radial-gradient(circle, var(--hairline) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hero__bg :global(.hero__dotgrid) {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  .hero__fade {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 30% 40%, transparent 30%, var(--bg-primary) 95%);
+  }
+
+  .hero__inner {
+    position: relative;
+    display: flex;
+    gap: 72px;
+    align-items: center;
+    padding-top: 96px;
+    padding-bottom: 104px;
+  }
+
+  .hero__copy {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 620px;
+  }
+
+  .hero__title {
+    font-size: clamp(32px, 4.2vw, 52px);
+    line-height: 1.08;
+  }
+
+  .hero__accent {
+    color: var(--accent);
+  }
+
+  .hero__sub {
+    font-size: 19px;
+    line-height: 1.55;
+    max-width: 520px;
+  }
+
+  .hero__note {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .hero__calc {
+    width: 440px;
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 1023px) {
+    .hero__inner {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 36px;
+      padding-top: 56px;
+      padding-bottom: 56px;
+    }
+
+    .hero__fade {
+      background: radial-gradient(ellipse 90% 70% at 50% 30%, transparent 20%, var(--bg-primary) 95%);
+    }
+
+    .hero__calc {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .hero__copy {
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hero {
+      background-size: 24px 24px;
+    }
+
+    .hero__inner {
+      padding-top: 44px;
+      padding-bottom: 40px;
+      gap: 28px;
+    }
+
+    .hero__copy {
+      gap: 18px;
+    }
+
+    .hero__sub {
+      font-size: 16px;
+    }
+
+    .hero__note {
+      text-align: center;
+    }
+  }
+</style>

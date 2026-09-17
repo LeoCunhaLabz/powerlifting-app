@@ -1,0 +1,49 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { SITE_URL } from '../lib/site';
+
+interface Props {
+  title: string;
+  description: string;
+  path: string;
+  updatedAt?: string;
+}
+const { title, description, path, updatedAt } = Astro.props;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: title,
+  url: `${SITE_URL}${path}`,
+  description,
+  inLanguage: 'pt-BR',
+  ...(updatedAt ? { dateModified: updatedAt } : {}),
+  isPartOf: { '@type': 'WebSite', name: 'ONYX', url: SITE_URL },
+};
+
+const updatedLabel = updatedAt
+  ? new Date(`${updatedAt}T12:00:00-03:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  : null;
+---
+
+<BaseLayout title={title} description={description} path={path} jsonLd={jsonLd}>
+  <article class="container prose page">
+    <h1>{title}</h1>
+    {updatedLabel && <p class="meta">Última atualização: {updatedLabel}</p>}
+    <slot />
+  </article>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-top: 56px;
+    padding-bottom: 96px;
+  }
+
+  @media (max-width: 640px) {
+    .page {
+      padding-top: 32px;
+      padding-bottom: 56px;
+    }
+  }
+</style>

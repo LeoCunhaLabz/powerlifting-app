@@ -5,7 +5,8 @@
 // RTS RPE Percentage Chart (Mike Tuchscherer)
 // Rows: Reps from 1 to 12
 // Columns: RPE from 6.5 to 10 (step 0.5)
-const RPE_PERCENTAGES: Record<number, Record<number, number>> = {
+// Exportada para a landing (apps/landing) renderizar a tabela pública de RPE (#250).
+export const RPE_PERCENTAGES: Record<number, Record<number, number>> = {
   1:  { 10: 1.00, 9.5: 0.98, 9: 0.96, 8.5: 0.94, 8: 0.92, 7.5: 0.91, 7: 0.89, 6.5: 0.88 },
   2:  { 10: 0.96, 9.5: 0.94, 9: 0.92, 8.5: 0.91, 8: 0.89, 7.5: 0.88, 7: 0.86, 6.5: 0.85 },
   3:  { 10: 0.92, 9.5: 0.91, 9: 0.89, 8.5: 0.88, 8: 0.86, 7.5: 0.85, 7: 0.84, 6.5: 0.82 },

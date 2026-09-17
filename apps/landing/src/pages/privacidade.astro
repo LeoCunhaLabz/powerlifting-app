@@ -1,0 +1,113 @@
+---
+import ProseLayout from '../layouts/ProseLayout.astro';
+import { APP_URL, LEGAL_UPDATED_AT, ROUTES } from '../lib/site';
+
+// Texto redigido para revisão do responsável (issue #250, decisão 4 da triagem).
+// Descreve o comportamento REAL do app: dados em apps/api (PostgreSQL), sync opcional,
+// Umami cookieless, e-mail transacional via Resend, exclusão via DELETE /auth/me.
+const CONTACT = 'contato@onyxtreino.com.br';
+---
+
+<ProseLayout
+  title="Política de Privacidade"
+  description="Como o ONYX trata seus dados: o que coletamos, por quê, por quanto tempo e como excluir sua conta. Em conformidade com a LGPD."
+  path={ROUTES.privacidade}
+  updatedAt={LEGAL_UPDATED_AT}
+>
+  <p>
+    Esta política explica como o <strong>ONYX</strong> (site <a href="/">onyxtreino.com.br</a> e aplicativo em
+    <a href={APP_URL}>app.onyxtreino.com.br</a>) trata dados pessoais, nos termos da Lei Geral de Proteção de Dados
+    (Lei nº 13.709/2018 — LGPD). O ONYX é um diário de treino de powerlifting mantido por um desenvolvedor
+    independente, no Brasil.
+  </p>
+
+  <h2>1. Quem é o controlador</h2>
+  <p>
+    O controlador dos dados é o responsável pelo ONYX, contato pelo e-mail <a href={`mailto:${CONTACT}`}>{CONTACT}</a>.
+    Esse mesmo canal atende pedidos de titulares (acesso, correção, exclusão, portabilidade e demais direitos do
+    art. 18 da LGPD).
+  </p>
+
+  <h2>2. Quais dados coletamos e para quê</h2>
+  <h3>2.1 Site (landing e calculadoras públicas)</h3>
+  <p>
+    As calculadoras funcionam inteiramente no seu navegador: os valores digitados (peso corporal, cargas,
+    repetições, RPE) <strong>não são enviados</strong> a nenhum servidor nem armazenados por nós.
+  </p>
+  <p>
+    Medimos audiência com o <strong>Umami</strong>, uma ferramenta de estatísticas auto-hospedada, sem cookies e
+    sem identificadores persistentes: registramos apenas páginas visitadas, tipo de dispositivo/navegador, país
+    (a partir do IP, que é descartado após anonimização) e eventos agregados como "calculadora usada". Não é
+    possível identificar você a partir desses dados, e nada é compartilhado com terceiros de publicidade.
+  </p>
+  <h3>2.2 Aplicativo (com conta)</h3>
+  <table>
+    <thead>
+      <tr><th>Dado</th><th>Finalidade</th><th>Base legal</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Nome e e-mail</td><td>Criar e identificar a conta; enviar e-mail de redefinição de senha</td><td>Execução de contrato (art. 7º, V)</td></tr>
+      <tr><td>Senha</td><td>Autenticação. Armazenada apenas como <em>hash</em> (bcrypt); nunca em texto puro</td><td>Execução de contrato</td></tr>
+      <tr><td>Identificador da conta Google (se você entrar com o Google)</td><td>Autenticação sem senha; recebemos nome, e-mail e o identificador da conta</td><td>Execução de contrato</td></tr>
+      <tr><td>Treinos, rotinas, programas, exercícios personalizados e registros de peso corporal</td><td>Sincronizar seus dados entre dispositivos e calcular e1RM, DOTS, Wilks, IPF GL, recordes e análises</td><td>Execução de contrato</td></tr>
+      <tr><td>Sessões de acesso (tokens de atualização, em <em>hash</em>)</td><td>Manter você conectado com segurança</td><td>Execução de contrato / legítimo interesse (segurança)</td></tr>
+      <tr><td>Registros técnicos de acesso (IP, data/hora, rota, agente do navegador)</td><td>Segurança, prevenção a abuso e diagnóstico de falhas</td><td>Legítimo interesse (art. 7º, IX)</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Não coletamos dados sensíveis além do <strong>peso corporal</strong>, que você informa voluntariamente para o
+    cálculo das pontuações relativas. Não usamos seus dados para publicidade, perfilamento comercial nem os
+    vendemos a terceiros.
+  </p>
+
+  <h2>3. Armazenamento no seu dispositivo</h2>
+  <p>
+    O aplicativo funciona offline: seus treinos ficam salvos no armazenamento local do navegador
+    (<em>localStorage</em>) do seu dispositivo e são sincronizados com o servidor quando há conexão e você está
+    conectado à conta. Limpar os dados do site no navegador apaga a cópia local; a cópia do servidor permanece até
+    você excluir a conta.
+  </p>
+
+  <h2>4. Com quem compartilhamos</h2>
+  <ul>
+    <li><strong>Hospedagem:</strong> os servidores (aplicação, API e banco de dados) rodam em infraestrutura própria contratada da Hostinger.</li>
+    <li><strong>E-mail transacional:</strong> o e-mail de redefinição de senha é enviado pela Resend (recebe seu endereço e o conteúdo da mensagem).</li>
+    <li><strong>Login com Google:</strong> opcional; sujeito à política de privacidade do Google.</li>
+    <li><strong>Fontes:</strong> o site carrega fontes do Google Fonts, que registra a requisição (IP, navegador) segundo a política do Google.</li>
+  </ul>
+  <p>Não há transferência de dados para fins de marketing. Poderemos compartilhar dados se exigido por lei ou ordem judicial.</p>
+
+  <h2>5. Por quanto tempo guardamos</h2>
+  <p>
+    Enquanto sua conta existir. Tokens de redefinição de senha expiram em 1 hora; sessões expiram em 7 dias sem
+    uso. Ao excluir a conta, todos os dados associados (treinos, rotinas, programas, exercícios, sessões e tokens)
+    são apagados do servidor imediatamente e de forma definitiva; backups rotineiros do banco são
+    sobrescritos no ciclo normal de retenção (até 30 dias). Registros técnicos de acesso são mantidos por até 30 dias.
+  </p>
+
+  <h2>6. Seus direitos e como exercê-los</h2>
+  <ul>
+    <li><strong>Acesso e portabilidade:</strong> em <em>Configurações → Backup</em>, no app, você exporta todos os seus dados em JSON a qualquer momento.</li>
+    <li><strong>Correção:</strong> edite treinos, rotinas e perfil diretamente no app.</li>
+    <li><strong>Exclusão:</strong> em <em>Configurações → Excluir conta</em>, no app, a remoção é imediata e irreversível. Se preferir, solicite pelo e-mail de contato.</li>
+    <li><strong>Revogação do consentimento e demais direitos:</strong> pelo e-mail de contato. Respondemos em até 15 dias.</li>
+  </ul>
+  <p>Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).</p>
+
+  <h2>7. Segurança</h2>
+  <p>
+    Todo o tráfego usa HTTPS. Senhas são armazenadas com <em>hash</em> bcrypt; tokens de sessão são rotacionados e
+    guardados como <em>hash</em>. O acesso administrativo aos servidores é restrito a chaves criptográficas. Nenhum
+    sistema é infalível: se identificarmos um incidente que afete seus dados, comunicaremos você e a ANPD conforme
+    a LGPD.
+  </p>
+
+  <h2>8. Crianças e adolescentes</h2>
+  <p>O ONYX destina-se a maiores de 18 anos. Não coletamos intencionalmente dados de crianças.</p>
+
+  <h2>9. Alterações</h2>
+  <p>
+    Podemos atualizar esta política. Mudanças relevantes serão indicadas pela data no topo da página e, quando
+    couber, por aviso no app. A versão vigente é sempre a publicada em <a href={ROUTES.privacidade}>onyxtreino.com.br/privacidade</a>.
+  </p>
+</ProseLayout>

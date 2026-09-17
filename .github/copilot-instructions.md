@@ -8,8 +8,9 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 
 - `apps/web/` — frontend React (código em `apps/web/src/`).
 - `apps/api/` — backend Fastify + TypeScript (código em `apps/api/src/`). Stack: Fastify 5, Zod, `fastify-type-provider-zod`, `@fastify/cors`, `@fastify/jwt` + `@fastify/rate-limit` (auth), `bcryptjs` (hash de senha). Tooling: `tsx` (dev), `tsc` (build para `dist/`), módulo NodeNext.
+- `apps/landing/` — landing page pública (Astro 5 + ilhas React, CSS puro) servida na raiz de `onyxtreino.com.br` pelo mesmo nginx do app. Reutiliza os cálculos do app pelo alias `@onyx/calc` → `apps/web/src/utils/powerlifting.ts`. Componentes reactbits.dev copiados em `src/components/reactbits/` (TS + CSS); gsap/motion só em desktop sem `prefers-reduced-motion`. CSP própria em `nginx-landing-security-headers.conf`. Detalhes em [AGENTS.md](../AGENTS.md#landing-page-pública--appslanding-issue-250).
 - `packages/shared/` — tipos de domínio compartilhados, pacote `@powerlifting/shared`.
-- Comandos raiz: `npm run dev/build/lint/test` (web), `npm run dev:api/build:api/lint:api/test:api/start:api` (api), `npm run test:e2e` (Playwright, golden path — requer Postgres em `E2E_DATABASE_URL`).
+- Comandos raiz: `npm run dev/build/lint/test` (web), `npm run dev:api/build:api/lint:api/test:api/start:api` (api), `npm run dev:landing/build:landing/check:landing/lint:landing/test:landing` (landing), `npm run test:e2e` (Playwright, golden path — requer Postgres em `E2E_DATABASE_URL`).
 - `docker-compose.yml` — **stack local de dev** (web + api + postgres `postgres:16-alpine`, volume `postgres_data`). **Produção roda no Dokploy** com web, api e Postgres como recursos nativos/separados na rede `dokploy-network` (DB gerenciado pelo Dokploy); não faça deploy deste compose lá. Migrations são aplicadas automaticamente no boot via `runMigrations()` ([apps/api/src/db/index.ts](../apps/api/src/db/index.ts)). Variáveis de ambiente em [.env.example](../.env.example) (docker-compose) e [apps/api/.env.example](../apps/api/.env.example) (dev local).
 
 ## Regras essenciais
@@ -29,7 +30,7 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 
 ## Validação
 
-Antes de concluir: `npm run build` (na raiz) deve passar. Rode `npm run lint` e não introduza novos erros (se houver erros pré-existentes, trate em PR separado). Para mudanças de API, rode também `npm run test:api`.
+Antes de concluir: `npm run build` (na raiz) deve passar. Rode `npm run lint` e não introduza novos erros (se houver erros pré-existentes, trate em PR separado). Para mudanças de API, rode também `npm run test:api`. Para mudanças em `apps/landing` ou em `powerlifting.ts`, rode `npm run lint:landing`, `npm run check:landing`, `npm run test:landing` e `npm run build:landing`.
 
 ## Fluxo de trabalho (PRs e iterações)
 

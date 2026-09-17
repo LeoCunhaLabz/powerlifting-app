@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY apps/web/package.json ./apps/web/package.json
+COPY apps/landing/package.json ./apps/landing/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci
 
@@ -15,6 +16,12 @@ ARG VITE_API_URL="https://api.onyxtreino.com.br"
 ARG VITE_GOOGLE_CLIENT_ID="260163007618-7buhki8asaektd6b3g9sr0ga2eamf1g6.apps.googleusercontent.com"
 RUN VITE_API_URL="${VITE_API_URL}" VITE_GOOGLE_CLIENT_ID="${VITE_GOOGLE_CLIENT_ID}" npm run build
 
+# Landing page (issue #250): site estático do Astro servido na raiz do domínio pelo
+# MESMO nginx. Website-id do Umami da landing (público, como o do app) — vazio = sem
+# analytics (dev/preview). Valor de produção definido como build arg no Dokploy.
+ARG PUBLIC_UMAMI_WEBSITE_ID=""
+RUN PUBLIC_UMAMI_WEBSITE_ID="${PUBLIC_UMAMI_WEBSITE_ID}" npm run build -w @powerlifting/landing
+
 # Production stage
 FROM nginx:1.27-alpine
 
@@ -22,14 +29,16 @@ FROM nginx:1.27-alpine
 # o frontend possa chamar a API. ARG é por stage, por isso precisa ser repetido aqui.
 ARG VITE_API_URL="https://api.onyxtreino.com.br"
 
-# Copiar build da stage anterior
+# Copiar builds da stage anterior: app (host app.) e landing (raiz do domínio)
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/landing/dist /usr/share/nginx/landing
 
 # Config do nginx versionada no repo. Antes era gerada inline aqui com printf, o que
 # fazia o nginx.conf do repo virar código morto: produção rodava sem NENHUM header de
 # segurança e sem o bloco de no-cache do PWA. Agora o repo é a fonte única.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx-security-headers.conf /etc/nginx/security-headers.conf
+COPY nginx-landing-security-headers.conf /etc/nginx/landing-security-headers.conf
 
 # Remover diretiva 'user nginx' (o container já roda como nginx), injetar a origem da
 # API na CSP, validar a config e só então corrigir permissões.
@@ -39,6 +48,7 @@ RUN sed -i '/^user[[:space:]]/d' /etc/nginx/nginx.conf && \
     nginx -t && \
     chown -R nginx:nginx \
         /usr/share/nginx/html \
+        /usr/share/nginx/landing \
         /var/cache/nginx \
         /var/log/nginx \
         /etc/nginx/conf.d && \

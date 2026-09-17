@@ -1,0 +1,90 @@
+---
+import TiltedCard from '../components/reactbits/TiltedCard';
+import SectionHeader from '../components/SectionHeader.astro';
+import PhoneTreino from '../components/phones/PhoneTreino.astro';
+import PhoneDashboard from '../components/phones/PhoneDashboard.astro';
+import PhoneResumo from '../components/phones/PhoneResumo.astro';
+
+// TiltedCard (reactbits, motion) só hidrata em desktop sem reduced-motion. Sem
+// hidratação, o servidor entrega os frames estáticos. Em ≤ 640px só o dashboard aparece.
+const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
+---
+
+<section class="section section--hairline-top app" aria-labelledby="app-title">
+  <div class="container app__inner">
+    <div class="app__head">
+      <SectionHeader kicker="O app" title="Do aquecimento ao PR." />
+    </div>
+
+    <div class="app__frames">
+      <figure class="app__frame app__frame--side">
+        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
+          <PhoneTreino />
+        </TiltedCard>
+        <figcaption>Treino ativo — RPE e última carga por série</figcaption>
+      </figure>
+
+      <figure class="app__frame">
+        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
+          <PhoneDashboard />
+        </TiltedCard>
+        <figcaption>Início — e1RM, DOTS e recordes de frente</figcaption>
+      </figure>
+
+      <figure class="app__frame app__frame--side">
+        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
+          <PhoneResumo />
+        </TiltedCard>
+        <figcaption>Resumo — volume, duração e PRs da sessão</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<style>
+  .app__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  .app__frames {
+    display: flex;
+    gap: 44px;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .app__frame {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    margin: 0;
+  }
+
+  .app__frame figcaption {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  @media (max-width: 1023px) {
+    .app__frames {
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .app__inner {
+      gap: 16px;
+      align-items: center;
+      text-align: center;
+    }
+
+    .app__frame--side {
+      display: none;
+    }
+  }
+</style>

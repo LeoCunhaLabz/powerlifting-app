@@ -1,0 +1,137 @@
+---
+import Logo from './Logo.astro';
+import { APP_URL, CTA_OPEN_APP, NAV_LINKS, ROUTES } from '../lib/site';
+---
+
+<header class="nav">
+  <div class="container nav__inner">
+    <a href={ROUTES.home} class="nav__brand" aria-label="ONYX — início">
+      <Logo size={26} />
+    </a>
+
+    <nav class="nav__links" aria-label="Seções">
+      {NAV_LINKS.map((l) => <a href={l.href}>{l.label}</a>)}
+      <a class="btn btn--primary btn--sm" href={APP_URL}>{CTA_OPEN_APP}</a>
+    </nav>
+
+    <div class="nav__mobile">
+      <a class="btn btn--primary btn--sm" href={APP_URL}>{CTA_OPEN_APP}</a>
+      <details class="nav__menu">
+        <summary aria-label="Abrir menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path>
+          </svg>
+        </summary>
+        <nav class="nav__sheet" aria-label="Seções">
+          {NAV_LINKS.map((l) => <a href={l.href}>{l.label}</a>)}
+          <a href={ROUTES.calcDots}>Calculadora DOTS</a>
+          <a href={ROUTES.calc1rm}>Calculadora 1RM</a>
+          <a href={ROUTES.calcAnilhas}>Calculadora de anilhas</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav {
+    border-bottom: 1px solid var(--hairline);
+    background: var(--bg-primary);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .nav__brand {
+    display: inline-flex;
+    color: inherit;
+  }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .nav__links a:not(.btn) {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .nav__links a:not(.btn):hover {
+    color: var(--text-primary);
+  }
+
+  .nav__mobile {
+    display: none;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .nav__menu {
+    position: relative;
+  }
+
+  .nav__menu summary {
+    list-style: none;
+    display: inline-flex;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  .nav__menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .nav__menu[open] summary {
+    color: var(--text-primary);
+  }
+
+  .nav__sheet {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 12px);
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 8px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+
+  .nav__sheet a {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .nav__sheet a:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  @media (max-width: 767px) {
+    .nav__links {
+      display: none;
+    }
+
+    .nav__mobile {
+      display: flex;
+    }
+  }
+</style>

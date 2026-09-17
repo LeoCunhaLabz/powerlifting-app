@@ -1,0 +1,62 @@
+---
+import PhoneFrame from './PhoneFrame.astro';
+import './phones.css';
+---
+
+<PhoneFrame tilt="right" activeTab={2} class="resumo">
+  <div class="resumo__icon">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.6" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+  </div>
+  <div class="ph-col" style="align-items:center;gap:4px">
+    <span class="ph-label" style="color:var(--accent);font-size:9px;letter-spacing:1.8px">Treino concluído</span>
+    <span class="ph-num" style="font-size:19px">Agachamento pesado</span>
+  </div>
+  <div class="ph-grid3" style="width:100%">
+    <div class="ph-card ph-stat resumo__stat"><span class="ph-num" style="font-size:16px">58 min</span><span class="ph-label">Duração</span></div>
+    <div class="ph-card ph-stat resumo__stat"><span class="ph-num" style="font-size:16px">8.420</span><span class="ph-label">Volume kg</span></div>
+    <div class="ph-card ph-stat resumo__stat" style="border-color:var(--accent-border)"><span class="ph-num" style="font-size:16px;color:var(--accent)">2</span><span class="ph-label">PRs</span></div>
+  </div>
+  <div class="ph-col" style="gap:6px;width:100%">
+    <div class="ph-card ph-set" style="padding:10px 12px"><span class="resumo__ex">Agachamento livre</span><span class="ph-badge">PR</span></div>
+    <div class="ph-card ph-set" style="padding:10px 12px"><span class="resumo__ex">Supino reto</span><span class="ph-sub" style="margin-left:auto;color:var(--text-muted)">5 séries</span></div>
+    <div class="ph-card ph-set" style="padding:10px 12px"><span class="resumo__ex">Remada curvada</span><span class="ph-badge">PR</span></div>
+  </div>
+  <div class="ph-btn resumo__btn">Concluir</div>
+</PhoneFrame>
+
+<style>
+  :global(.resumo .phone__screen) {
+    align-items: center;
+    gap: 14px;
+    padding-top: 48px;
+  }
+
+  .resumo__icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    border: 2px solid var(--accent-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .resumo__stat {
+    align-items: center;
+    padding: 12px 6px;
+  }
+
+  .resumo__ex {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .resumo__btn {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 72px;
+  }
+</style>

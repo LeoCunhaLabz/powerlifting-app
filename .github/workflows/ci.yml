@@ -36,17 +36,26 @@ jobs:
       - name: Lint (API)
         run: npm run lint:api
 
+      - name: Lint (landing)
+        run: npm run lint:landing
+
       - name: Testes (web)
         run: npm run test
 
       - name: Testes (API)
         run: npm run test:api
 
+      - name: Testes (landing)
+        run: npm run test:landing
+
       - name: Build (web)
         run: npm run build
 
       - name: Build (API)
         run: npm run build:api
+
+      - name: Type-check + Build (landing)
+        run: npm run check:landing && npm run build:landing
 
   e2e:
     name: E2E (golden path)

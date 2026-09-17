@@ -1,0 +1,80 @@
+---
+import ArticleLayout from '../layouts/ArticleLayout.astro';
+import '../islands/calc.css';
+import { RPE_PERCENTAGES } from '@onyx/calc';
+import { RPE_TABLE_COLUMNS } from '../lib/rpe';
+import { formatKg, formatNumber } from '../lib/format';
+import { LEGAL_UPDATED_AT, ROUTES } from '../lib/site';
+
+const REPS_ROWS = Object.keys(RPE_PERCENTAGES)
+  .map(Number)
+  .sort((a, b) => a - b);
+---
+
+<ArticleLayout
+  title="Tabela de RPE: o que significa e como usar (tabela RTS completa)"
+  description="A tabela de RPE (Rate of Perceived Exertion) da RTS explicada, com a tabela completa de reps x percentual do 1RM e um exemplo prático de como aplicá-la no treino."
+  path={ROUTES.tabelaRpe}
+  updatedAt={LEGAL_UPDATED_AT}
+  relatedCalc={{ href: ROUTES.calc1rm, label: 'Estimar 1RM por RPE' }}
+>
+  <p>
+    <strong>RPE</strong> (Rate of Perceived Exertion, esforço percebido) é uma escala de 6,5 a 10 usada para
+    registrar o quão perto do máximo uma série ficou. Ela foi popularizada no powerlifting por Mike Tuchscherer,
+    da <strong>RTS (Reactive Training Systems)</strong>, e é hoje a forma mais comum de programar carga sem
+    depender de testes de 1RM constantes.
+  </p>
+
+  <h2>Como ler a escala</h2>
+  <p>
+    RPE 10 significa que a série foi até a falha (nenhuma repetição a mais seria possível com boa técnica). Cada
+    ponto abaixo representa uma repetição em reserva (RIR): RPE 9 é "faltava uma"; RPE 8, "faltavam duas"; RPE 7,
+    "faltavam três". Os meios pontos (9,5 · 8,5 · 7,5 · 6,5) marcam a incerteza entre um RIR e outro — "acho que
+    faltava uma, talvez uma e meia".
+  </p>
+
+  <h2>Tabela completa: repetições × RPE → % do 1RM</h2>
+  <div class="rpe-table__wrap">
+    <table class="rpe-table">
+      <caption class="sr-only">Percentual do 1RM por repetições e RPE (tabela RTS)</caption>
+      <thead>
+        <tr>
+          <th scope="col">Reps</th>
+          {RPE_TABLE_COLUMNS.map((v) => <th scope="col">RPE {formatKg(v)}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          REPS_ROWS.map((row) => (
+            <tr>
+              <th scope="row">{row}</th>
+              {RPE_TABLE_COLUMNS.map((col) => <td>{formatNumber(RPE_PERCENTAGES[row][col] * 100, 0)}%</td>)}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="calc__note">
+    Cada célula é o percentual do seu 1RM esperado para aquele número de repetições naquele RPE. A tabela cobre
+    de 1 a 12 repetições; acima disso a margem de erro cresce e a estimativa deixa de ser confiável (o ONYX cai
+    para a fórmula de Brzycki nesse caso).
+  </p>
+
+  <h2>Exemplo prático</h2>
+  <p>
+    Sua rotina prescreve <strong>5 séries a RPE 8</strong> no agachamento. Pela tabela, 5 repetições a RPE 8
+    correspondem a <strong>72%</strong> do 1RM. Se o seu 1RM estimado (e1RM) é 180 kg, a carga alvo é
+    aproximadamente 180 × 0,72 ≈ 130 kg — arredondada para o incremento de anilha mais próximo. Se a série ficou
+    mais fácil ou mais difícil do que o esperado, ajuste a carga na próxima série usando o mesmo raciocínio, não
+    o número absoluto.
+  </p>
+
+  <h2>Por que usar RPE em vez de só percentual fixo</h2>
+  <p>
+    Um percentual fixo do 1RM assume que seu 1RM não muda — mas ele varia com sono, estresse, fase do ciclo,
+    tempo desde o último teste. RPE ajusta a carga à sua condição <em>daquele dia</em>: se um 5×5 a 75% está
+    saindo RPE 9 em vez do 7 esperado, o programa avisa antes de você estourar o volume planejado. É por isso que
+    RPE e %1RM funcionam melhor juntos do que isoladamente — o e1RM de cada série alimenta o %1RM da próxima.
+  </p>
+</ArticleLayout>
