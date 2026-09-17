@@ -74,7 +74,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   {
     criterio: 'Feito em pt-BR, não traduzido',
     criterioCurto: 'pt-BR',
-    detalhe: 'Agachamento, supino e terra — termos do esporte',
+    detalhe: 'Agachamento, supino e terra, termos do esporte',
     onyx: { value: 'sim', fonte: 'app escrito em pt-BR (AGENTS.md: UI em pt-BR)' },
     strong: { value: 'traducao', fonte: 'verificar: localização pt entre vários idiomas, nomes de exercícios traduzidos' },
     hevy: { value: 'traducao', fonte: 'verificar: localização pt-BR entre vários idiomas' },
@@ -94,7 +94,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   {
     criterio: 'Grátis no essencial',
     criterioCurto: 'Grátis',
-    detalhe: 'Sem paywall no diário e nas análises',
+    detalhe: 'Sem paywall no app e nas análises',
     onyx: { value: 'sim', fonte: '#260: grátis integral até tração' },
     strong: { value: 'assinatura', fonte: '#255: plate calc e RPE pagos; rotinas limitadas no grátis' },
     hevy: { value: 'assinatura', fonte: '#255: rotinas limitadas no grátis; análises no Pro' },

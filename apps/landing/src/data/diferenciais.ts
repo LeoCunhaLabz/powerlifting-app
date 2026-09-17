@@ -11,17 +11,17 @@ export const DIFFERENTIALS: Differential[] = [
   {
     icon: 'bars',
     title: 'RPE programável',
-    text: 'Prescreva séries por RPE e registre o esforço real, série a série — não só o peso.',
+    text: 'Prescreva séries por RPE e registre o esforço real, série a série, não só o peso.',
   },
   {
     icon: 'percent',
     title: '%1RM sobre o e1RM atual',
-    text: 'Programas por porcentagem calculados sobre o seu estimado de hoje — não sobre um máximo de seis meses atrás.',
+    text: 'Programas por porcentagem calculados sobre o seu estimado de hoje, não sobre um máximo de seis meses atrás.',
   },
   {
     icon: 'clock',
     title: 'DOTS e IPF GL nativos',
-    text: 'Força relativa em todas as análises — recordes, evolução e comparativos já saem em pontos.',
+    text: 'Força relativa em todas as análises: recordes, evolução e comparativos já saem em pontos.',
   },
   {
     icon: 'wifi',
@@ -31,7 +31,7 @@ export const DIFFERENTIALS: Differential[] = [
   {
     icon: 'globe',
     title: 'Em português de verdade',
-    text: 'Agachamento, supino e terra — sem tradução automática de app genérico.',
+    text: 'Agachamento, supino e terra, sem tradução automática de app genérico.',
   },
   {
     icon: 'check',
