@@ -13,6 +13,8 @@ interface Props {
   /** Um ou mais objetos JSON-LD (schema.org). */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   noindex?: boolean;
+  /** Barra fixa de progresso de leitura (páginas evergreen) — ver ArticleLayout.astro. */
+  readingProgress?: boolean;
 }
 
 const {
@@ -22,6 +24,7 @@ const {
   ogImage = '/og-image.png',
   jsonLd,
   noindex = false,
+  readingProgress = false,
 } = Astro.props;
 
 const pathname = path ?? Astro.url.pathname.replace(/\/$/, '');
@@ -50,7 +53,11 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    <!-- Aponta direto para o arquivo com as URLs (não o índice sitemap-index.xml,
+         que só lista esse único arquivo-filho): com 11 páginas, bem abaixo do
+         limite de chunking do @astrojs/sitemap, o índice só adiciona um hop sem
+         necessidade. Ambos os arquivos continuam sendo gerados no build. -->
+    <link rel="sitemap" href="/sitemap-0.xml" />
 
     <!-- Open Graph / Twitter -->
     <meta property="og:type" content="website" />
@@ -62,7 +69,7 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
     <meta property="og:image" content={ogImageAbs} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ONYX — diário de treino de powerlifting" />
+    <meta property="og:image:alt" content="ONYX, o app de powerlifting" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
@@ -92,6 +99,13 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
   </head>
   <body>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    {
+      readingProgress && (
+        <div class="reading-progress" aria-hidden="true">
+          <div class="reading-progress__fill" id="reading-progress-fill" />
+        </div>
+      )
+    }
     <Nav />
     <main id="conteudo">
       <slot />
@@ -115,5 +129,30 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
 
   .skip-link:focus {
     top: 12px;
+  }
+
+  /* Barra de progresso de leitura: fixa no topo absoluto da viewport (acima da nav,
+     que é sticky mas não fixed) para ficar visível mesmo com a nav rolada. */
+  .reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 60;
+    background: transparent;
+  }
+
+  .reading-progress__fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.1s linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reading-progress__fill {
+      transition: none;
+    }
   }
 </style>

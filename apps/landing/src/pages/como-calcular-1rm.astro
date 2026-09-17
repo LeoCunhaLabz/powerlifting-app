@@ -22,7 +22,7 @@ const epley = calculateE1RMEpley(w, r);
 >
   <p>
     <strong>1RM</strong> (uma repetição máxima) é o maior peso que você levanta uma única vez, com boa técnica.
-    Testá-lo de verdade cansa o sistema nervoso, consome dias de recuperação e carrega risco de lesão —
+    Testá-lo de verdade cansa o sistema nervoso, consome dias de recuperação e carrega risco de lesão,
     principalmente fora de temporada de competição. Na maior parte do tempo, é melhor <strong>estimar</strong> o
     1RM (e1RM) a partir de uma série normal de treino.
   </p>
@@ -31,7 +31,7 @@ const epley = calculateE1RMEpley(w, r);
   <h3>1. Tabela RTS (por RPE)</h3>
   <p>
     Se você registra RPE nas suas séries, a <a href={ROUTES.tabelaRpe}>tabela de RPE da RTS</a> converte carga +
-    repetições + RPE diretamente em percentual do 1RM — e daí em e1RM. É a mais precisa das três porque considera
+    repetições + RPE diretamente em percentual do 1RM, e daí em e1RM. É a mais precisa das três porque considera
     o esforço percebido, não só o número de repetições.
   </p>
   <h3>2. Brzycki</h3>
@@ -59,13 +59,13 @@ const epley = calculateE1RMEpley(w, r);
   </table>
   <p>
     Repare que a estimativa com RPE ({formatKg(rts)} kg) fica abaixo das estimativas sem RPE: Brzycki e Epley
-    assumem que a série foi até o limite técnico, enquanto RPE 8 diz que ainda sobrava fôlego — por isso o 1RM
+    assumem que a série foi até o limite técnico, enquanto RPE 8 diz que ainda sobrava fôlego. Por isso o 1RM
     real projetado é mais conservador e, na prática, mais confiável.
   </p>
 
   <h2>Qual usar</h2>
   <ul>
-    <li>Registra RPE em toda série? Use a tabela RTS — é o método mais informado.</li>
+    <li>Registra RPE em toda série? Use a tabela RTS, o método mais informado.</li>
     <li>Não registra RPE, ou a série foi até a falha? Brzycki e Epley servem de contraprova; olhe as duas e desconfie de valores muito distantes um do outro.</li>
     <li>Séries acima de 10–12 repetições: as três fórmulas perdem precisão. Prefira testar em faixas de repetição mais baixas (1 a 6) quando precisar de uma estimativa confiável.</li>
   </ul>
@@ -73,7 +73,7 @@ const epley = calculateE1RMEpley(w, r);
   <h2>Para que serve o e1RM depois de calculado</h2>
   <p>
     O e1RM é a base de qualquer prescrição por <strong>%1RM</strong>: um programa que pede "4×5 a 80%" só faz
-    sentido em cima de um 1RM atualizado — não de um máximo testado há seis meses. No ONYX, cada série registrada
+    sentido em cima de um 1RM atualizado, não de um máximo testado há seis meses. No ONYX, cada série registrada
     atualiza o e1RM automaticamente, e as rotinas por percentual usam sempre o valor mais recente.
   </p>
 </ArticleLayout>

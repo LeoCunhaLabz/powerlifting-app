@@ -35,14 +35,14 @@ const sampleWilks = calculateWilks(82.5, 512.5, true);
 
   <h2>Como o cálculo funciona</h2>
   <p>
-    O DOTS multiplica o seu total por um coeficiente que depende só do seu peso corporal e do seu sexo — não da
+    O DOTS multiplica o seu total por um coeficiente que depende só do seu peso corporal e do seu sexo, não da
     sua categoria de peso. O coeficiente vem de um polinômio de quarto grau ajustado estatisticamente sobre uma
     base grande de resultados de competição, de forma que o DOTS médio fique parecido em qualquer faixa de peso.
     Na prática:
   </p>
   <p>
     <strong>Exemplo:</strong> 82,5 kg de peso corporal e 512,5 kg de total (agachamento + supino + terra) dão
-    <strong>{formatNumber(sampleDots, 2)} pontos</strong> de DOTS — e, para efeito de comparação, {formatNumber(sampleWilks, 2)} pontos
+    <strong>{formatNumber(sampleDots, 2)} pontos</strong> de DOTS e, para efeito de comparação, {formatNumber(sampleWilks, 2)} pontos
     de Wilks para o mesmo caso. As duas fórmulas concordam bastante para pesos corporais medianos e divergem mais
     nos extremos (atletas muito leves ou muito pesados), que foi justamente o problema que motivou a criação do DOTS.
   </p>
@@ -59,7 +59,7 @@ const sampleWilks = calculateWilks(82.5, 512.5, true);
     </tbody>
   </table>
   <p>
-    Nenhuma das três é "mais correta" no sentido absoluto — são ajustes estatísticos diferentes sobre bases de
+    Nenhuma das três é "mais correta" no sentido absoluto: são ajustes estatísticos diferentes sobre bases de
     dados diferentes. O que importa é comparar maçãs com maçãs: não misture pontuações de fórmulas diferentes no
     mesmo ranking.
   </p>
@@ -69,14 +69,14 @@ const sampleWilks = calculateWilks(82.5, 512.5, true);
     Não existe um corte oficial único, mas como referência aproximada, calibrada sobre os rankings do
     OpenPowerlifting: pontuações abaixo de ~300 costumam marcar a fase iniciante/intermediária, entre ~300 e ~400
     já é um nível competitivo sólido em quase qualquer categoria, e acima de ~460 aparece perto do topo dos
-    rankings nacionais. São faixas aproximadas — o nível "sobe" continuamente, não em degraus.
+    rankings nacionais. São faixas aproximadas: o nível "sobe" continuamente, não em degraus.
   </p>
 
   <h2>Como usar isso no seu treino</h2>
   <p>
     DOTS é uma métrica de <em>progresso</em>, não um alvo isolado de uma sessão. Ele é mais útil acompanhado ao
     longo de meses: se o seu total sobe mas o peso corporal também sobe, o DOTS mostra se a força ganhou de fato
-    ou só acompanhou o peso. No ONYX, o DOTS entra automaticamente no seu histórico a cada treino registrado —
+    ou só acompanhou o peso. No ONYX, o DOTS entra automaticamente no seu histórico a cada treino registrado,
     sem precisar recalcular na mão.
   </p>
 </ArticleLayout>

@@ -3,10 +3,13 @@ import TiltedCard from '../components/reactbits/TiltedCard';
 import SectionHeader from '../components/SectionHeader.astro';
 import PhoneTreino from '../components/phones/PhoneTreino.astro';
 import PhoneDashboard from '../components/phones/PhoneDashboard.astro';
+import PhoneAnalytics from '../components/phones/PhoneAnalytics.astro';
 import PhoneResumo from '../components/phones/PhoneResumo.astro';
 
 // TiltedCard (reactbits, motion) só hidrata em desktop sem reduced-motion. Sem
-// hidratação, o servidor entrega os frames estáticos. Em ≤ 640px só o dashboard aparece.
+// hidratação, o servidor entrega os frames estáticos. No mobile (≤1023px) os 4
+// frames ficam num carrossel de scroll horizontal com snap (item 12 da revisão
+// de 17/09/2026) em vez de esconder os frames "side" como antes.
 const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
 ---
 
@@ -16,30 +19,87 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
       <SectionHeader kicker="O app" title="Do aquecimento ao PR." />
     </div>
 
-    <div class="app__frames">
+    <div class="app__frames" id="app-frames">
       <figure class="app__frame app__frame--side">
         <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
           <PhoneTreino />
         </TiltedCard>
-        <figcaption>Treino ativo — RPE e última carga por série</figcaption>
+        <figcaption>Treino ativo: RPE e última carga por série</figcaption>
       </figure>
 
       <figure class="app__frame">
         <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
           <PhoneDashboard />
         </TiltedCard>
-        <figcaption>Início — e1RM, DOTS e recordes de frente</figcaption>
+        <figcaption>Início: e1RM, DOTS e recordes de frente</figcaption>
+      </figure>
+
+      <figure class="app__frame">
+        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
+          <PhoneAnalytics />
+        </TiltedCard>
+        <figcaption>Análises: heatmap de frequência e DOTS ao longo do tempo</figcaption>
       </figure>
 
       <figure class="app__frame app__frame--side">
         <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
           <PhoneResumo />
         </TiltedCard>
-        <figcaption>Resumo — volume, duração e PRs da sessão</figcaption>
+        <figcaption>Resumo: volume, duração e PRs da sessão</figcaption>
       </figure>
+    </div>
+
+    <div class="app__dots" id="app-dots" aria-hidden="true">
+      <span class="app__dot" data-i="0" />
+      <span class="app__dot" data-i="1" />
+      <span class="app__dot" data-i="2" />
+      <span class="app__dot" data-i="3" />
     </div>
   </div>
 </section>
+
+<script>
+  // Dots do carrossel mobile (mesma técnica da seção de diferenciais): destaca o
+  // frame mais próximo do centro do track conforme o usuário desliza.
+  const track = document.getElementById('app-frames');
+  const dots = Array.from(document.querySelectorAll<HTMLElement>('#app-dots .app__dot'));
+
+  if (track && dots.length) {
+    const update = () => {
+      const frames = Array.from(track.querySelectorAll<HTMLElement>('.app__frame'));
+      const trackRect = track.getBoundingClientRect();
+      const centerX = trackRect.left + trackRect.width / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      frames.forEach((f, i) => {
+        const r = f.getBoundingClientRect();
+        const dist = Math.abs(r.left + r.width / 2 - centerX);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = i;
+        }
+      });
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === closest));
+    };
+
+    let ticking = false;
+    track.addEventListener(
+      'scroll',
+      () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(() => {
+            update();
+            ticking = false;
+          });
+        }
+      },
+      { passive: true },
+    );
+    window.addEventListener('resize', update);
+    update();
+  }
+</script>
 
 <style>
   .app__inner {
@@ -50,7 +110,7 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
 
   .app__frames {
     display: flex;
-    gap: 44px;
+    gap: 24px;
     align-items: flex-end;
     justify-content: center;
   }
@@ -69,6 +129,27 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     text-align: center;
   }
 
+  .app__dots {
+    display: none;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .app__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-color);
+    transition:
+      background var(--transition-fast),
+      width var(--transition-fast);
+  }
+
+  .app__dot.is-active {
+    background: var(--accent);
+    width: 18px;
+  }
+
   @media (max-width: 1023px) {
     .app__frames {
       gap: 24px;
@@ -76,15 +157,44 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     }
   }
 
+  /* Abaixo de 1024px o TiltedCard (motion) não hidrata — os frames são HTML/CSS
+     estático, então o carrossel de scroll horizontal é 100% CSS, sem gsap/motion. */
   @media (max-width: 640px) {
     .app__inner {
-      gap: 16px;
-      align-items: center;
+      gap: 20px;
+    }
+
+    .app__head {
       text-align: center;
     }
 
-    .app__frame--side {
+    .app__frames {
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 4px 6px;
+      scrollbar-width: none;
+    }
+
+    .app__frames::-webkit-scrollbar {
       display: none;
+    }
+
+    .app__frame {
+      scroll-snap-align: center;
+      flex: 0 0 auto;
+    }
+
+    .app__dots {
+      display: flex;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app__frames {
+      scroll-behavior: auto;
     }
   }
 </style>

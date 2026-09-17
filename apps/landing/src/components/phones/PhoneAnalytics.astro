@@ -1,0 +1,89 @@
+---
+import PhoneFrame from './PhoneFrame.astro';
+import './phones.css';
+
+// Heatmap de frequência (10 semanas × 7 dias) e evolução de DOTS: recriação da
+// aba Análises, o diferencial citado na revisão da landing (17/09/2026) — nenhum
+// dos concorrentes genéricos tem heatmap de frequência nem DOTS/IPF GL nativos.
+// Padrão determinístico (sem Math.random) só para parecer uma frequência real de
+// treino: a maioria dos dias em repouso, 3–4 treinos por semana.
+const HEATMAP = Array.from({ length: 70 }, (_, i) => {
+  const isRestDay = i % 7 === 0 || i % 5 === 0;
+  if (isRestDay) return 0.08;
+  return Math.round((0.35 + 0.55 * Math.abs(Math.sin(i * 1.7))) * 100) / 100;
+});
+---
+
+<PhoneFrame size="lg" tilt="left" activeTab={3}>
+  <div class="ph-row">
+    <div class="ph-col">
+      <span class="ph-eyebrow">ONYX</span>
+      <span class="ph-title ph-title--lg">Análises</span>
+    </div>
+    <span class="ph-pill">90 dias</span>
+  </div>
+
+  <div class="ph-card ph-card--lg ph-col" style="padding:14px;gap:10px">
+    <div class="ph-row">
+      <span style="font-size:11px;font-weight:700;color:var(--text-primary)">Frequência</span>
+      <span class="ph-label" style="letter-spacing:0">10 semanas</span>
+    </div>
+    <div class="heatmap" aria-hidden="true">
+      {HEATMAP.map((v) => <span class="heatmap__cell" style={`--v:${v}`} />)}
+    </div>
+    <div class="heatmap__legend">
+      <span>Menos</span>
+      <span class="heatmap__cell" style="--v:0.08" />
+      <span class="heatmap__cell" style="--v:0.4" />
+      <span class="heatmap__cell" style="--v:0.7" />
+      <span class="heatmap__cell" style="--v:1" />
+      <span>Mais</span>
+    </div>
+  </div>
+
+  <div class="ph-grid3">
+    <div class="ph-card ph-stat"><span class="ph-num">27</span><span class="ph-label">Treinos · 90d</span></div>
+    <div class="ph-card ph-stat" style="border-color:var(--accent-border)"><span class="ph-num" style="color:var(--accent)">5</span><span class="ph-label">PRs · 90d</span></div>
+    <div class="ph-card ph-stat"><span class="ph-num">86%</span><span class="ph-label">Aderência</span></div>
+  </div>
+
+  <div class="ph-card ph-card--lg ph-col" style="padding:14px;gap:8px">
+    <div class="ph-row">
+      <span style="font-size:11px;font-weight:700;color:var(--text-primary)">DOTS ao longo do tempo</span>
+    </div>
+    <svg width="100%" height="52" viewBox="0 0 280 52" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points="0,44 28,42 56,38 84,39 112,32 140,30 168,24 196,22 224,16 252,12 280,8" fill="none" stroke="var(--accent)" stroke-width="2.4"></polyline>
+    </svg>
+  </div>
+</PhoneFrame>
+
+<style>
+  .heatmap {
+    display: grid;
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .heatmap__cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background: rgba(227, 168, 59, var(--v, 0.08));
+  }
+
+  .heatmap__legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .heatmap__legend .heatmap__cell {
+    width: 8px;
+    height: 8px;
+    aspect-ratio: unset;
+  }
+</style>

@@ -3,13 +3,17 @@ export const SITE_URL = 'https://onyxtreino.com.br';
 export const APP_URL = 'https://app.onyxtreino.com.br';
 export const SITE_NAME = 'ONYX';
 
-/** Hero copy aprovado no GTM (issue #260) — não alterar sem nova decisão. */
-export const HERO_TITLE_PREFIX = 'O diário de treino que fala a língua do ';
+/**
+ * Hero copy — base aprovada no GTM (issue #260), revisada em 17/09/2026 (feedback
+ * direto do responsável do produto): "diário de treino" trocado por "app" e o
+ * travessão do subtítulo removido.
+ */
+export const HERO_TITLE_PREFIX = 'O app que fala a língua do ';
 export const HERO_TITLE_ACCENT = 'powerlifting';
-export const HERO_SUBTITLE = 'RPE, %1RM, DOTS e total SBD — grátis, em português, offline.';
+export const HERO_SUBTITLE = 'RPE, %1RM, DOTS e total SBD, grátis, em português e offline.';
 
 export const DEFAULT_DESCRIPTION =
-  'ONYX é o diário de treino de powerlifting em português: RPE, %1RM, DOTS, Wilks e IPF GL, grátis e offline. Calculadoras públicas sem login.';
+  'ONYX é o app de powerlifting em português: RPE, %1RM, DOTS, Wilks e IPF GL, grátis e offline. Calculadoras públicas sem login.';
 
 export const CTA_PRIMARY = 'Criar conta grátis';
 export const CTA_CALCULATORS = 'Usar as calculadoras';

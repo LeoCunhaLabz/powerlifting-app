@@ -3,12 +3,24 @@
 interface Props {
   size?: 'md' | 'lg';
   tilt?: 'left' | 'right' | 'none';
-  activeTab?: 0 | 1 | 2 | 3 | 4;
+  /** Qual tab lateral destacar (0 Início · 1 Rotinas · 3 Análises · 4 Mais). Passe
+   * -1 (telas alcançadas pelo FAB central, como Treino/Resumo) para não destacar nenhum. */
+  activeTab?: number;
   /** Ícone do FAB central: + (treinar) ou halter (treino ativo). */
   fab?: 'plus' | 'bar';
   class?: string;
 }
 const { size = 'md', tilt = 'none', activeTab = 0, fab = 'plus', class: className = '' } = Astro.props;
+
+// Ícones reais da bottom-nav (Início · Rotinas · [FAB] · Análises · Mais), no
+// mesmo espírito dos ícones lucide-react do app. Antes eram quadrados vazios sem
+// glifo — pareciam ícone quebrado; ver issue de revisão da landing (17/09/2026).
+const TAB_ICONS: Record<number, string> = {
+  0: '<path d="M4 11.5 12 4l8 7.5"></path><path d="M6 10v9h12v-9"></path>',
+  1: '<path d="M5 6h14"></path><path d="M5 12h14"></path><path d="M5 18h8"></path>',
+  3: '<path d="M5 19V11"></path><path d="M12 19V6"></path><path d="M19 19v-7"></path>',
+  4: '<circle cx="6" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="18" cy="12" r="1.4"></circle>',
+};
 ---
 
 <div class={`phone phone--${size} phone--tilt-${tilt} ${className}`}>
@@ -27,7 +39,9 @@ const { size = 'md', tilt = 'none', activeTab = 0, fab = 'plus', class: classNam
             )}
           </div>
         ) : (
-          <div class={`phone__tab${activeTab === i ? ' is-active' : ''}`} />
+          <div class={`phone__tab${activeTab === i ? ' is-active' : ''}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" set:html={TAB_ICONS[i]} />
+          </div>
         )
       )
     }
@@ -94,14 +108,16 @@ const { size = 'md', tilt = 'none', activeTab = 0, fab = 'plus', class: classNam
   }
 
   .phone__tab {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    border: 1.5px solid var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: var(--text-muted);
   }
 
   .phone__tab.is-active {
-    border-color: var(--accent);
+    color: var(--accent);
   }
 
   .phone__fab {

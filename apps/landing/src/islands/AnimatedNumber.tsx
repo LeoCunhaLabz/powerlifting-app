@@ -20,7 +20,7 @@ export default function AnimatedNumber({ value, decimals = 2, className }: Anima
 
   return (
     <Suspense fallback={plain}>
-      <CountUp to={value} from={0} duration={1.2} decimals={decimals} locale="pt-BR" className={className} />
+      <CountUp to={value} from={0} duration={0.45} decimals={decimals} locale="pt-BR" className={className} />
     </Suspense>
   );
 }
