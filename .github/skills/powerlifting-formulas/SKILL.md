@@ -23,7 +23,14 @@ Coeficiente Wilks clássico (constantes no próprio `powerlifting.ts`). `coeff =
 
 ## DOTS — `calculateDots(bodyweight, total, isMale)`
 
-`coeff = 500 / denominador`, com denominador polinomial de grau 4 do peso corporal (constantes por gênero). Arredonda para **0,01**. Mesma limitação do Wilks: só checa `denominador === 0`, não `< 0`.
+`coeff = 500 / denominador`, com denominador polinomial de grau 4 do peso corporal (`a·w⁴ + b·w³ + c·w² + d·w + e`, constantes por gênero). Arredonda para **0,01**. O peso corporal é **saturado** na faixa oficial antes do polinômio (masc. 40–210 kg, fem. 40–150 kg), como faz o OpenPowerlifting — por isso, ao contrário do Wilks, o denominador nunca fica negativo.
+
+Coeficientes DOTS (Tim Konertz) — fonte: [OpenPowerlifting dots.rs](https://gitlab.com/openpowerlifting/opl-data/-/blob/main/crates/coefficients/src/dots.rs). Valores de referência para teste: masc. 82,5 kg / 512,5 kg → **347,16**; fem. 63 kg / 300 kg → **322,65** (issue #309 corrigiu coeficientes errados que davam ~45% menos).
+
+| Gênero | a | b | c | d | e |
+|---|---|---|---|---|---|
+| Masculino | -0.0000010930 | 0.0007391293 | -0.1918759221 | 24.0900756 | -307.75076 |
+| Feminino | -0.0000010706 | 0.0005158568 | -0.1126655495 | 13.6175032 | -57.96288 |
 
 ## IPF GL Points — `calculateIpfGl(bodyweight, total, isMale, isEquipped?)`
 
