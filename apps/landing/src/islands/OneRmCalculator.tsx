@@ -113,7 +113,9 @@ export default function OneRmCalculator() {
         >
           {valid ? (
             <span className="result-range">
-              <AnimatedNumber value={rangeMin} decimals={1} /> a <AnimatedNumber value={rangeMax} decimals={1} />
+              <AnimatedNumber value={rangeMin} decimals={1} />
+              {'–'}
+              <AnimatedNumber value={rangeMax} decimals={1} />
             </span>
           ) : (
             '—'
