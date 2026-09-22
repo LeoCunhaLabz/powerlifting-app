@@ -16,3 +16,11 @@ export type {
   WeekOverride,
   CustomExercise,
 } from './workout.js';
+
+export {
+  encodeStrengthPayload,
+  decodeStrengthPayload,
+  STRENGTH_PAYLOAD_VERSION,
+  MAX_PAYLOAD_REPS,
+} from './strengthPayload.js';
+export type { StrengthPayload, StrengthPayloadEntry, StrengthPayloadLift } from './strengthPayload.js';
