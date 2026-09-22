@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { calculateDots, calculateWilks, calculateIpfGl, getStrengthComparison } from '@onyx/calc';
+import { calculateDots, calculateWilks, calculateIpfGl } from '@onyx/calc';
+import { compareTotal } from '@onyx/strength';
 import { formatKg, formatNumber, parseDecimal } from '../lib/format';
 import { NumberField, Segmented, Stat, Result } from './ui';
 import { useFirstUse } from './useFirstUse';
@@ -34,11 +35,11 @@ export default function ScoreCalculator() {
   const dots = valid ? calculateDots(bw, total, isMale) : 0;
   const wilks = valid ? calculateWilks(bw, total, isMale) : 0;
   const ipfGl = valid ? calculateIpfGl(bw, total, isMale, gear === 'eq') : 0;
-  const level = valid ? getStrengthComparison(dots, bw, isMale) : null;
+  const level = valid ? compareTotal(isMale, bw, total) : null;
 
   const progress =
-    level && level.nextLevel && level.currentLevelMinDots !== undefined && level.dotsToNext !== undefined
-      ? Math.min(100, Math.max(0, ((dots - level.currentLevelMinDots) / (dots - level.currentLevelMinDots + level.dotsToNext)) * 100))
+    level && level.nextKg !== undefined
+      ? Math.min(100, Math.max(0, ((total - level.levelMinKg) / Math.max(1, level.nextKg - level.levelMinKg)) * 100))
       : 100;
 
   return (
@@ -97,7 +98,7 @@ export default function ScoreCalculator() {
         {level && (
           <div className="level" aria-live="polite">
             <div className="calc__row">
-              <span className="field__label">Nível estimado · {level.bodyweightClass}</span>
+              <span className="field__label">Entre quem competiu no Brasil · {level.classLabel}</span>
               <span className="num" style={{ fontSize: 15 }}>
                 {level.level}
               </span>
@@ -106,10 +107,12 @@ export default function ScoreCalculator() {
               <div className="level__fill" style={{ width: `${progress}%` }} />
             </div>
             <span className="calc__note">
-              {level.nextLevel && level.dotsToNext !== undefined
-                ? `Faltam ${formatNumber(level.dotsToNext, 2)} pontos para ${level.nextLevel}. `
-                : 'Faixa mais alta da referência. '}
-              Estimativa aproximada a partir dos rankings do OpenPowerlifting.
+              {`Acima de ${level.percentile}% dos ${level.n} atletas raw da categoria. `}
+              {level.nextLevel && level.nextKg !== undefined
+                ? `${level.nextLevel} a partir de ${formatKg(level.nextKg)} kg de total. `
+                : 'Faixa mais alta da escada. '}
+              {level.merged ? 'Categorias vizinhas agrupadas por poucos dados. ' : ''}
+              Dados: OpenPowerlifting, competições no Brasil, últimos 10 anos.
             </span>
           </div>
         )}
