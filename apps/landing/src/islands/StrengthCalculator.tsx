@@ -249,7 +249,9 @@ export default function StrengthCalculator({ mode = 'completo' }: StrengthCalcul
         </button>
 
         {submitted && view && (
-          <div className="forca__result">
+          // aria-live: o card nasce abaixo do botão; sem isso quem usa leitor de
+          // tela clica em "Ver meu resultado" e não recebe nada.
+          <div className="forca__result" aria-live="polite">
             {tabs.length > 1 && (
               <SegmentedRadio
                 ariaLabel="Resultado por levantamento"
