@@ -6,7 +6,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@onyx/calc": ["./../web/src/utils/powerlifting.ts"]
+      "@onyx/calc": ["./../web/src/utils/powerlifting.ts"],
+      "@onyx/strength": ["./../web/src/utils/strength.ts"]
     },
     "types": ["astro/client", "vite/client"]
   },

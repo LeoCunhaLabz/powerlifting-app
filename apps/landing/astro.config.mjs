@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 // Decisões que não são óbvias:
 // - `build.format: 'file'` + `trailingSlash: 'never'`: gera /calculadoras/dots.html e
 //   o nginx resolve com `try_files $uri $uri.html` → URLs limpas sem barra final.
-// - alias `@onyx/calc`: as calculadoras reutilizam os cálculos puros do app
+// - alias `@onyx/calc` e `@onyx/strength`: as calculadoras reutilizam os cálculos puros do app
 //   (apps/web/src/utils/powerlifting.ts) sem mover código para packages/shared.
 // - CSP vem do nginx (nginx-landing-security-headers.conf), NÃO do `experimental.csp`
 //   do Astro: o Astro sempre injeta um <style> inline (astro-island{display:contents})
@@ -42,6 +42,7 @@ export default defineConfig({
     resolve: {
       alias: {
         '@onyx/calc': fileURLToPath(new URL('../web/src/utils/powerlifting.ts', import.meta.url)),
+        '@onyx/strength': fileURLToPath(new URL('../web/src/utils/strength.ts', import.meta.url)),
       },
     },
   },
