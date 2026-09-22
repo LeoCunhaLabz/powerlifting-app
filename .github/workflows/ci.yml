@@ -57,6 +57,30 @@ jobs:
       - name: Type-check + Build (landing)
         run: npm run check:landing && npm run build:landing
 
+  e2e-landing:
+    name: E2E (landing)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar browser do Playwright
+        run: npx playwright install --with-deps chromium
+
+      # O playwright.config.ts da landing faz o build e serve o estático
+      # (astro preview, porta 4322). Sem API e sem banco.
+      - name: Smoke da calculadora de força
+        run: npm run test:e2e:landing
+
   e2e:
     name: E2E (golden path)
     runs-on: ubuntu-latest

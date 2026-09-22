@@ -190,9 +190,11 @@ export default function StrengthCalculator({ mode = 'completo' }: StrengthCalcul
     setLifts((prev) => ({ ...prev, [lift]: { ...prev[lift], ...patch } }));
   }
 
+  // No modo completo cada lift é um fieldset: "Carga (kg)" aparece três vezes e
+  // só a legenda diz de qual levantamento é (vale para leitor de tela e teste).
   const liftFields = (complete ? LIFTS : [activeLift]).map((lift) => (
-    <div className="forca__lift" key={lift}>
-      {complete && <span className="forca__lift-title">{LIFT_TITLES[lift]}</span>}
+    <fieldset className="forca__lift" key={lift}>
+      {complete && <legend className="forca__lift-title">{LIFT_TITLES[lift]}</legend>}
       <NumberField
         label={complete ? 'Carga (kg)' : 'Carga que você fez (kg)'}
         value={lifts[lift].kg}
@@ -210,7 +212,7 @@ export default function StrengthCalculator({ mode = 'completo' }: StrengthCalcul
           options={REP_CHOICES}
         />
       </div>
-    </div>
+    </fieldset>
   ));
 
   return (

@@ -53,9 +53,14 @@
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  /* é um <fieldset>: sem a moldura e o padding que o browser dá de graça */
+  border: none;
+  margin: 0;
+  padding: 0;
 }
 
 .forca__lift-title {
+  padding: 0;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 12px;
