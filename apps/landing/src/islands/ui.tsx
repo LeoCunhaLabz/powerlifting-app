@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import './calc.css';
 
 /* Peças compartilhadas pelas calculadoras públicas. */
@@ -110,6 +110,51 @@ export function Result({ label, unit, hint, children }: ResultProps) {
         {unit && <span className="result__unit">{unit}</span>}
       </div>
       {hint && <span className="result__hint">{hint}</span>}
+    </div>
+  );
+}
+
+interface SegmentedRadioProps<T extends string> extends SegmentedProps<T> {
+  /** Modificador visual (ex.: `seg-radio--lifts`). */
+  className?: string;
+}
+
+/**
+ * Mesma ideia do `Segmented`, mas como `radiogroup` de verdade: setas navegam e
+ * trocam a seleção, e só o item marcado fica no fluxo do Tab (roving tabindex).
+ * Usado na calculadora de força, onde há três seletores empilhados (spec §6.7).
+ */
+export function SegmentedRadio<T extends string>({ options, value, onChange, ariaLabel, className }: SegmentedRadioProps<T>) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+    if (step === 0) return;
+    event.preventDefault();
+    const next = (index + step + options.length) % options.length;
+    onChange(options[next].value);
+    refs.current[next]?.focus();
+  }
+
+  return (
+    <div className={`seg-radio${className ? ` ${className}` : ''}`} role="radiogroup" aria-label={ariaLabel}>
+      {options.map((opt, index) => (
+        <button
+          key={opt.value}
+          ref={(el) => {
+            refs.current[index] = el;
+          }}
+          type="button"
+          role="radio"
+          className="seg-radio__btn"
+          aria-checked={opt.value === value}
+          tabIndex={opt.value === value ? 0 : -1}
+          onClick={() => onChange(opt.value)}
+          onKeyDown={(e) => handleKeyDown(e, index)}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

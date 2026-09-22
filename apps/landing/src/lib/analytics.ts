@@ -16,6 +16,14 @@ declare global {
 
 export type PublicCalculator = 'hero-dots' | 'dots' | '1rm' | 'anilhas';
 
+/**
+ * Eventos nomeados em uso na landing (mantenha a lista ao adicionar um):
+ * - `calculadora-publica` (via trackCalculatorUse);
+ * - calculadora de força (issue #316): `forca-resultado` (props `lift`, `nivel`,
+ *   `reps_gt_1`, `modo`), `forca-cta-app`, `forca-compartilhar`, `forca-add-lift`.
+ *   Com o `registro-concluido` do app fecham o funil resultado → CTA → conta.
+ */
+
 /** Registra um evento nomeado (best-effort). */
 export function trackEvent(name: string, data?: UmamiEventData): void {
   try {
