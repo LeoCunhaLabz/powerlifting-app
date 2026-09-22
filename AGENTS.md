@@ -124,6 +124,8 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 - Retorne `0` para entradas inválidas/zeradas em vez de lançar erro.
 - Mantenha as tabelas/constantes (ex.: `RPE_PERCENTAGES`, `DEFAULT_PLATES_KG/LBS`) co-localizadas no arquivo.
 
+**Comparação com quem competiu no Brasil** (issue #293) fica em [apps/web/src/utils/strength.ts](apps/web/src/utils/strength.ts): `compareLift(isMale, bodyweight, lift, oneRm)` e `compareTotal(isMale, bodyweight, total)` devolvem percentil, nível (escada `Estreante < P25 · Competitivo · Pódio regional · Elite nacional ≥ P85`, cortes em `LEVEL_PERCENTILES`), próximo degrau em kg e a curva da faixa — ou `null` para entrada inválida. A fonte é `src/data/strength-percentiles.json` (commitado, ~27 KB), gerado pelo pipeline em `apps/web/scripts/opl/` a partir do dump público do OpenPowerlifting: `parse.ts` (CSV + filtros: meets no Brasil, raw, últimos 10 anos) e `aggregate.ts` (melhor por atleta, classes IPF, 21 percentis, histograma P1–P99, fusão de classes com n < 50) são puros e testados; `build-strength-percentiles.ts` é o CLI. **Refresh manual, trimestral**: baixar e extrair `openpowerlifting-latest.zip` fora do repo e rodar `npm run opl:percentiles -w @powerlifting/web -- --csv <caminho-do-csv>` (≈ 25 s; imprime a tabela de calibração e regrava o JSON — commitar). Dados em domínio público; manter a atribuição do `meta.attribution` visível onde o resultado aparecer.
+
 ### Estilo / design system ONYX
 
 - **CSS puro** em [apps/web/src/index.css](apps/web/src/index.css). Não introduza Tailwind, CSS-in-JS libs ou outros frameworks.
@@ -139,7 +141,7 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 Site estático em **Astro 5 + ilhas React** servido na raiz de `onyxtreino.com.br` pelo mesmo nginx do app (`server` block próprio no `nginx.conf`). Spec de design em [docs/superpowers/specs/2026-09-16-landing-page-design.md](docs/superpowers/specs/2026-09-16-landing-page-design.md). Regras que não são óbvias:
 
 - **Astro 5, não 7**: o Dockerfile e o CI rodam Node 20 e o Astro 7 exige Node ≥ 22.12. Só subir de major junto com o Node da imagem/CI.
-- **Cálculos vêm do app** pelo alias `@onyx/calc` → `apps/web/src/utils/powerlifting.ts` (definido em `astro.config.mjs` + `tsconfig.json`). Não duplique fórmulas na landing; se precisar de algo novo, adicione no `powerlifting.ts` (puro, testado) e importe.
+- **Cálculos vêm do app** pelos aliases `@onyx/calc` → `apps/web/src/utils/powerlifting.ts` e `@onyx/strength` → `apps/web/src/utils/strength.ts` (definidos em `astro.config.mjs` + `tsconfig.json`). Não duplique fórmulas na landing; se precisar de algo novo, adicione no `powerlifting.ts` (puro, testado) e importe.
 - **Tokens** em `apps/landing/src/styles/tokens.css` espelham o `apps/web/src/index.css` (+ 3 tokens só da landing: `--hairline`, `--bg-table`, `--accent-hover`). Tema Brass fixo. Fontes via Google Fonts, **Outfit inclui o peso 900** do wordmark.
 - **reactbits.dev sempre na variante TS + CSS**, copiado para `src/components/reactbits/` (sem pacote, sem Tailwind); ver o README da pasta com origem, licença e adaptações. **gsap/motion só hidratam em desktop sem `prefers-reduced-motion`** (`client:media="(min-width: 1024px) and (prefers-reduced-motion: no-preference)"`); mobile e crawler recebem o HTML estático do servidor. A calculadora DOTS do hero é `client:load` e já chega renderizada com valores calculados.
 - **URLs limpas sem barra final**: `build.format: 'file'` gera `/calculadoras/dots.html` e o nginx resolve com `try_files $uri $uri.html $uri/index.html`. Toda página declara `path` no `BaseLayout` (canonical, og:url, JSON-LD).
@@ -154,7 +156,7 @@ Site estático em **Astro 5 + ilhas React** servido na raiz de `onyxtreino.com.b
 - [ ] `npm run build` passa (type-check incluso).
 - [ ] `npm run test` passa (Vitest — funções puras em `apps/web/src/utils/`).
 - [ ] `npm run test:api` passa (Node test runner para rotas/utilitários da API).
-- [ ] Se tocou em `apps/landing` ou em `powerlifting.ts`: `npm run lint:landing`, `npm run check:landing`, `npm run test:landing` e `npm run build:landing` passam.
+- [ ] Se tocou em `apps/landing`, em `powerlifting.ts` ou em `strength.ts`: `npm run lint:landing`, `npm run check:landing`, `npm run test:landing` e `npm run build:landing` passam.
 - [ ] Sem imports/variáveis não utilizados.
 - [ ] Textos de UI em pt-BR.
 - [ ] Nenhuma dependência nova desnecessária.
