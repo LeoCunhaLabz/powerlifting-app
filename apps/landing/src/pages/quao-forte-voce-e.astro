@@ -1,0 +1,191 @@
+---
+import CalcLayout from '../layouts/CalcLayout.astro';
+import StrengthCalculator from '../islands/StrengthCalculator';
+import { STRENGTH_META, STRENGTH_TABLE, LEVELS, LEVEL_PERCENTILES, type Lift } from '@onyx/strength';
+import { formatNumber } from '../lib/format';
+import { EVERGREEN_PAGES, ROUTES, SITE_URL } from '../lib/site';
+
+/* Página da calculadora de comparação de força (issue #316, spec §6.5).
+   Ímã de busca para "supino bom pro meu peso": a ilha em modo completo, a
+   leitura da escada e a metodologia com o n de cada categoria. */
+
+const LIFT_COLUMNS: { key: Lift; label: string }[] = [
+  { key: 'squat', label: 'Agacho' },
+  { key: 'bench', label: 'Supino' },
+  { key: 'deadlift', label: 'Terra' },
+  { key: 'total', label: 'Total' },
+];
+
+/** Uma linha por categoria, com o n de cada lift (o agrupamento por amostra
+    pequena pode diferir entre lifts, daí o "—" quando a classe não existe). */
+function sampleRows(sex: 'M' | 'F') {
+  const classes = new Map<string, number>();
+  for (const column of LIFT_COLUMNS) {
+    for (const bin of STRENGTH_TABLE[sex][column.key]) {
+      classes.set(bin.label, bin.maxBodyweight ?? Number.MAX_SAFE_INTEGER);
+    }
+  }
+  return [...classes.entries()]
+    .sort((a, b) => a[1] - b[1])
+    .map(([label]) => ({
+      label,
+      counts: LIFT_COLUMNS.map((column) => STRENGTH_TABLE[sex][column.key].find((bin) => bin.label === label)?.n ?? null),
+    }));
+}
+
+const LADDER = [
+  {
+    level: LEVELS[0],
+    range: `abaixo do P${LEVEL_PERCENTILES[0]}`,
+    text: 'Você já levanta o que muita gente levantou na primeira competição. Dá pra estrear.',
+  },
+  {
+    level: LEVELS[1],
+    range: `P${LEVEL_PERCENTILES[0]} a P${LEVEL_PERCENTILES[1]}`,
+    text: 'Entre a metade de baixo de quem compete: já briga por posição em meets regionais.',
+  },
+  {
+    level: LEVELS[2],
+    range: `P${LEVEL_PERCENTILES[1]} a P${LEVEL_PERCENTILES[2]}`,
+    text: 'Acima da metade dos competidores: pódio em meets regionais é realista.',
+  },
+  {
+    level: LEVELS[3],
+    range: `P${LEVEL_PERCENTILES[2]} ou mais`,
+    text: 'Entre os 15% mais fortes que competiram no Brasil na sua categoria.',
+  },
+];
+
+const formatDate = (iso: string) => iso.split('-').reverse().join('/');
+
+const title = 'Quão forte você é? Compare seu supino, agacho e terra com quem compete no Brasil';
+const description =
+  'Descubra o seu percentil: compare agachamento, supino, terra e total com os atletas que competiram no Brasil nos últimos 10 anos. Dados do OpenPowerlifting, sem login.';
+
+const webApplication = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Quão forte você é?',
+  url: `${SITE_URL}${ROUTES.quaoForteVoceE}`,
+  applicationCategory: 'SportsApplication',
+  operatingSystem: 'Web',
+  inLanguage: 'pt-BR',
+  description,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
+};
+---
+
+<CalcLayout
+  title={title}
+  h1="Quão forte você é?"
+  lead="Informe seu peso corporal e o que você levanta. A calculadora compara com quem competiu no Brasil nos últimos 10 anos e mostra em que degrau você está — e quantos quilos faltam pro próximo."
+  description={description}
+  path={ROUTES.quaoForteVoceE}
+  breadcrumb="Quão forte você é"
+  extraJsonLd={[webApplication]}
+>
+  <StrengthCalculator client:load mode="completo" />
+
+  <Fragment slot="how">
+    <h2>Como ler a escada</h2>
+    <p>
+      Os quatro degraus saem dos percentis da sua categoria de peso — não de faixas inventadas. Um mesmo supino pode ser
+      "Competitivo" até 93 kg e "Pódio regional" até 66 kg: é sempre contra quem pesa o mesmo que você.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Degrau</th>
+          <th>Percentil</th>
+          <th>O que significa</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          LADDER.map((step) => (
+            <tr>
+              <td>
+                <strong>{step.level}</strong>
+              </td>
+              <td>{step.range}</td>
+              <td>{step.text}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    <h2>Metodologia</h2>
+    <p>
+      Os números vêm do <a href="https://www.openpowerlifting.org" rel="noopener">OpenPowerlifting</a>, a base pública de
+      resultados de competição. Filtros aplicados: <strong>{STRENGTH_META.filters}</strong>. A janela vai de{' '}
+      {formatDate(STRENGTH_META.windowFrom)} a {formatDate(STRENGTH_META.windowTo)} e cada atleta entra uma vez por
+      levantamento, com o melhor resultado do período — quem compete muito não pesa mais na conta.
+    </p>
+    <p>
+      As categorias são as classes de peso da IPF. Categorias com menos de {STRENGTH_META.minSample} atletas são agrupadas
+      com a vizinha mais pesada, e o card avisa quando isso acontece. O supino conta também meets só de supino; o total
+      exige os três levantamentos. Tabela gerada em <strong>{formatDate(STRENGTH_META.generatedAt)}</strong> e atualizada
+      manualmente a cada trimestre.
+    </p>
+    <p>{STRENGTH_META.attribution}</p>
+
+    <h3>Atletas por categoria (o n de cada comparação)</h3>
+    <h4>Masculino</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          {LIFT_COLUMNS.map((column) => <th>{column.label}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          sampleRows('M').map((row) => (
+            <tr>
+              <td>{row.label}</td>
+              {row.counts.map((n) => <td>{n === null ? '—' : formatNumber(n, 0)}</td>)}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+    <h4>Feminino</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          {LIFT_COLUMNS.map((column) => <th>{column.label}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          sampleRows('F').map((row) => (
+            <tr>
+              <td>{row.label}</td>
+              {row.counts.map((n) => <td>{n === null ? '—' : formatNumber(n, 0)}</td>)}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </Fragment>
+
+  <Fragment slot="more">
+    <span class="label">Leia também</span>
+    <nav class="leia-tambem" aria-label="Leia também">
+      {EVERGREEN_PAGES.map((page) => <a href={page.href}>{page.label} →</a>)}
+    </nav>
+  </Fragment>
+</CalcLayout>
+
+<style>
+  .leia-tambem {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+</style>

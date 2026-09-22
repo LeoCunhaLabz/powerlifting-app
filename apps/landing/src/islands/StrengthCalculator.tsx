@@ -102,11 +102,14 @@ export default function StrengthCalculator({ mode = 'completo' }: StrengthCalcul
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Link compartilhado (§6.4): a página abre já com o resultado na tela. O
-  // preenchimento acontece num frame depois da hidratação, e não no corpo do
-  // efeito, porque o HTML estático é gerado sem query — escrever o estado
-  // durante a hidratação daria mismatch (mesmo motivo do rAF em useCountUp).
+  // preenchimento sai numa microtask, e não no corpo do efeito, porque o HTML
+  // estático é gerado sem query — escrever o estado durante a hidratação daria
+  // mismatch. Microtask e não requestAnimationFrame: em aba de fundo o rAF fica
+  // parado e o link compartilhado não renderizaria nada até ganhar foco.
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
       const shared = parseShareQuery(window.location.search);
       if (!shared) return;
       setSex(shared.sex);
@@ -120,7 +123,9 @@ export default function StrengthCalculator({ mode = 'completo' }: StrengthCalcul
       setSubmitted(shared);
       setTab(shared.lifts.length === LIFTS.length ? 'total' : shared.lifts[shared.lifts.length - 1].lift);
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(

@@ -7,7 +7,10 @@
 
 /* ---------- Entrada ---------- */
 
-.seg-radio--lifts {
+/* Os modificadores repetem `.seg-radio` de propósito: a base vive em calc.css e
+   a ordem das folhas no bundle não é garantida — dois seletores de classe
+   ganham do `display: inline-flex` da base em qualquer ordem. */
+.seg-radio.seg-radio--lifts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   background: none;
@@ -16,26 +19,26 @@
   gap: 6px;
 }
 
-.seg-radio--lifts .seg-radio__btn {
+.seg-radio.seg-radio--lifts .seg-radio__btn {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 9px 0;
 }
 
-.seg-radio--lifts .seg-radio__btn[aria-checked='true'] {
+.seg-radio.seg-radio--lifts .seg-radio__btn[aria-checked='true'] {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--text-primary);
 }
 
-.seg-radio--reps {
+.seg-radio.seg-radio--reps {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   flex: 1;
   min-width: 0;
 }
 
-.seg-radio--reps .seg-radio__btn {
+.seg-radio.seg-radio--reps .seg-radio__btn {
   padding: 6px 0;
 }
 
@@ -65,6 +68,17 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* Em três colunas, rótulo e reps não cabem lado a lado: empilha. */
+.forca__lifts--3 .forca__reps-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.forca__lifts--3 .seg-radio.seg-radio--reps {
+  width: 100%;
 }
 
 .forca__submit {
