@@ -49,7 +49,8 @@ npm run build:landing   # build estático da landing (apps/landing/dist)
 npm run preview:landing # serve o build da landing
 npm run check:landing   # type-check (tsc --noEmit) das ilhas/utils da landing
 npm run lint:landing    # ESLint do apps/landing
-npm run test:landing    # testes da landing (Vitest: formatação, dados do comparativo, anilhas)
+npm run test:landing    # testes da landing (Vitest: formatação, comparativo, anilhas, payload e curva da calculadora de força)
+npm run test:e2e:landing # smoke Playwright da landing (build + astro preview na 4322; sem API/banco)
 ```
 
 > Para rodar em um workspace específico: `npm run <script> -w @powerlifting/web`, `-w @powerlifting/api` ou `-w @powerlifting/landing`.
@@ -151,6 +152,8 @@ Site estático em **Astro 5 + ilhas React** servido na raiz de `onyxtreino.com.b
 - **Comparativo** (`src/data/comparativo.ts`): toda célula tem `fonte` (issue #255 ou verificação manual); o teste garante isso. Mobile colapsa Strong/Hevy/Outros em `outrosApps`.
 - **Umami**: script só entra com `PUBLIC_UMAMI_WEBSITE_ID` no build (build arg do Dockerfile); evento `calculadora-publica {tipo}` na primeira edição de cada calculadora.
 - **og-image**: `npm run og-image -w @powerlifting/landing` renderiza `scripts/og.html` com o Chromium do Playwright e salva `public/og-image.png` (commitado; regerar ao mudar a arte).
+- **Calculadora "Quão forte você é"** (issue #316, spec [2026-09-21](docs/superpowers/specs/2026-09-21-landing-forca-redesign-design.md) §6): ilha `islands/StrengthCalculator.tsx` em dois modos (`compacto` de um lift, `completo` com os três + total) na página `/quao-forte-voce-e`. Compara com a tabela de percentis do OpenPowerlifting via `@onyx/strength`; o card v4 é normativo em `docs/superpowers/specs/2026-09-21-landing-forca-redesign/resultado-card-v4.html`. O CTA leva os dados para `app.onyxtreino.com.br/registro#forca=<payload>` — encode/decode em `@powerlifting/shared` (`strengthPayload.ts`), usado pelos dois lados. Para atualizar os números: `npm run opl:percentiles -w @powerlifting/web` (manual, trimestral) — o `generatedAt` aparece na metodologia da página.
+- **Testes da landing**: Vitest cobre `src/**` (o `vitest.config.ts` existe só para recortar isso); o `e2e/` é Playwright, roda com `npm run test:e2e:landing` e tem job próprio no CI. O `@playwright/test` vem do `apps/web` — não é dependência nova.
 
 ## Antes de finalizar
 
