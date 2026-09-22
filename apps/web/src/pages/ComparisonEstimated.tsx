@@ -1,60 +1,10 @@
 import React, { useState } from 'react';
 import { TrendingUp, Scale, Trophy, Users, Info } from 'lucide-react';
 import { useWorkout } from '../context/WorkoutContext';
-import { calculateDots, getStrengthComparison, type StrengthLevel } from '../utils/powerlifting';
+import { calculateDots } from '../utils/powerlifting';
+import { compareLift, compareTotal, type SingleLift } from '../utils/strength';
 
-type LiftKey = 'squat' | 'bench' | 'deadlift';
-
-interface LiftBand {
-  /** Múltiplo do peso corporal (ex.: 1.5 = 1.5x PC) a partir do qual este nível é atingido. */
-  min: number;
-  level: StrengthLevel;
-}
-
-// Bandas por levantamento, referência IPF (raw) — independentes da escala geral por DOTS.
-// Cada levantamento tem sua própria progressão de níveis com base na relação peso levantado / peso corporal.
-// Estimativa aproximada; hoje cobre apenas IPF (outras federações podem ser adicionadas depois).
-const LIFT_REFERENCE_MALE_IPF: Record<LiftKey, LiftBand[]> = {
-  squat: [
-    { min: 0, level: 'Iniciante' },
-    { min: 1.5, level: 'Intermediário' },
-    { min: 2.0, level: 'Avançado' },
-    { min: 2.4, level: 'Elite' },
-  ],
-  bench: [
-    { min: 0, level: 'Iniciante' },
-    { min: 1.0, level: 'Intermediário' },
-    { min: 1.4, level: 'Avançado' },
-    { min: 1.8, level: 'Elite' },
-  ],
-  deadlift: [
-    { min: 0, level: 'Iniciante' },
-    { min: 1.8, level: 'Intermediário' },
-    { min: 2.3, level: 'Avançado' },
-    { min: 2.8, level: 'Elite' },
-  ],
-};
-
-const LIFT_REFERENCE_FEMALE_IPF: Record<LiftKey, LiftBand[]> = {
-  squat: [
-    { min: 0, level: 'Iniciante' },
-    { min: 1.2, level: 'Intermediário' },
-    { min: 1.6, level: 'Avançado' },
-    { min: 2.0, level: 'Elite' },
-  ],
-  bench: [
-    { min: 0, level: 'Iniciante' },
-    { min: 0.7, level: 'Intermediário' },
-    { min: 1.0, level: 'Avançado' },
-    { min: 1.3, level: 'Elite' },
-  ],
-  deadlift: [
-    { min: 0, level: 'Iniciante' },
-    { min: 1.4, level: 'Intermediário' },
-    { min: 1.9, level: 'Avançado' },
-    { min: 2.3, level: 'Elite' },
-  ],
-};
+type LiftKey = SingleLift;
 
 /** Ângulo (graus, sentido horário a partir do topo) de cada levantamento no radar. */
 const RADAR_AXES: Record<LiftKey, number> = { squat: -90, bench: 30, deadlift: 150 };
@@ -73,26 +23,11 @@ const radarLabelPoint = (angleDeg: number) => {
   return { x: RADAR_CENTER + RADAR_LABEL_R * Math.cos(rad), y: RADAR_CENTER + RADAR_LABEL_R * Math.sin(rad) };
 };
 
-/** Encontra o nível atual (banda mais alta atingida) e a próxima banda (se houver) para um multiplicador. */
-const findLiftBandProgress = (multiplier: number, bands: LiftBand[]) => {
-  const sorted = [...bands].sort((a, b) => a.min - b.min);
-  let currentIdx = 0;
-  sorted.forEach((band, idx) => {
-    if (multiplier >= band.min) currentIdx = idx;
-  });
-  return {
-    currentLevel: sorted[currentIdx].level,
-    nextBand: sorted[currentIdx + 1],
-  };
-};
-
-// Progresso real dentro da faixa atual: do limite inferior do nível atual até o limite
-// do próximo nível (não uma janela fixa), para refletir corretamente faixas de larguras diferentes.
-const progressPct = (currentDots: number, currentLevelMinDots?: number, dotsToNext?: number) => {
-  if (!(currentDots > 0) || dotsToNext === undefined || currentLevelMinDots === undefined) return 0;
-  const target = currentDots + dotsToNext;
-  const span = Math.max(1, target - currentLevelMinDots);
-  return Math.max(0, Math.min(100, Math.round(((currentDots - currentLevelMinDots) / span) * 100)));
+// Progresso real dentro do nível atual: do kg de entrada do nível até o kg do próximo.
+const progressPct = (value: number, levelMinKg: number, nextKg?: number) => {
+  if (!(value > 0) || nextKg === undefined) return 0;
+  const span = Math.max(1, nextKg - levelMinKg);
+  return Math.max(0, Math.min(100, Math.round(((value - levelMinKg) / span) * 100)));
 };
 
 const safeRound = (value: number, decimals = 1) => {
@@ -110,7 +45,6 @@ export const ComparisonEstimated: React.FC = () => {
   const { settings } = state;
   const isMale = settings.gender === 'male';
   const unit = settings.units;
-  const liftReference = isMale ? LIFT_REFERENCE_MALE_IPF : LIFT_REFERENCE_FEMALE_IPF;
   const [overviewInfoOpen, setOverviewInfoOpen] = useState(false);
   const [radarInfoOpen, setRadarInfoOpen] = useState(false);
 
@@ -120,14 +54,7 @@ export const ComparisonEstimated: React.FC = () => {
   const bodyweight = getBodyweightAt(new Date().toISOString());
   const total = squat + bench + deadlift;
   const dots = calculateDots(bodyweight, total, isMale);
-  const comparison = getStrengthComparison(dots, bodyweight, isMale);
-
-  // Estimativa do total (SBD) necessário para o próximo nível geral — número único e
-  // limitado (não é redistribuído entre os levantamentos, evitando metas irreais por lift).
-  const targetDots = comparison.dotsToNext !== undefined ? dots + comparison.dotsToNext : dots;
-  const coeff = total > 0 ? dots / total : 0;
-  const requiredTotal = coeff > 0 ? targetDots / coeff : total;
-  const totalGap = Math.max(0, requiredTotal - total);
+  const comparison = compareTotal(isMale, bodyweight, total);
 
   const lifts: { key: LiftKey; short: string; value: number }[] = [
     { key: 'squat', short: 'Agach.', value: squat },
@@ -135,30 +62,26 @@ export const ComparisonEstimated: React.FC = () => {
     { key: 'deadlift', short: 'Terra', value: deadlift },
   ];
 
-  // Meta por levantamento é independente: cada lift mira apenas a PRÓPRIA próxima
-  // banda (nunca herda o gap de outro lift, nunca pula mais de um nível de uma vez).
+  // Cada lift mira só a PRÓPRIA próxima faixa da categoria; o radar mede a
+  // fração do kg de entrada de "Elite nacional" (P85 da faixa).
   const liftProgress = lifts.map((lift) => {
+    const r = compareLift(isMale, bodyweight, lift.key, lift.value);
     const currentMult = bodyweight > 0 ? lift.value / bodyweight : 0;
-    const bands = liftReference[lift.key];
-    const { currentLevel, nextBand } = findLiftBandProgress(currentMult, bands);
-    const eliteMin = bands[bands.length - 1].min;
-    const radarFraction = eliteMin > 0 ? Math.min(1.15, currentMult / eliteMin) : 0;
-    const targetLift = nextBand ? nextBand.min * bodyweight : lift.value;
-    const gap = nextBand ? Math.max(0, targetLift - lift.value) : 0;
+    const eliteKg = r?.thresholdsKg[r.thresholdsKg.length - 1] ?? 0;
     return {
       ...lift,
       currentMult,
-      currentLevel,
-      nextLevel: nextBand?.level,
-      targetLift,
-      gap,
-      radarFraction,
+      currentLevel: r?.level,
+      nextLevel: r?.nextLevel,
+      targetLift: r?.nextKg ?? lift.value,
+      gap: r?.kgToNext ?? 0,
+      radarFraction: eliteKg > 0 ? Math.min(1.15, lift.value / eliteKg) : 0,
       angle: RADAR_AXES[lift.key],
     };
   });
 
-  const dataReady = bodyweight > 0 && total > 0 && dots > 0;
-  const progress = progressPct(dots, comparison.currentLevelMinDots, comparison.dotsToNext);
+  const dataReady = bodyweight > 0 && total > 0 && dots > 0 && comparison !== null;
+  const progress = comparison ? progressPct(total, comparison.levelMinKg, comparison.nextKg) : 0;
   const radarRings = [0.25, 0.5, 0.75, 1];
 
   return (
@@ -174,13 +97,13 @@ export const ComparisonEstimated: React.FC = () => {
         </div>
       )}
 
-      {dataReady && (
+      {dataReady && comparison && (
         <>
           <section style={styles.card}>
             <div style={styles.cardHeader}>
               <span style={styles.cardKicker}>Visão geral</span>
               <div style={styles.cardHeaderRight}>
-                <span style={styles.cardClass}>{comparison.bodyweightClass}</span>
+                <span style={styles.cardClass}>{comparison.classLabel}</span>
                 <button
                   type="button"
                   onClick={() => setOverviewInfoOpen((x) => !x)}
@@ -195,8 +118,9 @@ export const ComparisonEstimated: React.FC = () => {
             </div>
             {overviewInfoOpen && (
               <div style={styles.infoPanel}>
-                O nível geral usa o coeficiente DOTS, que compara sua força total (agachamento + supino + terra) ajustada ao seu peso corporal — quanto maior o DOTS, mais forte você é em relação ao seu peso.
-                O percentil ("Top X%") é uma estimativa aproximada de onde você estaria entre atletas raw da sua categoria, com base em uma referência estática inspirada nos rankings do OpenPowerlifting — não é um dado oficial de competição, apenas uma referência de progresso.
+                O nível geral compara o seu total (agachamento + supino + terra) com o melhor total de cada atleta raw da sua categoria que competiu no Brasil nos últimos 10 anos, segundo o OpenPowerlifting.
+                A escada tem quatro degraus: Estreante, Competitivo, Pódio regional e Elite nacional. O DOTS ao lado é só o seu total ajustado ao peso corporal.
+                {comparison.merged && ' Categorias vizinhas foram agrupadas por haver poucos atletas na sua.'}
               </div>
             )}
 
@@ -214,16 +138,15 @@ export const ComparisonEstimated: React.FC = () => {
             <div style={styles.heroPercentBlock}>
               <Users size={20} style={{ color: 'var(--accent)' }} />
               <div>
-                <div style={styles.heroPercentValue}>Top {comparison.topPercentApprox}%</div>
-                <div style={styles.heroPercentCaption}>aproximado entre atletas da sua categoria ({comparison.bodyweightClass})</div>
+                <div style={styles.heroPercentValue}>Acima de {comparison.percentile}%</div>
+                <div style={styles.heroPercentCaption}>dos {comparison.n} atletas da sua categoria ({comparison.classLabel}) que competiram no Brasil</div>
               </div>
             </div>
 
-            {comparison.nextLevel && comparison.dotsToNext !== undefined && (
+            {comparison.nextLevel && comparison.kgToNext !== undefined && (
               <>
                 <div style={styles.nextText}>
-                  Próximo nível: <strong>{comparison.nextLevel}</strong> · faltam <strong>{comparison.dotsToNext}</strong> DOTS
-                  {totalGap > 0 && <> (~{safeRound(totalGap, 1)} {unit} no total)</>}
+                  Próximo nível: <strong>{comparison.nextLevel}</strong> a partir de <strong>{safeRound(comparison.nextKg ?? 0, 1)} {unit}</strong> de total · faltam {safeRound(comparison.kgToNext, 1)} {unit}
                 </div>
                 <div style={styles.progressTrack} aria-label="Progresso para o próximo nível">
                   <span style={{ ...styles.progressFill, width: `${progress}%` }} />
@@ -234,7 +157,7 @@ export const ComparisonEstimated: React.FC = () => {
 
           <section style={styles.card}>
             <div style={styles.cardHeader}>
-              <span style={styles.cardKicker}>Perfil de força (SBD) · ref. IPF</span>
+              <span style={styles.cardKicker}>Perfil de força (SBD) · quem competiu no Brasil</span>
               <div style={styles.cardHeaderRight}>
                 <span style={styles.inlineIcon}><Scale size={14} /> {bodyweight} {unit}</span>
                 <button
@@ -251,8 +174,8 @@ export const ComparisonEstimated: React.FC = () => {
             </div>
             {radarInfoOpen && (
               <div style={styles.infoPanel}>
-                Este radar mostra a relação entre o peso levantado e o seu peso corporal em cada levantamento (agachamento, supino e terra), usando uma referência aproximada baseada em padrões da IPF (raw).
-                Essa escala é independente do nível geral acima (que usa DOTS) — por isso os dois podem mostrar níveis diferentes ao mesmo tempo, já que medem coisas ligeiramente distintas.
+                Cada eixo compara o seu máximo estimado naquele levantamento com quem competiu raw na sua categoria no Brasil (OpenPowerlifting, últimos 10 anos); o contorno cheio marca o kg de entrada de Elite nacional.
+                Cada levantamento tem a própria escada — por isso o nível de um lift pode ser diferente do nível geral pelo total.
               </div>
             )}
 
@@ -289,7 +212,7 @@ export const ComparisonEstimated: React.FC = () => {
                 <article key={lift.key} style={styles.liftCard}>
                   <div style={styles.liftHead}>
                     <span style={styles.liftName}>{lift.short}</span>
-                    <span style={styles.liftLevel}>{lift.currentLevel}</span>
+                    <span style={styles.liftLevel}>{lift.currentLevel ?? '—'}</span>
                   </div>
                   <div style={styles.liftMetricRow}>
                     <span style={styles.liftMetric}>{safeRound(lift.value, 1)} {unit}</span>
@@ -301,7 +224,7 @@ export const ComparisonEstimated: React.FC = () => {
                     </div>
                   ) : (
                     <div style={styles.liftGoalMax}>
-                      <Trophy size={12} /> Nível máximo desta escala atingido
+                      <Trophy size={12} /> {lift.currentLevel ? 'Elite nacional nesta categoria' : 'Sem dados para comparar'}
                     </div>
                   )}
                 </article>

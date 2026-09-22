@@ -5,7 +5,6 @@ import {
   calculateE1RMEpley,
   calculateWilks,
   calculateDots,
-  getStrengthComparison,
   calculateIpfGl,
   calculatePlates,
   getBodyweightSeriesInRange,
@@ -305,36 +304,6 @@ describe('calculateIpfGl', () => {
   it('arredonda para 0.01', () => {
     const result = calculateIpfGl(80, 600, true)
     expect(Number(result.toFixed(2))).toBe(result)
-  })
-})
-
-// ─── getStrengthComparison ───────────────────────────────────────────────────
-
-describe('getStrengthComparison', () => {
-  it('retorna fallback para DOTS inválido', () => {
-    const r = getStrengthComparison(0, 83, true)
-    expect(r.level).toBe('Iniciante')
-    expect(r.percentileApprox).toBe(0)
-    expect(r.topPercentApprox).toBe(100)
-  })
-
-  it('classifica masculino intermediário', () => {
-    const r = getStrengthComparison(320, 83, true)
-    expect(r.level).toBe('Intermediário')
-    expect(r.percentileApprox).toBe(50)
-    expect(r.bodyweightClass).toBe('até 83 kg')
-  })
-
-  it('classifica feminino elite', () => {
-    const r = getStrengthComparison(405, 63, false)
-    expect(r.level).toBe('Elite')
-    expect(r.percentileApprox).toBe(92)
-    expect(r.topPercentApprox).toBe(8)
-  })
-
-  it('usa classe aberta para pesos acima do limite', () => {
-    const r = getStrengthComparison(350, 130, true)
-    expect(r.bodyweightClass).toBe('+120 kg')
   })
 })
 

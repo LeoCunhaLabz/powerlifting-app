@@ -63,6 +63,8 @@ export interface StrengthComparison {
   kgToNext?: number
   /** Valor dividido pelo peso corporal. */
   ratio: number
+  /** Kg de entrada de cada nível acima de Estreante (P25, P50, P85 da faixa). */
+  thresholdsKg: number[]
   p: number[]
   hist: number[]
   min: number
@@ -116,6 +118,7 @@ export function compareWithTable(
     level: LEVELS[levelIdx],
     levelMinKg: levelIdx === 0 ? bin.p[0] : thresholds[levelIdx - 1],
     ratio: value / bodyweight,
+    thresholdsKg: thresholds,
     p: bin.p,
     hist: bin.hist,
     min: bin.min,

@@ -73,6 +73,7 @@ describe('compareWithTable', () => {
     expect(r.nextKg).toBe(135) // P85
     expect(r.kgToNext).toBe(35)
     expect(r.ratio).toBeCloseTo(1.25)
+    expect(r.thresholdsKg).toEqual([75, 100, 135])
     expect(r.n).toBe(500)
     expect(r.p).toHaveLength(21)
     expect(r.hist).toHaveLength(20)
