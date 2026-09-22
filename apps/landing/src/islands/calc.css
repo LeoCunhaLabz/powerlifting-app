@@ -513,3 +513,34 @@
   border-radius: 3px;
   transition: width var(--transition-normal);
 }
+
+/* Segmentado em forma de radiogroup (SegmentedRadio, ui.tsx) */
+.seg-radio {
+  display: inline-flex;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.seg-radio__btn {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.seg-radio__btn:hover {
+  color: var(--text-primary);
+}
+
+.seg-radio__btn[aria-checked='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}

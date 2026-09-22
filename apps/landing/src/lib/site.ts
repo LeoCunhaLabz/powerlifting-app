@@ -24,6 +24,7 @@ export const ROUTES = {
   calcDots: '/calculadoras/dots',
   calc1rm: '/calculadoras/1rm',
   calcAnilhas: '/calculadoras/anilhas',
+  quaoForteVoceE: '/quao-forte-voce-e',
   privacidade: '/privacidade',
   termos: '/termos',
   oQueEDots: '/o-que-e-dots',

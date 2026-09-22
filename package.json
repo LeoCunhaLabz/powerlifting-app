@@ -25,6 +25,7 @@
     "preview:landing": "npm run preview -w @powerlifting/landing",
     "check:landing": "npm run check -w @powerlifting/landing",
     "lint:landing": "npm run lint -w @powerlifting/landing",
-    "test:landing": "npm run test -w @powerlifting/landing"
+    "test:landing": "npm run test -w @powerlifting/landing",
+    "test:e2e:landing": "npm run test:e2e -w @powerlifting/landing"
   }
 }

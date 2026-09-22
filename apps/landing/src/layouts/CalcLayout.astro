@@ -9,8 +9,10 @@ interface Props {
   description: string;
   path: string;
   breadcrumb: string;
+  /** JSON-LD extra da página (ex.: WebApplication), somado ao do layout. */
+  extraJsonLd?: Record<string, unknown>[];
 }
-const { title, h1, lead, description, path, breadcrumb } = Astro.props;
+const { title, h1, lead, description, path, breadcrumb, extraJsonLd = [] } = Astro.props;
 
 const jsonLd = [
   {
@@ -33,6 +35,8 @@ const jsonLd = [
   },
 ];
 
+const jsonLdAll = [...jsonLd, ...extraJsonLd];
+
 const others = [
   { href: ROUTES.calcDots, label: 'DOTS · Wilks · IPF GL' },
   { href: ROUTES.calc1rm, label: '1RM por RPE' },
@@ -40,7 +44,7 @@ const others = [
 ].filter((o) => o.href !== path);
 ---
 
-<BaseLayout title={title} description={description} path={path} jsonLd={jsonLd}>
+<BaseLayout title={title} description={description} path={path} jsonLd={jsonLdAll}>
   <article class="calcpage">
     <div class="container calcpage__inner">
       <header class="calcpage__head">
@@ -58,6 +62,14 @@ const others = [
       <section class="calcpage__how prose" aria-label="Como funciona">
         <slot name="how" />
       </section>
+
+      {
+        Astro.slots.has('more') && (
+          <section class="calcpage__more">
+            <slot name="more" />
+          </section>
+        )
+      }
 
       <aside class="calcpage__cta card">
         <div>

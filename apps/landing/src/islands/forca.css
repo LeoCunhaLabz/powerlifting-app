@@ -1,0 +1,315 @@
+/*
+ * Calculadora "Quão forte você é" (issue #316).
+ * Referência normativa do card:
+ * docs/superpowers/specs/2026-09-21-landing-forca-redesign/resultado-card-v4.html
+ * Escala de 4 tamanhos: kicker 10 · label 12 · número 20 · destaque 48.
+ */
+
+/* ---------- Entrada ---------- */
+
+/* Os modificadores repetem `.seg-radio` de propósito: a base vive em calc.css e
+   a ordem das folhas no bundle não é garantida — dois seletores de classe
+   ganham do `display: inline-flex` da base em qualquer ordem. */
+.seg-radio.seg-radio--lifts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: none;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+.seg-radio.seg-radio--lifts .seg-radio__btn {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 9px 0;
+}
+
+.seg-radio.seg-radio--lifts .seg-radio__btn[aria-checked='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.seg-radio.seg-radio--reps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex: 1;
+  min-width: 0;
+}
+
+.seg-radio.seg-radio--reps .seg-radio__btn {
+  padding: 6px 0;
+}
+
+.forca__lifts--3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.forca__lift {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  /* é um <fieldset>: sem a moldura e o padding que o browser dá de graça */
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.forca__lift-title {
+  padding: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.forca__reps-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Em três colunas, rótulo e reps não cabem lado a lado: empilha. */
+.forca__lifts--3 .forca__reps-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.forca__lifts--3 .seg-radio.seg-radio--reps {
+  width: 100%;
+}
+
+.forca__submit {
+  width: 100%;
+}
+
+.forca__submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.forca__submit:disabled:hover {
+  background: var(--accent);
+}
+
+/* ---------- Resultado ---------- */
+
+.forca__result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.forca__card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+}
+
+.forca__kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.forca__ratio {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--accent);
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.forca__ratio small {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 10px;
+}
+
+.forca__estimated {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.forca__estimated b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.forca__curve {
+  position: relative;
+  margin-top: 20px;
+}
+
+.forca__curve svg {
+  display: block;
+  width: 100%;
+  height: 112px;
+}
+
+/* Única animação da landing (spec §6.7): a área preenche uma vez ao revelar.
+   Roda só quando a ilha pede (desktop sem prefers-reduced-motion). */
+.forca__reveal {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: forca-reveal 600ms ease-out;
+}
+
+@keyframes forca-reveal {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.forca__tag {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  padding: 4px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.forca__tag--goal {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.forca__axis {
+  display: flex;
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.forca__axis span {
+  flex: 1;
+  text-align: center;
+}
+
+.forca__axis span.is-current {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.forca__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.forca__stats--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.forca__stat-num {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.forca__stat-num--accent {
+  color: var(--accent);
+}
+
+.forca__stat-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.forca__foot {
+  margin-top: 16px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.forca__cta {
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px 20px;
+  font-size: 13px;
+}
+
+.forca__links {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.forca__links button,
+.forca__links a {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.forca__links button:hover,
+.forca__links a:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .forca__lifts--3 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .forca__card {
+    padding: 18px;
+  }
+
+  .forca__ratio {
+    font-size: 40px;
+  }
+
+  .forca__axis {
+    font-size: 9px;
+    letter-spacing: 0.4px;
+  }
+}
