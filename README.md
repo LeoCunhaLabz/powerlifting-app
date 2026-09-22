@@ -32,7 +32,7 @@ O projeto é um **monorepo** (npm workspaces): o frontend (`apps/web`) é **clie
 | Estilo | CSS puro (`apps/web/src/index.css`), design system **ONYX** com temas de acento (Onyx · Brass · Volt) |
 | Persistência | `localStorage` (frontend client-side; sincronização com a API prevista na fase 3) |
 | Backend | Fastify 5 + PostgreSQL 16 + Drizzle ORM + `@fastify/jwt` |
-| Landing | Astro 5 + ilhas React (`apps/landing`), HTML estático na raiz de `onyxtreino.com.br`; calculadoras públicas reutilizam `powerlifting.ts`; componentes [reactbits.dev](https://reactbits.dev) (TS + CSS) copiados no repo |
+| Landing | Astro 5 + ilhas React (`apps/landing`), HTML estático na raiz de `onyxtreino.com.br`; calculadoras públicas reutilizam `powerlifting.ts` e `strength.ts`; CSS puro, sem bibliotecas de efeito |
 | Deploy | Docker (multi-stage) + Nginx (non-root, porta 8080) servindo app e landing por host |
 | CI/CD | GitHub Actions (lint → testes → build → deploy Dokploy → smoke test) |
 
@@ -216,7 +216,6 @@ powerlifting-app/
         pages/               # index, calculadoras/{dots,1rm,anilhas}, privacidade, termos, 404
         sections/            # seções da home (Hero, Comparativo, …)
         islands/             # calculadoras React (client:load)
-        components/reactbits # componentes reactbits.dev copiados (TS + CSS)
         data/                # comparativo (com fonte por célula), diferenciais, cores de anilhas
         styles/              # tokens (espelho do index.css) + global
   packages/
