@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-/** Query única usada em toda a landing para liberar movimento (gsap/motion). */
+/** Query única usada em toda a landing para liberar movimento. */
 export const MOTION_MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
 
 /**

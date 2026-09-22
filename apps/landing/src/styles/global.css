@@ -39,6 +39,7 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
+  font-variation-settings: 'wdth' 85;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -105,11 +106,12 @@ svg {
 /* Tipografia utilitária */
 .kicker {
   font-family: var(--font-display);
+  font-variation-settings: 'wdth' 85;
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 2.2px;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text-secondary);
 }
 
 .h2 {
@@ -132,6 +134,7 @@ svg {
 
 .num {
   font-family: var(--font-display);
+  font-variation-settings: 'wdth' 85;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);

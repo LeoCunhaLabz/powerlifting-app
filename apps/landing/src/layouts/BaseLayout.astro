@@ -75,12 +75,12 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageAbs} />
 
-    <!-- Fontes: Outfit (display; inclui 900 do wordmark) + Plus Jakarta Sans (corpo) -->
+    <!-- Fontes: Archivo (display, eixo wdth 85) + Outfit 900 (só o wordmark) + Plus Jakarta Sans (corpo) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85,600;85,700;85,800&family=Outfit:wght@900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     />
 
     {jsonLdList.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}

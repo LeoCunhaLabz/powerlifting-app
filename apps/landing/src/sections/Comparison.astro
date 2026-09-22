@@ -1,15 +1,11 @@
 ---
-import ElectricBorder from '../components/reactbits/ElectricBorder';
-import FadeContent from '../components/reactbits/FadeContent';
 import SectionHeader from '../components/SectionHeader.astro';
 import Logo from '../components/Logo.astro';
 import { COMPARISON_ROWS, COMPARISON_COLUMNS, COMPARISON_FOOTNOTE, CELL_LABEL, type Cell } from '../data/comparativo';
 
-const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
-
 // Cada coluna é um grid com `grid-template-rows: subgrid` alinhado às linhas do pai,
-// para a coluna ONYX ser um único box (o ElectricBorder precisa de um elemento para
-// contornar). Mobile (≤ 480px): Strong/Hevy/Outros somem e "Outros apps" aparece.
+// para a coluna ONYX ser um único box com borda contínua.
+// Mobile (≤ 480px): Strong/Hevy/Outros somem e "Outros apps" aparece.
 const rowsTemplate = `auto repeat(${COMPARISON_ROWS.length}, auto)`;
 const cellText = (c: Cell) => CELL_LABEL[c.value];
 ---
@@ -20,72 +16,70 @@ const cellText = (c: Cell) => CELL_LABEL[c.value];
       <SectionHeader kicker="Sem rodeios" title="Compare com o app que você usa hoje." />
     </div>
 
-    <FadeContent client:media={MEDIA} duration={0.8} threshold={0.1} className="cmp__fade">
-      <div class="cmp__table" role="table" aria-label="Comparativo ONYX, Strong, Hevy e outros apps" style={`--rows:${rowsTemplate}`}>
-        <!-- Coluna de critérios -->
-        <div class="cmp__col cmp__col--crit" role="rowgroup">
-          <div class="cmp__cell cmp__cell--head" role="columnheader"><span class="sr-only">Critério</span></div>
+    <div class="cmp__table" role="table" aria-label="Comparativo ONYX, Strong, Hevy e outros apps" style={`--rows:${rowsTemplate}`}>
+      <!-- Coluna de critérios -->
+      <div class="cmp__col cmp__col--crit" role="rowgroup">
+        <div class="cmp__cell cmp__cell--head" role="columnheader"><span class="sr-only">Critério</span></div>
+        {
+          COMPARISON_ROWS.map((r) => (
+            <div class="cmp__cell cmp__crit" role="rowheader">
+              <span class="cmp__crit-title">{r.criterio}</span>
+              <span class="cmp__crit-short">{r.criterioCurto}</span>
+              <span class="cmp__crit-detail">{r.detalhe}</span>
+            </div>
+          ))
+        }
+      </div>
+
+      <!-- Coluna ONYX (destaque brass: borda contínua + fundo chapado) -->
+      <div class="cmp__col cmp__col--onyx">
+        <div class="cmp__onyx" role="rowgroup">
+          <div class="cmp__cell cmp__cell--head cmp__cell--onyx-head" role="columnheader">
+            <Logo size={22} />
+          </div>
           {
             COMPARISON_ROWS.map((r) => (
-              <div class="cmp__cell cmp__crit" role="rowheader">
-                <span class="cmp__crit-title">{r.criterio}</span>
-                <span class="cmp__crit-short">{r.criterioCurto}</span>
-                <span class="cmp__crit-detail">{r.detalhe}</span>
+              <div class="cmp__cell cmp__cell--onyx" role="cell">
+                <span class="cmp__check" aria-label="sim">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="3.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+                </span>
+                <span class="sr-only">{cellText(r.onyx)}</span>
               </div>
             ))
           }
         </div>
-
-        <!-- Coluna ONYX (destaque brass + Electric Border em desktop) -->
-        <ElectricBorder client:media={MEDIA} color="#e3a83b" speed={0.6} chaos={0.06} borderRadius={12} className="cmp__col cmp__col--onyx">
-          <div class="cmp__onyx" role="rowgroup">
-            <div class="cmp__cell cmp__cell--head cmp__cell--onyx-head" role="columnheader">
-              <Logo size={22} />
-            </div>
-            {
-              COMPARISON_ROWS.map((r) => (
-                <div class="cmp__cell cmp__cell--onyx" role="cell">
-                  <span class="cmp__check" aria-label="sim">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="3.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
-                  </span>
-                  <span class="sr-only">{cellText(r.onyx)}</span>
-                </div>
-              ))
-            }
-          </div>
-        </ElectricBorder>
-
-        <!-- Strong -->
-        <div class="cmp__col cmp__col--wide" role="rowgroup">
-          <div class="cmp__cell cmp__cell--head" role="columnheader"><span class="cmp__brand">{COMPARISON_COLUMNS.strong}</span></div>
-          {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.strong.value}>{cellText(r.strong)}</div>)}
-        </div>
-
-        <!-- Hevy -->
-        <div class="cmp__col cmp__col--wide" role="rowgroup">
-          <div class="cmp__cell cmp__cell--head" role="columnheader"><span class="cmp__brand">{COMPARISON_COLUMNS.hevy}</span></div>
-          {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.hevy.value}>{cellText(r.hevy)}</div>)}
-        </div>
-
-        <!-- Outros (desktop) -->
-        <div class="cmp__col cmp__col--wide" role="rowgroup">
-          <div class="cmp__cell cmp__cell--head" role="columnheader">
-            <span class="cmp__brand">{COMPARISON_COLUMNS.outros}</span>
-            <span class="cmp__brand-sub">{COMPARISON_COLUMNS.outrosSub}</span>
-          </div>
-          {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.outros.value}>{cellText(r.outros)}</div>)}
-        </div>
-
-        <!-- Outros apps (mobile: Strong + Hevy + genéricos colapsados) -->
-        <div class="cmp__col cmp__col--narrow" role="rowgroup">
-          <div class="cmp__cell cmp__cell--head" role="columnheader">
-            <span class="cmp__brand">{COMPARISON_COLUMNS.outrosApps}</span>
-            <span class="cmp__brand-sub">{COMPARISON_COLUMNS.outrosAppsSub}</span>
-          </div>
-          {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.outrosApps.value}>{cellText(r.outrosApps)}</div>)}
-        </div>
       </div>
-    </FadeContent>
+
+      <!-- Strong -->
+      <div class="cmp__col cmp__col--wide" role="rowgroup">
+        <div class="cmp__cell cmp__cell--head" role="columnheader"><span class="cmp__brand">{COMPARISON_COLUMNS.strong}</span></div>
+        {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.strong.value}>{cellText(r.strong)}</div>)}
+      </div>
+
+      <!-- Hevy -->
+      <div class="cmp__col cmp__col--wide" role="rowgroup">
+        <div class="cmp__cell cmp__cell--head" role="columnheader"><span class="cmp__brand">{COMPARISON_COLUMNS.hevy}</span></div>
+        {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.hevy.value}>{cellText(r.hevy)}</div>)}
+      </div>
+
+      <!-- Outros (desktop) -->
+      <div class="cmp__col cmp__col--wide" role="rowgroup">
+        <div class="cmp__cell cmp__cell--head" role="columnheader">
+          <span class="cmp__brand">{COMPARISON_COLUMNS.outros}</span>
+          <span class="cmp__brand-sub">{COMPARISON_COLUMNS.outrosSub}</span>
+        </div>
+        {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.outros.value}>{cellText(r.outros)}</div>)}
+      </div>
+
+      <!-- Outros apps (mobile: Strong + Hevy + genéricos colapsados) -->
+      <div class="cmp__col cmp__col--narrow" role="rowgroup">
+        <div class="cmp__cell cmp__cell--head" role="columnheader">
+          <span class="cmp__brand">{COMPARISON_COLUMNS.outrosApps}</span>
+          <span class="cmp__brand-sub">{COMPARISON_COLUMNS.outrosAppsSub}</span>
+        </div>
+        {COMPARISON_ROWS.map((r) => <div class="cmp__cell" role="cell" data-v={r.outrosApps.value}>{cellText(r.outrosApps)}</div>)}
+      </div>
+    </div>
 
     <p class="cmp__note">{COMPARISON_FOOTNOTE}</p>
   </div>
@@ -120,30 +114,10 @@ const cellText = (c: Cell) => CELL_LABEL[c.value];
     height: 100%;
   }
 
-  /* ElectricBorder envolve a coluna ONYX; seu conteúdo precisa herdar o subgrid */
-  .cmp :global(.cmp__col--onyx) {
-    border-radius: 0;
+  .cmp__col--onyx {
     background: var(--accent-soft);
     border-left: 1px solid var(--accent-border);
     border-right: 1px solid var(--accent-border);
-    box-shadow: 0 0 34px var(--accent-soft);
-  }
-
-  .cmp :global(.cmp__col--onyx .eb-content) {
-    display: grid;
-    grid-row: 1 / -1;
-    grid-template-rows: subgrid;
-    height: 100%;
-  }
-
-  .cmp :global(.cmp__col--onyx .eb-layers),
-  .cmp :global(.cmp__col--onyx .eb-canvas-container) {
-    /* sem glow difuso por trás da tabela — só a linha elétrica */
-    opacity: 0.8;
-  }
-
-  .cmp :global(.cmp__col--onyx .eb-background-glow) {
-    display: none;
   }
 
   .cmp__cell {
@@ -172,16 +146,7 @@ const cellText = (c: Cell) => CELL_LABEL[c.value];
   }
 
   .cmp__cell--onyx-head {
-    background: linear-gradient(180deg, rgba(227, 168, 59, 0.14), rgba(227, 168, 59, 0.05));
     border-bottom: 1px solid var(--accent-border);
-  }
-
-  .cmp__cell--onyx {
-    background: rgba(227, 168, 59, 0.05);
-  }
-
-  .cmp__onyx > .cmp__cell:last-child {
-    background: linear-gradient(0deg, rgba(227, 168, 59, 0.14), rgba(227, 168, 59, 0.05));
   }
 
   .cmp__brand {

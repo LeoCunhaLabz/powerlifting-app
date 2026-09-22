@@ -57,8 +57,5 @@ export const NAV_LINKS = [
   { href: '/#comparativo', label: 'Comparativo' },
 ] as const;
 
-/** Vocabulário da faixa (seção 3 da spec). */
-export const VOCAB = ['RPE', '%1RM', 'e1RM', 'DOTS', 'IPF GL', 'WILKS', 'TOTAL SBD'] as const;
-
 /** Data de revisão dos textos legais — atualizar ao mudar privacidade/termos. */
 export const LEGAL_UPDATED_AT = '2026-09-16';
