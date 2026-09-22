@@ -77,7 +77,7 @@
 }
 
 .ph-card--accent {
-  background: var(--accent-gradient);
+  background: var(--accent-soft);
   border-color: var(--accent-border);
 }
 

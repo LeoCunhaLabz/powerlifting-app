@@ -1,16 +1,12 @@
 ---
-import TiltedCard from '../components/reactbits/TiltedCard';
 import SectionHeader from '../components/SectionHeader.astro';
 import PhoneTreino from '../components/phones/PhoneTreino.astro';
 import PhoneDashboard from '../components/phones/PhoneDashboard.astro';
 import PhoneAnalytics from '../components/phones/PhoneAnalytics.astro';
 import PhoneResumo from '../components/phones/PhoneResumo.astro';
 
-// TiltedCard (reactbits, motion) só hidrata em desktop sem reduced-motion. Sem
-// hidratação, o servidor entrega os frames estáticos. No mobile (≤1023px) os 4
-// frames ficam num carrossel de scroll horizontal com snap (item 12 da revisão
-// de 17/09/2026) em vez de esconder os frames "side" como antes.
-const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
+// Os 4 frames são HTML/CSS estáticos. No mobile (≤1023px) ficam num carrossel de
+// scroll horizontal com snap (item 12 da revisão de 17/09/2026).
 ---
 
 <section class="section section--hairline-top app" aria-labelledby="app-title">
@@ -21,30 +17,22 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
 
     <div class="app__frames" id="app-frames">
       <figure class="app__frame app__frame--side">
-        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
-          <PhoneTreino />
-        </TiltedCard>
+        <PhoneTreino />
         <figcaption>Treino ativo: RPE e última carga por série</figcaption>
       </figure>
 
       <figure class="app__frame">
-        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
-          <PhoneDashboard />
-        </TiltedCard>
+        <PhoneDashboard />
         <figcaption>Início: e1RM, DOTS e recordes de frente</figcaption>
       </figure>
 
       <figure class="app__frame">
-        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
-          <PhoneAnalytics />
-        </TiltedCard>
+        <PhoneAnalytics />
         <figcaption>Análises: heatmap de frequência e DOTS ao longo do tempo</figcaption>
       </figure>
 
       <figure class="app__frame app__frame--side">
-        <TiltedCard client:media={MEDIA} rotateAmplitude={6} scaleOnHover={1.02}>
-          <PhoneResumo />
-        </TiltedCard>
+        <PhoneResumo />
         <figcaption>Resumo: volume, duração e PRs da sessão</figcaption>
       </figure>
     </div>
@@ -157,8 +145,7 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     }
   }
 
-  /* Abaixo de 1024px o TiltedCard (motion) não hidrata — os frames são HTML/CSS
-     estático, então o carrossel de scroll horizontal é 100% CSS, sem gsap/motion. */
+  /* Abaixo de 1024px os frames viram um carrossel de scroll horizontal, 100% CSS. */
   @media (max-width: 640px) {
     .app__inner {
       gap: 20px;

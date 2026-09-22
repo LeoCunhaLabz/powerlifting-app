@@ -28,7 +28,6 @@
   --accent-border: rgba(227, 168, 59, 0.3);
   --accent-ink: #1a1304;
   --accent-hover: #f0c06a; /* só landing: hover de link */
-  --accent-gradient: linear-gradient(135deg, var(--accent-soft), transparent);
 
   /* Cores de anilhas (padrão IPF) — único uso de cor fora do brass */
   --plate-25: #ef4444;
@@ -41,7 +40,10 @@
 
   /* Tipografia */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  /* Display: Archivo semi-condensada (eixo wdth 85) — ver issue #315. */
+  --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
+  /* Wordmark ONYX continua em Outfit 900 (mesma marca do app e do logo.svg). */
+  --font-wordmark: 'Outfit', system-ui, -apple-system, sans-serif;
 
   /* Raios */
   --radius-sm: 4px;

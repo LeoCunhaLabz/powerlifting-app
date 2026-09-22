@@ -1,5 +1,4 @@
 ---
-import SpotlightCard from '../components/reactbits/SpotlightCard';
 import SectionHeader from '../components/SectionHeader.astro';
 import PlateBar from '../islands/PlateBar';
 import { calculateDots, calculateE1RM, calculatePlates, DEFAULT_PLATES_KG } from '@onyx/calc';
@@ -10,8 +9,6 @@ import { ROUTES } from '../lib/site';
 const sampleDots = calculateDots(82.5, 512.5, true);
 const sampleE1rm = calculateE1RM(150, 5, 8);
 const samplePlates = calculatePlates(142.5, 20, DEFAULT_PLATES_KG);
-
-const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
 ---
 
 <section id="calculadoras" class="section calcs" aria-labelledby="calcs-title">
@@ -25,7 +22,7 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     </div>
 
     <div class="calcs__grid">
-      <SpotlightCard client:media={MEDIA} className="calcs__card">
+      <article class="calcs__card">
         <a class="calcs__link" href={ROUTES.calcDots}>
           <span class="calcs__label">DOTS · Wilks · IPF GL</span>
           <p>Seu total no contexto: pontos por peso corporal, nas três fórmulas que o esporte usa.</p>
@@ -35,9 +32,9 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
           </div>
           <span class="calcs__cta">Calcular DOTS →</span>
         </a>
-      </SpotlightCard>
+      </article>
 
-      <SpotlightCard client:media={MEDIA} className="calcs__card">
+      <article class="calcs__card">
         <a class="calcs__link" href={ROUTES.calc1rm}>
           <span class="calcs__label">1RM por RPE</span>
           <p>e1RM pela tabela RTS, com Brzycki e Epley de contraprova.</p>
@@ -47,9 +44,9 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
           </div>
           <span class="calcs__cta">Estimar 1RM →</span>
         </a>
-      </SpotlightCard>
+      </article>
 
-      <SpotlightCard client:media={MEDIA} className="calcs__card">
+      <article class="calcs__card">
         <a class="calcs__link" href={ROUTES.calcAnilhas}>
           <span class="calcs__label">Anilhas</span>
           <p>A barra montada por lado, nas cores oficiais IPF.</p>
@@ -59,7 +56,7 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
           </div>
           <span class="calcs__cta">Montar a barra →</span>
         </a>
-      </SpotlightCard>
+      </article>
     </div>
   </div>
 </section>
@@ -75,9 +72,17 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     gap: 20px;
   }
 
-  .calcs :global(.calcs__card) {
+  .calcs__card {
     display: flex;
     padding: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-fast);
+  }
+
+  .calcs__card:hover {
+    border-color: var(--border-focus);
   }
 
   .calcs__link {
@@ -140,7 +145,7 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: var(--accent);
+    color: var(--text-muted);
     text-transform: uppercase;
   }
 
@@ -148,11 +153,11 @@ const MEDIA = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
     margin-top: auto;
     font-size: 14px;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--text-primary);
   }
 
   .calcs__link:hover .calcs__cta {
-    color: var(--accent-hover);
+    color: var(--accent);
   }
 
   @media (max-width: 1023px) {
