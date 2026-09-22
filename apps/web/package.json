@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "generate-pwa-assets": "pwa-assets-generator --config pwa-assets.config.ts",
-    "og-image": "node scripts/og-image.mjs"
+    "og-image": "node scripts/og-image.mjs",
+    "opl:percentiles": "tsx scripts/opl/build-strength-percentiles.ts"
   },
   "dependencies": {
     "@powerlifting/shared": "*",
@@ -31,6 +32,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "tsx": "^4.19.2",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",

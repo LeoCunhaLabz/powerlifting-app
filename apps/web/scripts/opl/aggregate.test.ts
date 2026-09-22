@@ -99,15 +99,22 @@ describe('percentiles', () => {
 })
 
 describe('histogram', () => {
-  it('tem 20 faixas, pico normalizado em 1 e min/max dos dados', () => {
+  it('tem 20 faixas entre P1 e P99, pico normalizado em 1 e outliers nas pontas', () => {
     const values = [100, 100, 100, 110, 120, 130, 140, 200]
     const h = histogram(values)
     expect(h.hist).toHaveLength(20)
     expect(Math.max(...h.hist)).toBe(1)
     expect(h.hist[0]).toBe(1) // os três 100 kg caem na primeira faixa
-    expect(h.hist[19]).toBeCloseTo(1 / 3) // o 200 kg cai na última (max é inclusivo)
-    expect(h.min).toBe(100)
-    expect(h.max).toBe(200)
+    expect(h.hist[19]).toBe(0.333) // o 200 kg (acima do P99) cai na última, arredondado a 0,001
+    expect(h.min).toBe(100) // P1 de 8 valores ainda é 100
+    expect(h.max).toBe(195.8) // P99 interpolado entre 140 e 200
+  })
+
+  it('outlier extremo não estica a faixa da curva', () => {
+    const values = [2.5, ...Array.from({ length: 200 }, (_, i) => 100 + i)]
+    const h = histogram(values)
+    expect(h.min).toBeGreaterThan(90)
+    expect(h.hist[0]).toBeGreaterThan(0) // o 2,5 kg foi contado na primeira faixa, não sumiu
   })
 
   it('valores todos iguais viram uma faixa só', () => {

@@ -78,18 +78,32 @@ export function percentiles(values: number[]): number[] {
   return out
 }
 
-/** 20 faixas entre min e max (max inclusivo), contagem dividida pelo pico (0–1). */
+const round3 = (n: number) => Math.round(n * 1000) / 1000
+
+function quantile(sorted: number[], q: number): number {
+  const pos = (sorted.length - 1) * q
+  const lo = Math.floor(pos)
+  const hi = Math.ceil(pos)
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo)
+}
+
+/**
+ * 20 faixas entre P1 e P99 (outliers como um supino de 2,5 kg esticavam a faixa e
+ * deixavam a curva com cauda vazia); valores fora caem nas faixas das pontas.
+ * Contagem dividida pelo pico (0–1). Os percentis não são afetados.
+ */
 export function histogram(values: number[]): { hist: number[]; min: number; max: number } {
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const sorted = [...values].sort((a, b) => a - b)
+  const min = quantile(sorted, 0.01)
+  const max = quantile(sorted, 0.99)
   const counts = Array<number>(HISTOGRAM_BINS).fill(0)
   const width = max - min
-  for (const v of values) {
-    const i = width === 0 ? 0 : Math.min(HISTOGRAM_BINS - 1, Math.floor(((v - min) / width) * HISTOGRAM_BINS))
+  for (const v of sorted) {
+    const i = width === 0 ? 0 : Math.max(0, Math.min(HISTOGRAM_BINS - 1, Math.floor(((v - min) / width) * HISTOGRAM_BINS)))
     counts[i]++
   }
   const peak = Math.max(...counts)
-  return { hist: counts.map((c) => (peak === 0 ? 0 : c / peak)), min, max }
+  return { hist: counts.map((c) => (peak === 0 ? 0 : round3(c / peak))), min: round1(min), max: round1(max) }
 }
 
 export interface Bin {
