@@ -38,7 +38,7 @@ npm run build       # build do apps/web (tsc -b + vite build)
 npm run preview     # servir o build de produção do apps/web
 npm run lint        # ESLint do apps/web (flat config)
 npm run test        # testes do apps/web (Vitest)
-npm run test:e2e    # E2E Playwright do golden path (sobe API + preview do web; requer Postgres em E2E_DATABASE_URL — roda no CI)
+npm run test:e2e    # E2E Playwright do golden path e do handoff da calculadora (sobe API + preview do web; requer Postgres em E2E_DATABASE_URL — roda no CI)
 npm run dev:api     # dev server do apps/api com hot-reload (tsx watch)
 npm run build:api   # compila apps/api (tsc → dist/)
 npm run start:api   # inicia o servidor compilado do apps/api
@@ -67,7 +67,7 @@ O `apps/api` valida o ambiente em [apps/api/src/env.ts](apps/api/src/env.ts) (Zo
 - `PASSWORD_RESET_EXPIRES_IN` — validade do token de redefinição de senha (default `1h`).
 - `RESEND_API_KEY` + `EMAIL_FROM` — credenciais do [Resend](https://resend.com) para envio dos e-mails de redefinição (via `fetch` HTTP, sem dependência extra). **Opcionais**: se ausentes, o link é apenas registrado no log do servidor (fallback de dev). `APP_PUBLIC_URL` define a base do link de redefinição (default `CORS_ORIGIN`).
 
-Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout|forgot|reset`, `GET /auth/me` e `DELETE /auth/me` (exclui a conta — cascade remove sessões/workouts/templates/tokens; rotas `me` protegidas via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. A redefinição de senha usa a tabela `password_reset_tokens` (token sha256, uso único, expiração) — `/auth/forgot` responde sempre genérico (não revela e-mails) e `/auth/reset` invalida todas as sessões ao concluir. Nunca exponha `password_hash` em responses ou logs.
+Rotas de auth em [apps/api/src/routes/auth.ts](apps/api/src/routes/auth.ts): `POST /auth/register|login|refresh|logout|forgot|reset`, `GET /auth/me` e `DELETE /auth/me` (exclui a conta — cascade remove sessões/workouts/templates/tokens; rotas `me` protegidas via decorator `authenticate`). Refresh tokens são rotacionados a cada `/auth/refresh` e armazenados como hash sha256 na tabela `sessions`; senhas usam `bcryptjs`. A redefinição de senha usa a tabela `password_reset_tokens` (token sha256, uso único, expiração) — `/auth/forgot` responde sempre genérico (não revela e-mails) e `/auth/reset` invalida todas as sessões ao concluir. `POST /auth/google` devolve também `created: boolean` (true só quando inseriu o usuário) — é o que libera o handoff da calculadora (#318). Nunca exponha `password_hash` em responses ou logs.
 
 ### Banco de dados e migrations
 
@@ -126,6 +126,14 @@ Funções de cálculo ficam em [apps/web/src/utils/powerlifting.ts](apps/web/src
 - Mantenha as tabelas/constantes (ex.: `RPE_PERCENTAGES`, `DEFAULT_PLATES_KG/LBS`) co-localizadas no arquivo.
 
 **Comparação com quem competiu no Brasil** (issue #293) fica em [apps/web/src/utils/strength.ts](apps/web/src/utils/strength.ts): `compareLift(isMale, bodyweight, lift, oneRm)` e `compareTotal(isMale, bodyweight, total)` devolvem percentil, nível (escada `Estreante < P25 · Competitivo · Pódio regional · Elite nacional ≥ P85`, cortes em `LEVEL_PERCENTILES`), próximo degrau em kg e a curva da faixa — ou `null` para entrada inválida. A fonte é `src/data/strength-percentiles.json` (commitado, ~27 KB), gerado pelo pipeline em `apps/web/scripts/opl/` a partir do dump público do OpenPowerlifting: `parse.ts` (CSV + filtros: meets no Brasil, raw, últimos 10 anos) e `aggregate.ts` (melhor por atleta, classes IPF, 21 percentis, histograma P1–P99, fusão de classes com n < 50) são puros e testados; `build-strength-percentiles.ts` é o CLI. **Refresh manual, trimestral**: baixar e extrair `openpowerlifting-latest.zip` fora do repo e rodar `npm run opl:percentiles -w @powerlifting/web -- --csv <caminho-do-csv>` (≈ 25 s; imprime a tabela de calibração e regrava o JSON — commitar). Dados em domínio público; manter a atribuição do `meta.attribution` visível onde o resultado aparecer.
+
+### Handoff da calculadora de força (issue #318)
+
+O CTA da calculadora da landing abre `app.…/registro#forca=<payload>` (formato em `@powerlifting/shared`, `strengthPayload.ts`). No app, [apps/web/src/utils/strengthHandoff.ts](apps/web/src/utils/strengthHandoff.ts) é o **único** ponto que toca `sessionStorage` (chave `powerlifting_strength_handoff`):
+
+- `main.tsx` chama `captureHandoffFromUrl` no boot: guarda o payload válido com `apply: false`, limpa `/registro` e o fragmento da URL e abre o `Auth` no modo cadastro (payload inválido/`v` desconhecido → cadastro normal).
+- O `AuthContext` chama `markHandoffForApply()` **antes do `setUser`** só em conta nova: `register()` ou `/auth/google` com `created: true`. Login de conta existente não marca.
+- O `AppContent` consome com `takeHandoff()` (sempre apaga o stash) e chama `seedFromStrengthHandoff` do `WorkoutContext`: `gender`, `bodyweight`, `bodyweightLog` de hoje e a sessão "Registro da calculadora" ([strengthSeed.ts](apps/web/src/utils/strengthSeed.ts), puro) com uma série por lift nos nomes canônicos `Agachamento` / `Supino Reto` / `Levantamento Terra` — pendente de sync e com PRs recalculados; idempotente no dia.
 
 ### Estilo / design system ONYX
 
