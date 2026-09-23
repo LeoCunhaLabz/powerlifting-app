@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { setTimeout as sleep } from 'node:timers/promises'
 import Fastify from 'fastify'
@@ -7,6 +7,8 @@ import { authRoutes } from './auth.js'
 import { authPluginFp } from '../plugins/auth.js'
 import { users, sessions } from '../db/schema.js'
 import { hashPassword } from '../lib/auth.js'
+import { env } from '../env.js'
+import { OAuth2Client } from 'google-auth-library'
 
 // ---------------------------------------------------------------------------
 // Cobertura pré-lançamento das rotas de auth (issue #251): register, login,
@@ -332,4 +334,52 @@ test('POST /auth/google sem GOOGLE_CLIENT_ID configurado responde 503', async ()
   assert.equal(response.json().code, 'GOOGLE_AUTH_UNAVAILABLE')
 
   await app.close()
+})
+
+// Google com credencial válida (verifyIdToken mockado): `created` distingue conta
+// nova de conta existente — o app só semeia o handoff da calculadora na nova (#318).
+async function withGoogleConfigured(fn: () => Promise<void>) {
+  const previous = env.GOOGLE_CLIENT_ID
+  env.GOOGLE_CLIENT_ID = 'test-client-id'
+  const verify = mock.method(OAuth2Client.prototype, 'verifyIdToken', async () => ({
+    getPayload: () => ({ email: 'Novo@Example.com', name: 'Atleta', sub: 'google-sub', email_verified: true }),
+  }))
+  try {
+    await fn()
+  } finally {
+    verify.mock.restore()
+    env.GOOGLE_CLIENT_ID = previous
+  }
+}
+
+test('POST /auth/google cria a conta quando o e-mail é novo e devolve created: true', async () => {
+  await withGoogleConfigured(async () => {
+    const db = createDb()
+    const app = await buildApp(db)
+
+    const response = await app.inject({ method: 'POST', url: '/auth/google', payload: { credential: 'id-token' } })
+
+    assert.equal(response.statusCode, 200)
+    const body = response.json()
+    assert.equal(body.created, true)
+    assert.equal(body.user.email, 'novo@example.com')
+    assert.equal(db.recorder.inserted.filter((i) => i.table === users).length, 1)
+
+    await app.close()
+  })
+})
+
+test('POST /auth/google com conta existente devolve created: false e não insere usuário', async () => {
+  await withGoogleConfigured(async () => {
+    const db = createDb({ user: { id: USER_ID, email: 'novo@example.com', name: 'Atleta', passwordHash: null } })
+    const app = await buildApp(db)
+
+    const response = await app.inject({ method: 'POST', url: '/auth/google', payload: { credential: 'id-token' } })
+
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.json().created, false)
+    assert.equal(db.recorder.inserted.filter((i) => i.table === users).length, 0)
+
+    await app.close()
+  })
 })
