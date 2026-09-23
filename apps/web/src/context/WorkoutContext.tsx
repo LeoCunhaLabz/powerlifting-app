@@ -11,10 +11,12 @@ import type {
   Program,
   WeekOverride,
   CustomExercise,
+  StrengthPayload,
 } from '@powerlifting/shared';
 import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../utils/powerlifting';
 import { trySetItem, shouldClearActiveBackup } from '../utils/persistence';
 import { trackEvent } from '../utils/analytics';
+import { buildReferenceSession, REFERENCE_SESSION_NAME } from '../utils/strengthSeed';
 
 /** Recalculates isPr flags for all sessions chronologically. */
 function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
@@ -139,6 +141,8 @@ interface WorkoutContextType {
   resetAllData: () => void;
   /** Recria o dataset demo anual (com purge no servidor) para a conta demo. */
   reseedDemoData: (confirmationText: string) => Promise<{ ok: boolean; message: string }>;
+  /** Semeia conta nova com o resultado da calculadora de força da landing (#318). Idempotente no dia. */
+  seedFromStrengthHandoff: (payload: StrengthPayload) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -701,6 +705,31 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     const now = new Date().toISOString();
     setState(prev => applyServerData(prev, result, now));
   }, [syncPull]);
+
+  const seedFromStrengthHandoff = useCallback((payload: StrengthPayload) => {
+    const nowIso = new Date().toISOString();
+    const dayKey = nowIso.slice(0, 10);
+    const session = buildReferenceSession(
+      payload,
+      nowIso,
+      (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    setState(prev => {
+      if (prev.history.some(s => s.name === REFERENCE_SESSION_NAME && s.date.slice(0, 10) === dayKey)) return prev;
+      const bodyweightLog: BodyweightEntry[] = [
+        ...prev.bodyweightLog.filter(e => e.date.slice(0, 10) !== dayKey),
+        { date: nowIso, weight: payload.bw },
+      ].sort((a, b) => a.date.localeCompare(b.date));
+      // Mesmo caminho do histórico editado: PRs recalculados e sessão pendente de sync.
+      const recalced = recalculatePRs([session, ...prev.history]).sort((a, b) => b.date.localeCompare(a.date));
+      return {
+        ...prev,
+        settings: { ...prev.settings, gender: payload.sex === 'M' ? 'male' : 'female', bodyweight: payload.bw },
+        bodyweightLog,
+        history: markChangedPending(prev.history, recalced, session.id, nowIso),
+      };
+    });
+  }, []);
 
   const reseedDemoData = useCallback(async (confirmationText: string) => {
     const normalizedEmail = demoEmail?.trim().toLowerCase();
@@ -1698,6 +1727,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       removeCustomExercise,
       resetAllData,
       reseedDemoData,
+      seedFromStrengthHandoff,
     }), [
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
@@ -1707,7 +1737,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
       updateHistorySession, deleteHistorySession, addCustomPlate, removeCustomPlate,
-      addCustomExercise, removeCustomExercise, resetAllData, reseedDemoData,
+      addCustomExercise, removeCustomExercise, resetAllData, reseedDemoData, seedFromStrengthHandoff,
     ])}>
       {children}
     </WorkoutContext.Provider>

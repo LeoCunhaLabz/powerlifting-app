@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { AuthApiError, forgotPassword, resetPassword } from '../services/authApi';
 import { Eye, EyeOff, Dumbbell, ArrowLeft } from 'lucide-react';
 import { ErrorBox } from '../components/ErrorBox';
+import { hasPendingHandoff } from '../utils/strengthHandoff';
 
 // Declaração mínima do Google Identity Services (carregado via script externo)
 declare const google: {
@@ -28,9 +29,18 @@ const initialResetToken = (() => {
   }
 })();
 
-export const Auth: React.FC = () => {
+interface AuthProps {
+  /** Veio de /registro (CTA da landing): abre direto no cadastro. */
+  openRegister?: boolean;
+}
+
+export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
   const { login, register, loginWithGoogle } = useAuth();
-  const [mode, setMode] = useState<Mode>(initialResetToken ? 'reset' : 'login');
+  // Resultado da calculadora de força aguardando cadastro (#318) — lido uma vez.
+  const [pendingHandoff] = useState(() => hasPendingHandoff());
+  const [mode, setMode] = useState<Mode>(
+    initialResetToken ? 'reset' : openRegister || pendingHandoff ? 'register' : 'login',
+  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -233,6 +243,12 @@ export const Auth: React.FC = () => {
             ? 'Informe seu e-mail e enviaremos um link para redefinir a senha.'
             : 'Defina uma nova senha para a sua conta.'}
         </p>
+
+        {mode === 'register' && pendingHandoff && (
+          <p style={styles.handoffNote} role="status">
+            Vamos guardar seu resultado da calculadora nesta conta.
+          </p>
+        )}
 
         {/* Forgot password form */}
         {mode === 'forgot' && (
@@ -510,6 +526,15 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px',
     display: 'flex',
     alignItems: 'center',
+  },
+  handoffNote: {
+    fontSize: '13px',
+    color: 'var(--text-secondary)',
+    borderLeft: '2px solid var(--accent)',
+    padding: '2px 0 2px 10px',
+    marginTop: '-12px',
+    marginBottom: '20px',
+    lineHeight: 1.4,
   },
   infoBox: {
     background: 'var(--accent-soft)',

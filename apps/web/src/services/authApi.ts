@@ -26,6 +26,8 @@ export interface AuthTokens {
 
 export interface AuthResponse extends AuthTokens {
   user: AuthUser;
+  /** Só em `/auth/google`: true quando a conta acabou de ser criada (#318). */
+  created?: boolean;
 }
 
 export class AuthApiError extends Error {

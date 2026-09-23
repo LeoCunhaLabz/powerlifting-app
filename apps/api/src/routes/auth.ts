@@ -28,6 +28,8 @@ const tokensSchema = z.object({
 })
 
 const authResponseSchema = tokensSchema.extend({ user: userSchema })
+// `created` diz ao app se a conta acabou de nascer (semeia o handoff da calculadora, #318).
+const googleAuthResponseSchema = authResponseSchema.extend({ created: z.boolean() })
 
 const messageSchema = z.object({ message: z.string() })
 const errorMessageSchema = messageSchema.extend({ code: z.string() })
@@ -321,7 +323,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         body: z.object({ credential: z.string().min(1) }),
         response: {
-          200: authResponseSchema,
+          200: googleAuthResponseSchema,
           400: errorMessageSchema,
           503: errorMessageSchema,
         },
@@ -365,6 +367,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         .limit(1)
 
       // Cria novo usuário (passwordHash = null para contas Google)
+      let created = false
       if (!user) {
         try {
           const inserted = await app.db
@@ -372,6 +375,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
             .values({ name, email, passwordHash: null })
             .returning({ id: users.id, email: users.email, name: users.name })
           user = inserted[0]
+          created = user !== undefined
         } catch (error: unknown) {
           // Corrida de concorrência: outro request criou o usuário antes (unique violation)
           if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
@@ -394,7 +398,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       const accessToken = app.jwt.sign({ sub: user.id, email: user.email })
       const refreshToken = await issueRefreshToken(app, user.id)
 
-      return reply.send({ accessToken, refreshToken, user })
+      return reply.send({ accessToken, refreshToken, user, created })
     },
   )
 

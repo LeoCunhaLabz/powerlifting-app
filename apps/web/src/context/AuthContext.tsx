@@ -10,6 +10,7 @@ import {
 import type { AuthUser } from '../services/authApi';
 import { saveTokens, clearTokens, getRefreshToken, getAccessToken, refreshSession } from '../services/session';
 import { trackEvent } from '../utils/analytics';
+import { markHandoffForApply } from '../utils/strengthHandoff';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -67,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const res = await apiRegister(name, email, password);
+    // Antes do setUser: o AppContent consome o handoff ao montar (#318).
+    markHandoffForApply();
     saveTokens(res.accessToken, res.refreshToken);
     setAccessToken(res.accessToken);
     setUser(res.user);
@@ -89,6 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = useCallback(async (credential: string) => {
     const res = await apiLoginWithGoogle(credential);
+    // Conta Google existente não recebe o resultado da calculadora — só a recém-criada.
+    if (res.created) markHandoffForApply();
     saveTokens(res.accessToken, res.refreshToken);
     setAccessToken(res.accessToken);
     setUser(res.user);
