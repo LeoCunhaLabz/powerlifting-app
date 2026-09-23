@@ -6,11 +6,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=block"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85,700;85,800&family=Outfit:wght@900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=block"
     />
     <style>
       /* Arte og-image 1200×630 (issue #250 / #249). Renderizada por scripts/og-image.mjs
-         com Playwright e salva em public/og-image.png. Tokens do design system ONYX. */
+         com Playwright e salva em public/og-image.png. Tokens do design system ONYX.
+         Display em Archivo wdth 85 e copy do hero novo (issue #317): a #315 trocou a
+         fonte no site e deixou a og-image para cá. Outfit 900 só no wordmark. */
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body { width: 1200px; height: 630px; overflow: hidden; }
       body {
@@ -39,14 +41,13 @@
         letter-spacing: 3px; color: #fafafa;
       }
       .kicker {
-        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 15px;
+        font-family: 'Archivo', system-ui, sans-serif; font-variation-settings: 'wdth' 85; font-weight: 800; font-size: 15px;
         letter-spacing: 3px; text-transform: uppercase; color: #e3a83b;
       }
       h1 {
-        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 58px;
-        line-height: 1.06; letter-spacing: -0.02em; color: #fafafa;
+        font-family: 'Archivo', system-ui, sans-serif; font-variation-settings: 'wdth' 85; font-weight: 800; font-size: 54px;
+        line-height: 1.06; letter-spacing: -0.01em; color: #fafafa;
       }
-      h1 em { font-style: normal; color: #e3a83b; }
       .sub { font-size: 24px; line-height: 1.45; color: #9a9aa0; }
       .card {
         width: 380px; flex: 0 0 auto;
@@ -59,7 +60,7 @@
         padding: 20px 24px; border-bottom: 1px solid #242424;
       }
       .card__title {
-        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 13px;
+        font-family: 'Archivo', system-ui, sans-serif; font-variation-settings: 'wdth' 85; font-weight: 800; font-size: 13px;
         letter-spacing: 2px; text-transform: uppercase; color: #9a9aa0;
       }
       .seg { display: flex; background: #1e1e1e; border: 1px solid #242424; border-radius: 12px; padding: 3px; gap: 2px; }
@@ -69,7 +70,7 @@
       .lbl { font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: #5c5c61; display: block; margin-bottom: 8px; }
       .inp {
         background: #1e1e1e; border: 1px solid #242424; border-radius: 8px; padding: 12px 14px;
-        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 20px; color: #fafafa;
+        font-family: 'Archivo', system-ui, sans-serif; font-variation-settings: 'wdth' 85; font-weight: 800; font-size: 20px; color: #fafafa;
       }
       .inp.on { border-color: #e3a83b; box-shadow: 0 0 0 3px rgba(227,168,59,.12); }
       .res {
@@ -79,12 +80,12 @@
       }
       .res .lbl { color: #e3a83b; margin-bottom: 4px; }
       .res .num {
-        font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 64px; line-height: 1; color: #e3a83b;
+        font-family: 'Archivo', system-ui, sans-serif; font-variation-settings: 'wdth' 85; font-weight: 800; font-size: 64px; line-height: 1; color: #e3a83b;
       }
       .res .num small { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 14px; color: #9a9aa0; margin-left: 10px; }
       .url {
         position: absolute; right: 80px; bottom: 34px;
-        font-family: 'Outfit', system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 1px; color: #5c5c61;
+        font-family: 'Archivo', system-ui, sans-serif; font-variation-settings: 'wdth' 85; font-weight: 700; font-size: 16px; letter-spacing: 1px; color: #5c5c61;
       }
     </style>
   </head>
@@ -97,12 +98,12 @@
           <span>ONYX</span>
         </div>
         <div class="kicker">App de treino · Powerlifting</div>
-        <h1>O app que fala a língua do <em>powerlifting</em>.</h1>
-        <p class="sub">RPE, %1RM, DOTS e total SBD, grátis, em português e offline.</p>
+        <h1>Quão forte você é? E quanto falta pro próximo nível?</h1>
+        <p class="sub">Compare com quem compete no Brasil e treine com um app que calcula a carga certa de cada dia.</p>
       </div>
       <div class="card">
         <div class="card__head">
-          <span class="card__title">Calculadora DOTS</span>
+          <span class="card__title">Força pelo peso</span>
           <div class="seg"><span class="on">Masc.</span><span>Fem.</span></div>
         </div>
         <div class="grid">
