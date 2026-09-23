@@ -1,12 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../sections/Hero.astro';
-import CalculatorCards from '../sections/CalculatorCards.astro';
+import ForYou from '../sections/ForYou.astro';
 import Differentials from '../sections/Differentials.astro';
 import AppShowcase from '../sections/AppShowcase.astro';
+import CalculatorCards from '../sections/CalculatorCards.astro';
 import Comparison from '../sections/Comparison.astro';
 import FinalCta from '../sections/FinalCta.astro';
-import { SITE_URL, APP_URL, DEFAULT_DESCRIPTION, HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site';
+import { SITE_URL, APP_URL, DEFAULT_DESCRIPTION, HERO_TITLE, HERO_SUBTITLE, HOME_TITLE } from '../lib/site';
 
 const jsonLd = [
   {
@@ -25,29 +26,26 @@ const jsonLd = [
     operatingSystem: 'Web, Android',
     url: APP_URL,
     inLanguage: 'pt-BR',
-    description: `${HERO_TITLE_PREFIX}${HERO_TITLE_ACCENT}: ${HERO_SUBTITLE}`,
+    description: `${HERO_TITLE} ${HERO_SUBTITLE}`,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
+    // Em linguagem simples: é isto que o Google mostra (issue #317, spec §3).
     featureList: [
-      'Registro de treino com RPE',
-      'Prescrição por %1RM sobre o e1RM atual',
-      'DOTS, Wilks e IPF GL nativos',
-      'Offline (PWA) com sincronização',
-      'Calculadora de anilhas',
+      'Registra cada série com o esforço (RPE)',
+      'Calcula a carga do dia sobre o seu máximo atual',
+      'Mostra se você é forte pro seu peso (DOTS, Wilks e IPF GL)',
+      'Funciona sem internet e sincroniza depois',
+      'Calculadora de anilhas por lado',
     ],
   },
 ];
 ---
 
-<BaseLayout
-  title="ONYX, o app que fala a língua do powerlifting"
-  description={DEFAULT_DESCRIPTION}
-  path="/"
-  jsonLd={jsonLd}
->
+<BaseLayout title={HOME_TITLE} description={DEFAULT_DESCRIPTION} path="/" jsonLd={jsonLd}>
   <Hero />
-  <CalculatorCards />
+  <ForYou />
   <Differentials />
   <AppShowcase />
+  <CalculatorCards />
   <Comparison />
   <FinalCta />
 </BaseLayout>

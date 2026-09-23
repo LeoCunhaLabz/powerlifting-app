@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-export type PublicCalculator = 'hero-dots' | 'dots' | '1rm' | 'anilhas';
+export type PublicCalculator = 'dots' | '1rm' | 'anilhas';
 
 /**
  * Eventos nomeados em uso na landing (mantenha a lista ao adicionar um):

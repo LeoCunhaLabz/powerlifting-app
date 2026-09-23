@@ -7,33 +7,36 @@ import PhoneResumo from '../components/phones/PhoneResumo.astro';
 
 // Os 4 frames são HTML/CSS estáticos. No mobile (≤1023px) ficam num carrossel de
 // scroll horizontal com snap (item 12 da revisão de 17/09/2026).
+//
+// A ordem é narrativa (issue #317, spec §4): abre → registra → fecha o treino →
+// vê se evoluiu. Mexer na ordem dos <figure> muda a história que a seção conta.
 ---
 
 <section class="section section--hairline-top app" aria-labelledby="app-title">
   <div class="container app__inner">
     <div class="app__head">
-      <SectionHeader kicker="O app" title="Do aquecimento ao PR." />
+      <SectionHeader kicker="Um treino no ONYX" title="Do primeiro acesso ao PR." />
     </div>
 
     <div class="app__frames" id="app-frames">
       <figure class="app__frame app__frame--side">
-        <PhoneTreino />
-        <figcaption>Treino ativo: RPE e última carga por série</figcaption>
-      </figure>
-
-      <figure class="app__frame">
         <PhoneDashboard />
-        <figcaption>Início: e1RM, DOTS e recordes de frente</figcaption>
+        <figcaption>1 · Abre e vê a carga de hoje</figcaption>
       </figure>
 
       <figure class="app__frame">
-        <PhoneAnalytics />
-        <figcaption>Análises: heatmap de frequência e DOTS ao longo do tempo</figcaption>
+        <PhoneTreino />
+        <figcaption>2 · Registra a série e como ela foi</figcaption>
+      </figure>
+
+      <figure class="app__frame">
+        <PhoneResumo />
+        <figcaption>3 · Fecha o treino com os recordes do dia</figcaption>
       </figure>
 
       <figure class="app__frame app__frame--side">
-        <PhoneResumo />
-        <figcaption>Resumo: volume, duração e PRs da sessão</figcaption>
+        <PhoneAnalytics />
+        <figcaption>4 · Vê se está ficando mais forte</figcaption>
       </figure>
     </div>
 

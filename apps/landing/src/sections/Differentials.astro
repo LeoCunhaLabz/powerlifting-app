@@ -36,6 +36,7 @@ const ICONS: Record<DifferentialIcon, string> = {
           <article class="card diff__card" role="listitem">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[d.icon]} />
             <h3 class="diff__title">{d.title}</h3>
+            <span class="label diff__term">{d.term}</span>
             <p>{d.text}</p>
           </article>
         ))
@@ -160,7 +161,7 @@ const ICONS: Record<DifferentialIcon, string> = {
     width: 300px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     padding: 26px;
     transition:
       transform var(--transition-normal),
@@ -172,6 +173,16 @@ const ICONS: Record<DifferentialIcon, string> = {
       transform: translateY(-4px);
       border-color: var(--accent-border);
       }
+  }
+
+  /* O termo técnico vira legenda do benefício (spec §5): fica colado no título. */
+  .diff__term {
+    margin-top: -2px;
+    color: var(--text-muted);
+  }
+
+  .diff__card p {
+    margin-top: 2px;
   }
 
   .diff__title {

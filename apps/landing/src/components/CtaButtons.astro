@@ -5,12 +5,22 @@ interface Props {
   secondaryHref?: string;
   secondaryLabel?: string;
   stack?: boolean;
+  /**
+   * `quiet` deixa os dois botões em estilo secundário. Usado no hero (issue #317):
+   * lá o único brass é o botão da calculadora, que é por onde a conversão passa.
+   */
+  variant?: 'default' | 'quiet';
 }
-const { secondaryHref = '/#calculadoras', secondaryLabel = CTA_CALCULATORS, stack = false } = Astro.props;
+const {
+  secondaryHref = '/#calculadoras',
+  secondaryLabel = CTA_CALCULATORS,
+  stack = false,
+  variant = 'default',
+} = Astro.props;
 ---
 
 <div class={`ctas${stack ? ' ctas--stack' : ''}`}>
-  <a class="btn btn--primary" href={APP_URL}>{CTA_PRIMARY}</a>
+  <a class={`btn btn--${variant === 'quiet' ? 'secondary' : 'primary'}`} href={APP_URL}>{CTA_PRIMARY}</a>
   <a class="btn btn--secondary" href={secondaryHref}>
     <span>{secondaryLabel}</span>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
