@@ -4,19 +4,23 @@ export const APP_URL = 'https://app.onyxtreino.com.br';
 export const SITE_NAME = 'ONYX';
 
 /**
- * Hero copy — base aprovada no GTM (issue #260), revisada em 17/09/2026 (feedback
- * direto do responsável do produto): "diário de treino" trocado por "app" e o
- * travessão do subtítulo removido.
+ * Hero copy — reescrita na issue #317 (spec 2026-09-21, §5) para a persona que
+ * treina os três básicos e não sabe o que é DOTS: benefício no título, termo na
+ * legenda. O H1 é monocromático (sem palavra em brass): o único botão brass do
+ * hero é o da calculadora. A tagline do GTM (issue #260) vive só no footer.
  */
-export const HERO_TITLE_PREFIX = 'O app que fala a língua do ';
-export const HERO_TITLE_ACCENT = 'powerlifting';
-export const HERO_SUBTITLE = 'RPE, %1RM, DOTS e total SBD, grátis, em português e offline.';
+export const HERO_TITLE = 'Quão forte você é? E quanto falta pro próximo nível?';
+export const HERO_SUBTITLE =
+  'Compare com quem compete no Brasil e treine com um app que calcula a carga certa de cada dia. Grátis, em português, funciona sem internet.';
 
-export const DEFAULT_DESCRIPTION =
-  'ONYX é o app de powerlifting em português: RPE, %1RM, DOTS, Wilks e IPF GL, grátis e offline. Calculadoras públicas sem login.';
+/** `<title>` da home. As outras páginas montam o seu no próprio layout. */
+export const HOME_TITLE = 'ONYX: descubra quão forte você é e treine powerlifting em português';
+
+/** Description padrão do site — na home, acompanha o subtítulo do hero (spec §5). */
+export const DEFAULT_DESCRIPTION = HERO_SUBTITLE;
 
 export const CTA_PRIMARY = 'Criar conta grátis';
-export const CTA_CALCULATORS = 'Usar as calculadoras';
+export const CTA_CALCULATORS = 'Ver as calculadoras';
 export const CTA_OPEN_APP = 'Abrir o app';
 
 export const ROUTES = {

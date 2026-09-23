@@ -1,6 +1,10 @@
 /**
  * Tabela comparativa da home (seção 7 da spec).
  *
+ * Copy reescrita na issue #317 (spec §5): `criterio` é o benefício e `detalhe` é o
+ * termo técnico. **Valores e `fonte` de cada célula não mudam** — a pesquisa da
+ * #255 continua valendo; só a forma de dizer mudou.
+ *
  * Fonte da verdade dos valores: análise competitiva da issue #255 (set/2026, planos
  * gratuitos). Toda célula carrega a `fonte` da afirmação — células marcadas como
  * "verificar" foram confirmadas manualmente nas lojas/apps em 16/09/2026 e devem ser
@@ -52,9 +56,9 @@ export const CELL_LABEL: Record<CellValue, string> = {
 
 export const COMPARISON_ROWS: ComparisonRow[] = [
   {
-    criterio: 'DOTS · Wilks · IPF GL',
-    criterioCurto: 'DOTS · IPF GL',
-    detalhe: 'Força relativa nativa nas análises',
+    criterio: 'Mostra se você é forte pro seu peso',
+    criterioCurto: 'Forte pro seu peso',
+    detalhe: 'DOTS · Wilks · IPF GL',
     onyx: { value: 'sim', fonte: 'app: calculateDots/Wilks/IpfGl no dashboard, análises e calculadora' },
     strong: { value: 'nao', fonte: '#255: "DOTS/Wilks/IPF GL: nenhum dos 4 tem"' },
     hevy: { value: 'nao', fonte: '#255: "DOTS/Wilks/IPF GL: nenhum dos 4 tem"' },
@@ -62,9 +66,9 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     outrosApps: { value: 'nao', fonte: '#255' },
   },
   {
-    criterio: 'Prescrição por %1RM + RPE',
-    criterioCurto: '%1RM + RPE',
-    detalhe: 'Programa carga sobre o e1RM atual',
+    criterio: 'Calcula a carga do dia pra você',
+    criterioCurto: 'Carga do dia',
+    detalhe: '%1RM sobre o máximo atual + RPE',
     onyx: { value: 'sim', fonte: 'app: rotinas com %1RM sobre e1RM atual e RPE-alvo por série' },
     strong: { value: 'parcial', fonte: '#255: RPE só no log (pago); sem %1RM programável em rotina custom' },
     hevy: { value: 'parcial', fonte: '#255: RPE só no log; sem %1RM programável' },
@@ -72,9 +76,9 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     outrosApps: { value: 'parcial', fonte: '#255' },
   },
   {
-    criterio: 'Feito em pt-BR, não traduzido',
-    criterioCurto: 'pt-BR',
-    detalhe: 'Agachamento, supino e terra, termos do esporte',
+    criterio: 'Em português de verdade',
+    criterioCurto: 'Em português',
+    detalhe: 'Agachamento, supino e terra',
     onyx: { value: 'sim', fonte: 'app escrito em pt-BR (AGENTS.md: UI em pt-BR)' },
     strong: { value: 'traducao', fonte: 'verificar: localização pt entre vários idiomas, nomes de exercícios traduzidos' },
     hevy: { value: 'traducao', fonte: 'verificar: localização pt-BR entre vários idiomas' },
@@ -82,9 +86,9 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     outrosApps: { value: 'varia', fonte: 'coluna colapsada' },
   },
   {
-    criterio: 'Offline de verdade (PWA)',
-    criterioCurto: 'Offline (PWA)',
-    detalhe: 'Registra sem sinal, sincroniza depois',
+    criterio: 'Funciona sem internet',
+    criterioCurto: 'Sem internet',
+    detalhe: 'PWA: registra sem sinal, sincroniza depois',
     onyx: { value: 'sim', fonte: 'app: localStorage + useSyncManager (fila offline, push no evento online)' },
     strong: { value: 'parcial', fonte: 'verificar: registra offline; sync em nuvem no plano pago' },
     hevy: { value: 'parcial', fonte: 'verificar: registra offline; recursos de sync/análise no Pro' },

@@ -1,23 +1,28 @@
 ---
-import DotsCalculator from '../islands/DotsCalculator';
+import StrengthCalculator from '../islands/StrengthCalculator';
 import CtaButtons from '../components/CtaButtons.astro';
-import { HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site';
+import { HERO_TITLE, HERO_SUBTITLE } from '../lib/site';
+
+// Layout em grid areas (issue #317): no desktop a calculadora ocupa a coluna da
+// direita nas duas linhas; no mobile a ordem vira **título → calculadora → CTAs**,
+// porque a calculadora é o gancho e precisa vir antes dos botões (spec §4).
 ---
 
 <section class="hero" aria-labelledby="hero-title">
   <div class="container hero__inner">
     <div class="hero__copy">
       <span class="kicker">App de treino · Powerlifting</span>
-      <h1 id="hero-title" class="hero__title">
-        {HERO_TITLE_PREFIX}<span class="hero__accent">{HERO_TITLE_ACCENT}</span>.
-      </h1>
+      <h1 id="hero-title" class="hero__title">{HERO_TITLE}</h1>
       <p class="hero__sub">{HERO_SUBTITLE}</p>
-      <CtaButtons />
-      <p class="hero__note">Sem cartão. As calculadoras funcionam sem conta, direto no navegador.</p>
     </div>
 
     <div class="hero__calc">
-      <DotsCalculator client:load />
+      <StrengthCalculator mode="compacto" client:load />
+    </div>
+
+    <div class="hero__ctas">
+      <CtaButtons variant="quiet" />
+      <p class="hero__note">Sem cartão. As calculadoras funcionam sem conta.</p>
     </div>
   </div>
 </section>
@@ -28,28 +33,40 @@ import { HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site
   }
 
   .hero__inner {
-    display: flex;
-    gap: 72px;
-    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 440px;
+    grid-template-areas:
+      'copy calc'
+      'ctas calc';
+    align-items: start;
+    column-gap: 72px;
+    row-gap: 28px;
     padding-top: 96px;
     padding-bottom: 104px;
   }
 
   .hero__copy {
-    flex: 1;
+    grid-area: copy;
     display: flex;
     flex-direction: column;
     gap: 24px;
     max-width: 620px;
   }
 
+  .hero__calc {
+    grid-area: calc;
+  }
+
+  .hero__ctas {
+    grid-area: ctas;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
   .hero__title {
     font-size: clamp(32px, 4.2vw, 52px);
     line-height: 1.08;
-  }
-
-  .hero__accent {
-    color: var(--accent);
   }
 
   .hero__sub {
@@ -63,16 +80,14 @@ import { HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site
     color: var(--text-muted);
   }
 
-  .hero__calc {
-    width: 440px;
-    flex: 0 0 auto;
-  }
-
   @media (max-width: 1023px) {
     .hero__inner {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 36px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        'copy'
+        'calc'
+        'ctas';
+      row-gap: 32px;
       padding-top: 56px;
       padding-bottom: 56px;
     }
@@ -92,7 +107,7 @@ import { HERO_TITLE_PREFIX, HERO_TITLE_ACCENT, HERO_SUBTITLE } from '../lib/site
     .hero__inner {
       padding-top: 44px;
       padding-bottom: 40px;
-      gap: 28px;
+      row-gap: 24px;
     }
 
     .hero__copy {
