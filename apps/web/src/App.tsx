@@ -16,6 +16,7 @@ import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
 import { trackTabView } from './utils/analytics';
+import { takeHandoff } from './utils/strengthHandoff';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
 
 type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history' | 'exercises' | 'prs' | 'comparison';
@@ -35,7 +36,14 @@ const MORE_LABELS: Record<MoreTab, string> = {
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
   const [historyInit, setHistoryInit] = useState<{ sessionId?: string; edit?: boolean } | null>(null);
-  const { activeWorkout, saveError, dismissSaveError, syncStatus, repeatWorkout } = useWorkout();
+  const { activeWorkout, saveError, dismissSaveError, syncStatus, repeatWorkout, seedFromStrengthHandoff } = useWorkout();
+
+  // Conta recém-criada a partir da calculadora de força: semeia uma única vez (#318).
+  // takeHandoff sempre apaga o stash; login de conta existente só o descarta.
+  React.useEffect(() => {
+    const payload = takeHandoff();
+    if (payload) seedFromStrengthHandoff(payload);
+  }, [seedFromStrengthHandoff]);
 
   // Navega para o Histórico, opcionalmente abrindo uma sessão (deep-link do Dashboard).
   const goToHistory = (opts?: { sessionId?: string; edit?: boolean }) => {
@@ -204,7 +212,7 @@ const AppContent: React.FC = () => {
   );
 };
 
-const AuthGate: React.FC = () => {
+const AuthGate: React.FC<{ openRegister: boolean }> = ({ openRegister }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -216,7 +224,7 @@ const AuthGate: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <Auth />;
+    return <Auth openRegister={openRegister} />;
   }
 
   return (
@@ -230,10 +238,10 @@ const AuthGate: React.FC = () => {
   );
 };
 
-export const App: React.FC = () => {
+export const App: React.FC<{ openRegister?: boolean }> = ({ openRegister = false }) => {
   return (
     <AuthProvider>
-      <AuthGate />
+      <AuthGate openRegister={openRegister} />
     </AuthProvider>
   );
 };
