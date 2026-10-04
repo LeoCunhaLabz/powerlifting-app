@@ -2,3 +2,8 @@
 *.conf text eol=lf
 *.sh text eol=lf
 Dockerfile text eol=lf
+
+# Launcher sh da skill Impeccable (vendorizada): com CRLF o `sh` quebra no checkout Windows
+.claude/skills/impeccable/scripts/impeccable text eol=lf
+# ... e o .cmd com CRLF, que é o que o cmd.exe espera
+.claude/skills/impeccable/scripts/*.cmd text eol=crlf
