@@ -44,6 +44,7 @@ Leia a issue, desempacote o escopo e produza o plano técnico (arquivos, funçõ
 
 - Branch `<type>/<N>-<resumo>` a partir de `main`; marque `status:em-andamento`.
 - Implemente o plano em commits coerentes (use os atalhos `/nova-pagina`, `/novo-calculo`, `/novo-componente` e os agentes especializados quando couber).
+- Se tocou interface, faça a revisão de design da [`design-onyx`](../../.claude/skills/design-onyx/SKILL.md) (§5) sem pausa; o que não for corrigido vai para a seção Design do PR.
 - Valide `npm run build` + `npm run lint` (sem novos erros).
 - Mantenha docs em sincronia se estrutura/comandos/caminhos mudarem.
 - Abra o PR com [PULL_REQUEST_TEMPLATE.md](../PULL_REQUEST_TEMPLATE.md) e `Closes #N`. (Empurrar/abrir PR é local/reversível; pode seguir sem pausa.)

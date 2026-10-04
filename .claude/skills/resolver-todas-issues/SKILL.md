@@ -47,7 +47,7 @@ Ordene por menor `p` (desempate por menor `esforco`), remova as `status:bloquead
 Resolva-a seguindo a skill `resolver-issue`, mas com as regras de lote acima:
 
 1. **Planejar** (sem pausa) — invoque/siga `planejar-issue`, registre o plano, siga direto.
-2. **Executar** (sem pausa) — invoque/siga `executar-issue`: branch `<type>/<N>-<resumo>` a partir de `main`, `status:em-andamento`, commits coerentes, `npm run build` + `npm run lint` (+ `npm run test:api` se tocar a API), docs em sincronia, PR com `Closes #N`.
+2. **Executar** (sem pausa) — invoque/siga `executar-issue`: branch `<type>/<N>-<resumo>` a partir de `main`, `status:em-andamento`, commits coerentes, revisão de design (`design-onyx` §5) se tocou interface, `npm run build` + `npm run lint` (+ `npm run test:api` se tocar a API), docs em sincronia, PR com `Closes #N`.
 3. **Finalizar** — invoque/siga `finalizar-pr`: gate do Copilot (espera curta ~3 min → +2 min → pula e avisa), aplique os comments **óbvios**, junte os **duvidosos** para o resumo, revalide `build`/`lint`, rebaseie em `origin/main`, resolva conflitos, `git push --force-with-lease`.
 4. **PAUSA (merge)** — apresente o resumo da issue: comments aplicados / duvidosos a decidir / recusados · `build`/`lint` · estado do rebase · comando de merge. Pergunte: **"Posso mergear a #N?"** (Com `--auto-merge`: apresente o mesmo resumo e siga direto, sem perguntar.)
 5. Após o "ok" (ou direto, se `--auto-merge`): `gh pr merge <N> --squash --delete-branch` (`Closes #N` fecha a issue), volte para `main` e `git pull` **antes de começar a próxima issue** (cada uma parte de uma `main` atualizada).

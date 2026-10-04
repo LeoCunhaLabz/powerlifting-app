@@ -17,6 +17,7 @@ powerlifting-app/
 ├─ packages/
 │  └─ shared/       ← tipos de domínio compartilhados (@powerlifting/shared)
 ├─ package.json     ← raiz: npm workspaces + scripts que delegam
+├─ PRODUCT.md       ← registro de produto lido pelas skills de design (usuários, posicionamento, princípios)
 ├─ .env.example     ← variáveis de ambiente do docker-compose (raiz)
 ├─ Dockerfile       ← build do web E da landing a partir do workspace (mesma imagem nginx)
 ├─ nginx.conf       ← config do nginx (COPIADA para a imagem — é a que roda): app + landing por host
@@ -145,6 +146,22 @@ O CTA da calculadora da landing abre `app.…/registro#forca=<payload>` (formato
 - Estilos inline pontuais (objeto `styles`) são aceitáveis quando seguem o padrão já usado nos componentes.
 - Ícones via `lucide-react`.
 
+### Skills de design (frontend)
+
+Toda mudança de interface em `apps/web` ou `apps/landing` passa pela skill do projeto [`design-onyx`](.claude/skills/design-onyx/SKILL.md), que o agente aciona sozinho. O objetivo é interface com cara de designer, não de IA. Ela:
+
+- **fixa as decisões do ONYX** que nenhuma skill de terceiros sobrepõe (CSS puro, zero dependência nova, `lucide-react`, um acento, escuro sempre, fontes atuais, sem gradiente/glow/vidro/granulado, sem biblioteca de movimento, kicker da landing mantido, copy pt-BR sem travessão);
+- traz as **regras de gosto** do projeto (disciplina de hero, uma mensagem por seção, autorrevisão de copy, sinais de "cara de IA");
+- diz **qual skill vendorizada usar em cada etapa** e define a **revisão de design** que o `executar-issue` roda antes do PR.
+
+Contexto que as skills leem automaticamente: [PRODUCT.md](PRODUCT.md) (produto, raiz) e `DESIGN.md` por superfície ([apps/web/DESIGN.md](apps/web/DESIGN.md), [apps/landing/DESIGN.md](apps/landing/DESIGN.md)). Os valores normativos continuam no CSS; ao mudar token, componente ou regra visual, atualize o `DESIGN.md` no mesmo PR.
+
+Skills de terceiros vendorizadas em `.claude/skills/` (origem, commit e licença em [VENDORED.md](.claude/skills/VENDORED.md); **não editar os arquivos delas**, ajustes ficam na `design-onyx`):
+
+- **Impeccable** (`impeccable`): `shape`, `audit`, `critique`, `polish` etc. Instalada **sem os hooks**; na primeira execução o launcher baixa o binário da engine para `~/.impeccable/` (conferido por SHA-256). Não rodar sem pedido explícito: `hooks on`, `doctor --fix`, `pin`, `live`, `generate`/geração de imagem, `npx impeccable`. Artefatos locais em `.impeccable/` ficam fora do git.
+- **Emil Kowalski**: `emil-design-eng`, `animate`, `animation-vocabulary`, `apple-design`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `mobile-native`, `break-ui`; `prototype` e `pick-ui-library` só rodam se chamadas.
+- O **taste-skill** não foi vendorizado (parte de Tailwind/Motion/Phosphor e exige modo claro); as regras compatíveis estão na `design-onyx`.
+
 ### Landing page pública — `apps/landing` (issue #250)
 
 Site estático em **Astro 5 + ilhas React** servido na raiz de `onyxtreino.com.br` pelo mesmo nginx do app (`server` block próprio no `nginx.conf`). Spec de design em [docs/superpowers/specs/2026-09-16-landing-page-design.md](docs/superpowers/specs/2026-09-16-landing-page-design.md). Regras que não são óbvias:
@@ -173,6 +190,7 @@ Site estático em **Astro 5 + ilhas React** servido na raiz de `onyxtreino.com.b
 - [ ] Se tocou em `apps/landing`, em `powerlifting.ts` ou em `strength.ts`: `npm run lint:landing`, `npm run check:landing`, `npm run test:landing` e `npm run build:landing` passam.
 - [ ] Sem imports/variáveis não utilizados.
 - [ ] Textos de UI em pt-BR.
+- [ ] Se tocou interface: revisão de design da `design-onyx` feita e resultado na seção **Design** do PR.
 - [ ] Nenhuma dependência nova desnecessária.
 
 ## Fluxo de trabalho (PRs e iterações)
@@ -196,4 +214,4 @@ A codebase evolui por **issues**, uma de cada vez. Para cada issue:
 - `.github/prompts/` — prompts para tarefas comuns; veja [.github/prompts/README.md](.github/prompts/README.md) para o fluxo de issues (gerar → planejar → executar), labels e aprovação.
 - `.github/agents/powerlifting-dev.agent.md` — agente especializado.
 - `.github/skills/` — conhecimento de domínio (fórmulas, design system).
-- `.claude/skills/` — skills do Claude Code que espelham o fluxo de issues dos prompts (`planejar-issue`, `executar-issue`, `finalizar-pr`, `resolver-issue` end-to-end e `resolver-todas-issues` em lote).
+- `.claude/skills/` — skills do Claude Code que espelham o fluxo de issues dos prompts (`planejar-issue`, `executar-issue`, `finalizar-pr`, `resolver-issue` end-to-end e `resolver-todas-issues` em lote), a skill de design do projeto `design-onyx` e as skills de design vendorizadas (Impeccable e Emil Kowalski; ver [Skills de design](#skills-de-design-frontend)).

@@ -46,7 +46,7 @@ Leia a issue, desempacote o escopo e produza o plano técnico. **PAUSA 1:** leia
 
 ### 2. Executar — invoque a skill `executar-issue`
 
-Crie o branch `<type>/<N>-<resumo>` a partir de `main`, marque `status:em-andamento`, implemente o plano em commits coerentes, valide `npm run build` + `npm run lint` (+ `npm run test:api` se tocar a API), mantenha docs em sincronia e abra o PR com `Closes #N`. Empurrar/abrir PR é reversível — pode seguir sem pausa.
+Crie o branch `<type>/<N>-<resumo>` a partir de `main`, marque `status:em-andamento`, implemente o plano em commits coerentes, rode a **revisão de design** da skill `design-onyx` se a issue tocou interface (sem pausa; o que não for corrigido vai para a seção Design do PR), valide `npm run build` + `npm run lint` (+ `npm run test:api` se tocar a API), mantenha docs em sincronia e abra o PR com `Closes #N`. Empurrar/abrir PR é reversível — pode seguir sem pausa.
 
 ### 3. Finalizar — invoque a skill `finalizar-pr`
 
