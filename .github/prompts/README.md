@@ -108,3 +108,7 @@ Use **durante** a execução de uma issue, quando o trabalho casar com um padrã
 - [`/nova-pagina`](nova-pagina.prompt.md) — nova aba/página seguindo o padrão de navegação do `App.tsx`.
 - [`/novo-calculo`](novo-calculo.prompt.md) — nova função pura em `apps/web/src/utils/powerlifting.ts`.
 - [`/novo-componente`](novo-componente.prompt.md) — novo componente React no design system ONYX.
+
+## Design de interface
+
+Issues que tocam `apps/web` ou `apps/landing` passam pela skill [`design-onyx`](../../.claude/skills/design-onyx/SKILL.md): o plano ganha uma seção **Design** e a execução faz uma **revisão de design** antes do PR (Impeccable `audit`, `review-animations`, `break-ui`, `mobile-native` e screenshot). No Claude Code isso é automático. As decisões do ONYX ([PRODUCT.md](../../PRODUCT.md), `apps/*/DESIGN.md`, [AGENTS.md](../../AGENTS.md)) vencem as skills de terceiros.

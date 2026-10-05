@@ -7,22 +7,27 @@ description: "Design system ONYX deste app de powerlifting: tokens de cor, tipog
 
 Tema escuro, mobile-first, definido como CSS variables em [apps/web/src/index.css](../../../apps/web/src/index.css). **CSS puro** — não use Tailwind nem bibliotecas de CSS-in-JS. Ícones via `lucide-react`.
 
+Descrição completa (hierarquia, componentes, do's e don'ts) em [apps/web/DESIGN.md](../../../apps/web/DESIGN.md); regras que vencem qualquer skill de design de terceiros em [.claude/skills/design-onyx/SKILL.md](../../../.claude/skills/design-onyx/SKILL.md).
+
 ## Tokens (CSS variables)
 
 ### Cores
 | Token | Valor | Uso |
 |-------|-------|-----|
-| `--bg-primary` | `#050505` | Fundo principal |
-| `--bg-secondary` | `#121212` | Cards/superfícies |
-| `--bg-tertiary` | `#1a1a1a` | Superfícies elevadas |
-| `--text-primary` | `#ffffff` | Texto principal |
-| `--text-secondary` | `#8a8a8f` | Texto secundário |
-| `--text-muted` | `#555558` | Texto apagado |
-| `--border-color` | `#222222` | Bordas |
-| `--border-focus` | `#444444` | Bordas em foco |
-| `--success` | `#10b981` | Sucesso / PR |
-| `--error` | `#ef4444` | Erro / cancelar |
-| `--warning` | `#f59e0b` | Aviso |
+| `--bg-primary` | `#060606` | Fundo principal |
+| `--bg-secondary` | `#161616` | Cards/superfícies |
+| `--bg-tertiary` | `#1e1e1e` | Superfícies elevadas, campos |
+| `--text-primary` | `#fafafa` | Texto principal |
+| `--text-secondary` | `#9a9aa0` | Texto secundário |
+| `--text-muted` | `#5c5c61` | Texto apagado |
+| `--border-color` | `#242424` | Bordas |
+| `--border-focus` | `#4a4a4a` | Bordas em foco |
+| `--accent` | `#e3a83b` (Brass, padrão) | **Único** destaque: botão primário, aba ativa, foco. Troca por tema (`data-theme`: brass/onyx/volt) |
+| `--accent-ink` | `#1a1304` | Texto sobre o acento |
+| `--accent-soft` / `--accent-border` | brass com 12% / 30% de opacidade | Fundo de seleção, anel de foco / contorno de destaque |
+| `--success` | `#37b87f` | Sucesso / PR |
+| `--error` | `#e5544b` | Erro / cancelar |
+| `--warning` | `#e0a93f` | Aviso |
 
 ### Tipografia
 - `--font-display: 'Outfit'` — títulos (`h1`–`h6`, peso 700, `letter-spacing: -0.02em`).
@@ -31,7 +36,7 @@ Tema escuro, mobile-first, definido como CSS variables em [apps/web/src/index.cs
 - Escala: `h1` 28px, `h2` 20px, `h3` 16px.
 
 ### Raios e transições
-- `--radius-sm: 4px`, `--radius-md: 8px`, `--radius-lg: 12px`.
+- `--radius-sm: 4px`, `--radius-md: 8px`, `--radius-lg: 14px`.
 - `--transition-fast: 0.15s ease`, `--transition-normal: 0.25s ease`.
 
 ### Layout

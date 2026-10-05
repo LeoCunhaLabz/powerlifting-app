@@ -28,6 +28,7 @@ Consulte [AGENTS.md](../AGENTS.md) para o guia completo.
 - **Handoff da calculadora de força** (#318): `/registro#forca=` é capturado no boot por `utils/strengthHandoff.ts` (único uso de `sessionStorage`); só conta nova (`register` ou `/auth/google` com `created: true`) semeia peso, sexo e o treino "Registro da calculadora" via `seedFromStrengthHandoff`. Detalhes no AGENTS.md.
 - **Cálculos puros** em [apps/web/src/utils/powerlifting.ts](../apps/web/src/utils/powerlifting.ts) (e1RM arredonda 0,1; pontuações 0,01; retornam `0` para entrada inválida). Comparação com quem competiu no Brasil em [apps/web/src/utils/strength.ts](../apps/web/src/utils/strength.ts) sobre `src/data/strength-percentiles.json` (gerado por `npm run opl:percentiles -w @powerlifting/web -- --csv <dump do OpenPowerlifting>`, refresh manual trimestral).
 - **Estilo:** CSS puro com as variables de [apps/web/src/index.css](../apps/web/src/index.css) (design system ONYX, `--max-width: 480px`). Sem Tailwind/CSS-in-JS. Ícones via `lucide-react`.
+- **Design de interface:** toda mudança em `apps/web`/`apps/landing` segue [.claude/skills/design-onyx/SKILL.md](../.claude/skills/design-onyx/SKILL.md) (decisões do ONYX que vencem skills de terceiros, regras de gosto e revisão de design antes do PR), com o contexto de [PRODUCT.md](../PRODUCT.md) e do `DESIGN.md` de cada superfície.
 
 ## Validação
 
@@ -37,5 +38,5 @@ Antes de concluir: `npm run build` (na raiz) deve passar. Rode `npm run lint` e 
 
 - **Um PR por issue.** Crie um branch por issue a partir de `main` com o padrão `<type>/<issue-number>-<resumo>` (ex.: `feat/7-api-fastify`, `fix/99-correcao-calculo`) e abra um PR focado, vinculando a issue (`Closes #N`).
 - Use o template em `.github/PULL_REQUEST_TEMPLATE.md` ao abrir o PR.
-- **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize `AGENTS.md`, este arquivo, e os `.github/{agents,prompts,skills}` e `.claude/skills/` afetados no mesmo PR. As skills do Claude Code em `.claude/skills/` espelham o fluxo de issues dos prompts (`planejar-issue`, `executar-issue`, `finalizar-pr`, `resolver-issue`, `resolver-todas-issues`).
+- **Mantenha as docs em sincronia:** ao mudar estrutura, comandos ou caminhos, atualize `AGENTS.md`, este arquivo, e os `.github/{agents,prompts,skills}` e `.claude/skills/` afetados no mesmo PR. As skills do Claude Code em `.claude/skills/` espelham o fluxo de issues dos prompts (`planejar-issue`, `executar-issue`, `finalizar-pr`, `resolver-issue`, `resolver-todas-issues`); lá também ficam a `design-onyx` e as skills de design vendorizadas (Impeccable, Emil Kowalski; ver `.claude/skills/VENDORED.md`).
 - Antes de finalizar: `npm run build` e `npm run lint` sem novos erros.

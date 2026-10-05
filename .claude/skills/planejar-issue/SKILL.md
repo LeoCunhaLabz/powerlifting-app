@@ -22,6 +22,7 @@ Leia [AGENTS.md](../../../AGENTS.md), [copilot-instructions.md](../../../.github
 - **Escopo mínimo:** só o que a issue pede. Sem refactors, features ou dependências extras sem justificativa forte.
 - **Estado** só via `useWorkout()` (nunca `localStorage` direto); tipos via `@powerlifting/shared`; cálculos puros em `apps/web/src/utils/powerlifting.ts`; CSS puro com as variables de `apps/web/src/index.css`.
 - Pré-condição: a issue idealmente está em **`status:aprovada`**. Se estiver em `status:triagem`/`status:bloqueada`, avise — aprovar é decisão do usuário.
+- **Interface:** se a issue toca `apps/web` ou `apps/landing` (tela, componente, estilo, movimento, copy visível), invoque a skill `design-onyx` sem pedir ao usuário e inclua a seção **Design** no plano. Para tela, fluxo ou componente novo, use também `impeccable` (`shape`) para desenhar a UX antes de listar as tarefas.
 
 ## Passos
 
@@ -45,6 +46,13 @@ Leia [AGENTS.md](../../../AGENTS.md), [copilot-instructions.md](../../../.github
 - Adicionar cálculo Y em powerlifting.ts
 - Atualizar estado em WorkoutContext (campo Z)
 
+## Design (só se a issue toca interface)
+- Superfície: app (Operar) ou landing (Persuadir/Ler)
+- O que muda na tela e a hierarquia (o que o usuário vê primeiro)
+- Estados: vazio, carregando, erro, desabilitado
+- Movimento: nenhum, ou qual e como (CSS/rAF, nunca biblioteca)
+- Decisões do ONYX em jogo (acento, fontes, kicker, copy) e qualquer conflito com skill de terceiros
+
 ## Tarefas
 1. Preparação
    - [ ] Branch `<type>/<N>-<resumo>` a partir de `main`
@@ -56,6 +64,7 @@ Leia [AGENTS.md](../../../AGENTS.md), [copilot-instructions.md](../../../.github
    - [ ] `npm run build` passa (type-check incluso)
    - [ ] `npm run lint` sem novos erros
    - [ ] Textos de UI em pt-BR
+   - [ ] Revisão de design (`design-onyx` §5), se tocou interface
 4. Finalização
    - [ ] PR com template, `Closes #N`
    - [ ] Docs em sincronia (se estrutura/comandos/caminhos mudarem)

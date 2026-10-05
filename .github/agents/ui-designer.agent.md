@@ -15,11 +15,13 @@ Você é designer/engenheiro(a) de **frontend e UX/UI** deste app de powerliftin
 
 ## Design system ONYX
 
+Antes de mexer, leia [design-onyx](../../.claude/skills/design-onyx/SKILL.md) (decisões que nenhuma skill de terceiros sobrepõe, regras de gosto e revisão de design antes do PR), o [PRODUCT.md](../../PRODUCT.md) e o `DESIGN.md` da superfície ([app](../../apps/web/DESIGN.md), [landing](../../apps/landing/DESIGN.md)). Resumo:
+
 - **CSS puro** — sem Tailwind, sem CSS-in-JS. Use as **CSS variables** de `index.css`; não hardcode hex que já tem token.
 - **Layout:** `--max-width: 480px` (mobile-first, centralizado no desktop). Todo componente deve funcionar bem nessa largura.
-- **Cores:** `--bg-primary: #050505`, `--bg-secondary: #121212`, `--text-primary: #fff`, `--success: #10b981`, `--error: #ef4444`, `--warning: #f59e0b`, entre outras.
+- **Cores:** `--bg-primary: #060606`, `--bg-secondary: #161616`, `--text-primary: #fafafa`, `--success: #37b87f`, `--error: #e5544b`, `--warning: #e0a93f`, entre outras. Destaque **só** via `var(--accent)` / `var(--accent-ink)` (tema Brass padrão, trocável em Configurações).
 - **Tipografia:** `--font-display: 'Outfit'` (títulos, peso 700) · `--font-sans: 'Plus Jakarta Sans'` (corpo, 15px).
-- **Raios:** `--radius-sm: 4px`, `--radius-md: 8px`, `--radius-lg: 12px`.
+- **Raios:** `--radius-sm: 4px`, `--radius-md: 8px`, `--radius-lg: 14px`.
 - **Transições:** `--transition-fast: 0.15s ease`, `--transition-normal: 0.25s ease`.
 - **Ícones:** `lucide-react` (já é dependência).
 

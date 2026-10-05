@@ -16,6 +16,7 @@ Leia [AGENTS.md](../../AGENTS.md), [.github/copilot-instructions.md](../copilot-
 - **Escopo mínimo**: só o que a issue pede.
 - Sem novas dependências sem justificativa forte.
 - Estado: `useWorkout()`, tipos de `@powerlifting/shared`, cálculos puros em `powerlifting.ts`.
+- **Interface:** se a issue toca `apps/web` ou `apps/landing`, leia [.claude/skills/design-onyx/SKILL.md](../../.claude/skills/design-onyx/SKILL.md), o [PRODUCT.md](../../PRODUCT.md) e o `DESIGN.md` da superfície, e inclua a seção **Design** no plano.
 
 ## Passos
 
@@ -52,6 +53,12 @@ Leia [AGENTS.md](../../AGENTS.md), [.github/copilot-instructions.md](../copilot-
 - Atualizar estado em WorkoutContext (adicionar campo Z)
 - ...
 
+## Design (só se a issue toca interface)
+
+- Superfície (app ou landing), o que muda na tela e a hierarquia
+- Estados: vazio, carregando, erro, desabilitado
+- Movimento: nenhum, ou qual e como (CSS/rAF, nunca biblioteca)
+
 ## Tarefas
 
 1. **Preparação**
@@ -67,6 +74,7 @@ Leia [AGENTS.md](../../AGENTS.md), [.github/copilot-instructions.md](../copilot-
    - [ ] `npm run build` passa (type-check incluso)
    - [ ] `npm run lint` sem novos erros
    - [ ] Textos de UI em pt-BR
+   - [ ] Revisão de design (`design-onyx` §5), se tocou interface
 
 4. **Finalização**
    - [ ] PR com template, `Closes #N`

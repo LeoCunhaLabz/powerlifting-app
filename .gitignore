@@ -36,3 +36,6 @@ playwright/.cache/
 
 # Mockups do visual companion (superpowers:brainstorming)
 .superpowers/
+
+# Artefatos locais da skill Impeccable (critique, live, review, cache)
+.impeccable/
