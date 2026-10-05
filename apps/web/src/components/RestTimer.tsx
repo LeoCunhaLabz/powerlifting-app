@@ -115,7 +115,7 @@ export const RestTimer: React.FC = () => {
       <div 
         style={{
           ...styles.progressBar,
-          width: `${percentLeft}%`,
+          transform: `scaleX(${percentLeft / 100})`,
         }} 
       />
 
@@ -229,9 +229,12 @@ const styles: Record<string, React.CSSProperties> = {
     animation: 'slideUp 0.25s ease-out',
   },
   progressBar: {
+    width: '100%',
     height: '3px',
     backgroundColor: 'var(--accent)',
-    transition: 'width 1s linear',
+    // scaleX em vez de width: anima sem recalcular layout a cada segundo
+    transformOrigin: 'left',
+    transition: 'transform 1s linear',
   },
   content: {
     flex: 1,

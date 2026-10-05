@@ -104,7 +104,7 @@ export default function ScoreCalculator() {
               </span>
             </div>
             <div className="level__bar" aria-hidden="true">
-              <div className="level__fill" style={{ width: `${progress}%` }} />
+              <div className="level__fill" style={{ transform: `translateX(${progress - 100}%)` }} />
             </div>
             <span className="calc__note">
               {`Acima de ${level.percentile}% dos ${level.n} atletas raw da categoria. `}

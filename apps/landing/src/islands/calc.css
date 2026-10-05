@@ -507,11 +507,20 @@
   overflow: hidden;
 }
 
+/* Desliza com translateX dentro do trilho (overflow: hidden) em vez de animar
+   width: não recalcula layout e a ponta arredondada não se deforma. */
 .level__fill {
+  width: 100%;
   height: 100%;
   background: var(--accent);
   border-radius: 3px;
-  transition: width var(--transition-normal);
+  transition: transform var(--transition-normal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level__fill {
+    transition: none;
+  }
 }
 
 /* Segmentado em forma de radiogroup (SegmentedRadio, ui.tsx) */
