@@ -37,6 +37,8 @@
   --plate-5: #f3f4f6;
   --plate-2-5: #111827;
   --plate-frac: #6b7280;
+  --bar-sleeve: #3a3a3a; /* metal da manga da barra */
+  --bar-collar: #2c2c2c; /* batente */
 
   /* Tipografia */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;

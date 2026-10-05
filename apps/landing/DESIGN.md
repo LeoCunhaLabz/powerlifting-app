@@ -18,6 +18,8 @@ colors:
   brass-soft: "rgba(227, 168, 59, 0.12)"
   brass-border: "rgba(227, 168, 59, 0.3)"
   brass-ink: "#1a1304"
+  bar-sleeve: "#3a3a3a"
+  bar-collar: "#2c2c2c"
 typography:
   display:
     fontFamily: "Archivo, system-ui, sans-serif"
@@ -142,7 +144,7 @@ Os mesmos neutros do app, com duas superfícies e uma linha que só a landing us
 ### Named Rules
 **A Regra do Brass Contido.** Por viewport, no máximo um CTA brass e um destaque de dado brass. No hero, os CTAs da coluna de texto são secundários; o único botão brass é o da calculadora.
 
-**A Regra das Anilhas.** As cores IPF das anilhas (`--plate-*`) são a única cor fora do brass, e só nos visuais de barra.
+**A Regra das Anilhas.** As cores IPF das anilhas (`--plate-*`) e o metal da barra (`--bar-sleeve`, `--bar-collar`) são a única cor fora do brass, e só nos visuais de barra.
 
 ## Typography
 

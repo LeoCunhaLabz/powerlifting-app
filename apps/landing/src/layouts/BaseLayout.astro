@@ -143,11 +143,14 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID as string | undefined;
     background: transparent;
   }
 
+  /* scaleX em vez de width: acompanha o scroll sem recalcular layout. */
   .reading-progress__fill {
     height: 100%;
-    width: 0%;
+    width: 100%;
     background: var(--accent);
-    transition: width 0.1s linear;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.1s linear;
   }
 
   @media (prefers-reduced-motion: reduce) {

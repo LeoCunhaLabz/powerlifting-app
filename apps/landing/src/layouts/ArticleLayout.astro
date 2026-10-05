@@ -103,7 +103,7 @@ const updatedLabel = updatedAt
       const elHeight = el.offsetHeight;
       const denom = elHeight - window.innerHeight;
       const pct = denom > 0 ? ((window.scrollY - elTop) / denom) * 100 : 100;
-      fill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+      fill.style.transform = `scaleX(${Math.min(100, Math.max(0, pct)) / 100})`;
     };
 
     const onScroll = () => {
