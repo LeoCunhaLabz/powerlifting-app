@@ -248,7 +248,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '12px',
     height: '60px',
     backgroundColor: '#3a3a3c',
-    border: '1px solid #555',
+    border: '1px solid var(--border-focus)',
     borderRadius: '2px',
     zIndex: 2,
   },

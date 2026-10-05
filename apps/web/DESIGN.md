@@ -18,6 +18,7 @@ colors:
   success: "#37b87f"
   error: "#e5544b"
   warning: "#e0a93f"
+  chart-bench: "#7b8aa6"
 typography:
   headline:
     fontFamily: "Outfit, system-ui, sans-serif"
@@ -123,10 +124,13 @@ Neutros frios e quase pretos, com um único acento quente.
 ### Status
 - `--success` (PR, conclusão), `--error` (cancelar, excluir), `--warning`. Status não substitui o acento.
 
-### Named Rules
-**A Regra do Acento Único.** Toda ênfase usa `var(--accent)` / `var(--accent-ink)`. Nunca hex do brass no código, nunca `#ffffff`/`#000000` como destaque (o alias legado `--accent-white` aponta para o acento). Nada de segunda cor de marca, gradiente ou "cor por categoria".
+### Dados (gráficos)
+- Séries por levantamento em Análises: agachamento `--accent`, supino `--chart-bench` (#7b8aa6, aço apagado), terra `--text-primary`. A escala de RPE (≤5 a 10, de azul a vermelho) é a outra paleta de dados e vive em `Analytics.tsx`.
 
-**A Regra das Anilhas.** As cores das anilhas no `PlateVisualizer` seguem o padrão IPF e são a única paleta extra permitida, só ali.
+### Named Rules
+**A Regra do Acento Único.** Toda ênfase usa `var(--accent)` / `var(--accent-ink)`. Nunca hex do brass no código, nunca `#ffffff`/`#000000` como destaque (o alias legado `--accent-white` aponta para o acento). Nada de segunda cor de marca, gradiente ou "cor por categoria" na interface; a única exceção são as séries de gráfico (ver Dados).
+
+**A Regra das Anilhas.** As cores das anilhas no `PlateVisualizer` seguem o padrão IPF; junto com as séries de gráfico, são a única paleta extra permitida, cada uma só no seu lugar.
 
 ## Typography
 

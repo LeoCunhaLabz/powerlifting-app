@@ -59,7 +59,7 @@ const AppContent: React.FC = () => {
   const syncIndicator = (() => {
     switch (syncStatus) {
       case 'syncing':  return { icon: <CloudUpload size={12} />, label: 'Sincronizando…', color: 'var(--accent)' };
-      case 'error':   return { icon: <CloudOff size={12} />, label: 'Erro ao sincronizar', color: 'var(--danger, #e05252)' };
+      case 'error':   return { icon: <CloudOff size={12} />, label: 'Erro ao sincronizar', color: 'var(--error)' };
       case 'offline': return { icon: <Cloud size={12} />, label: 'Offline', color: 'var(--text-muted)' };
       default:        return null; // idle — não mostra nada
     }
@@ -142,7 +142,7 @@ const AppContent: React.FC = () => {
       {(syncIndicator || showSynced) && (
         <div style={styles.syncBadge} aria-live="polite">
           {showSynced && !syncIndicator
-            ? <><CloudCheck size={12} style={{ color: 'var(--success, #4caf50)' }} /><span style={{ color: 'var(--success, #4caf50)' }}>Sincronizado</span></>
+            ? <><CloudCheck size={12} style={{ color: 'var(--success)' }} /><span style={{ color: 'var(--success)' }}>Sincronizado</span></>
             : syncIndicator && <>{syncIndicator.icon}<span style={{ color: syncIndicator.color }}>{syncIndicator.label}</span></>
           }
         </div>

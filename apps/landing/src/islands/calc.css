@@ -380,7 +380,7 @@
 
 .bar__sleeve {
   height: 7px;
-  background: #3a3a3a;
+  background: var(--bar-sleeve);
   border-radius: 2px;
   flex: 0 0 auto;
 }
@@ -388,7 +388,7 @@
 .bar__collar {
   width: 12px;
   height: 22px;
-  background: #2c2c2c;
+  background: var(--bar-collar);
   border-radius: 2px;
   flex: 0 0 auto;
 }

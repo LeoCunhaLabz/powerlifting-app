@@ -25,6 +25,9 @@
   --error: #e5544b;
   --warning: #e0a93f;
 
+  /* Dados (gráficos): série do supino. Agachamento usa o acento e terra o texto primário. */
+  --chart-bench: #7b8aa6;
+
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
 
