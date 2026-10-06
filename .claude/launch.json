@@ -12,6 +12,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "@powerlifting/landing", "--", "--port", "4321"],
       "port": 4321
+    },
+    {
+      "name": "api-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:api"],
+      "port": 3010
+    },
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@powerlifting/web", "--", "--port", "5173", "--strictPort"],
+      "port": 5173
     }
   ]
 }
