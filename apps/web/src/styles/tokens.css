@@ -28,7 +28,7 @@
   --chart-bench: #7b8aa6;
 
   /* Tipografia */
-  --font-num: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-num: 'Barlow Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif; /* sans-serif-condensed = Roboto Condensed no Android */
   --font-text: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-wordmark: 'Outfit', system-ui, sans-serif;
 

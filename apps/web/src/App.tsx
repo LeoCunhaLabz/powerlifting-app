@@ -194,19 +194,21 @@ const AppContent: React.FC = () => {
         </button>
 
         {/* Botão central: neutro; dourado (= agora) só com treino em andamento, mostrando o tempo da sessão */}
-        <button
-          onClick={() => setCurrentTab('workout')}
-          style={styles.fab}
-          aria-label={activeWorkout ? 'Treino em andamento' : 'Treinar'}
-          aria-current={currentTab === 'workout' ? 'page' : undefined}
-        >
-          <span style={{ ...styles.fabCircle, ...(activeWorkout ? styles.fabCircleLive : {}) }}>
-            {activeWorkout
-              ? <SessionClock startIso={activeWorkout.date} />
-              : <Plus size={22} strokeWidth={2.5} />}
-          </span>
-          <span style={styles.fabLabel}>{activeWorkout ? 'Treinando' : 'Treinar'}</span>
-        </button>
+        <div style={styles.fabWrap}>
+          <button
+            onClick={() => setCurrentTab('workout')}
+            style={styles.fab}
+            aria-label={activeWorkout ? 'Treino em andamento' : 'Treinar'}
+            aria-current={currentTab === 'workout' ? 'page' : undefined}
+          >
+            <span style={{ ...styles.fabCircle, ...(activeWorkout ? styles.fabCircleLive : {}) }}>
+              {activeWorkout
+                ? <SessionClock startIso={activeWorkout.date} />
+                : <Plus size={22} strokeWidth={2.5} />}
+            </span>
+            <span style={styles.fabLabel}>{activeWorkout ? 'Treinando' : 'Treinar'}</span>
+          </button>
+        </div>
       </nav>
     </div>
   );
@@ -263,11 +265,14 @@ const styles: Record<string, React.CSSProperties> = {
     flex: '0 0 60px',
     height: '70px',
   },
-  fab: {
+  // O invólucro centraliza; o botão fica sem transform próprio para o scale do :active funcionar.
+  fabWrap: {
     position: 'absolute',
     left: '50%',
     top: '8px',
     transform: 'translateX(-50%)',
+  },
+  fab: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

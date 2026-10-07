@@ -245,11 +245,6 @@ input::placeholder, textarea::placeholder {
 .nav-item svg {
   width: 20px;
   height: 20px;
-  transition: transform var(--transition-fast);
-}
-
-.nav-item:active svg {
-  transform: scale(0.9);
 }
 
 /* Animação de entrada usada pelo RestTimer (entra de baixo, padrão mobile) */
