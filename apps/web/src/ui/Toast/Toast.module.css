@@ -1,0 +1,33 @@
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--surface-3);
+  color: var(--text-1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.danger {
+  border-color: var(--danger);
+}
+
+.icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-2);
+}
+
+.danger .icon {
+  color: var(--danger);
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Block, Button, Field, IconButton, ListRow, SegmentedControl, Segments, Stat } from '../ui';
+import { Block, Button, EmptyState, Field, IconButton, ListRow, ScreenHeader, SegmentedControl, Segments, Sheet, Stat, Toast } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
-import { MoreHorizontal, Play, Plus } from 'lucide-react';
+import { AlertTriangle, ClipboardList, CloudCheck, MoreHorizontal, Play, Plus, X } from 'lucide-react';
 import styles from './Catalogo.module.css';
 
 const COLORS = [
@@ -25,6 +25,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 /** Catálogo dos componentes base em todos os estados. Só existe no `npm run dev` (ver main.tsx). */
 export default function Catalogo() {
   const [metric, setMetric] = useState<'e1rm' | 'rel'>('e1rm');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <main className={styles.page}>
@@ -136,6 +137,48 @@ export default function Catalogo() {
           value={metric}
           onChange={setMetric}
           options={[{ value: 'e1rm', label: 'e1RM' }, { value: 'rel', label: 'Força relativa' }]}
+        />
+      </Section>
+
+      <Section title="ScreenHeader">
+        <ScreenHeader title="Biblioteca" actions={<Button variant="secondary" icon={<Plus size={16} />}>Nova rotina</Button>} />
+        <ScreenHeader title="Exercícios" meta="Crie exercícios reutilizáveis. Eles aparecem na busca ao montar rotinas e durante o treino." />
+      </Section>
+
+      <Section title="Sheet">
+        <Button variant="secondary" onClick={() => setSheetOpen(true)}>Abrir folha de finalizar</Button>
+        <Sheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          title="Finalizar treino?"
+          actions={
+            <>
+              <Button variant="primary" size="lg" block onClick={() => setSheetOpen(false)}>Finalizar treino</Button>
+              <Button variant="danger" block onClick={() => setSheetOpen(false)}>Descartar treino</Button>
+              <Button variant="link" block onClick={() => setSheetOpen(false)}>Voltar</Button>
+            </>
+          }
+        >
+          5 de 17 séries concluídas. As séries sem check não entram no histórico.
+        </Sheet>
+      </Section>
+
+      <Section title="Toast">
+        <Toast icon={<CloudCheck size={16} />} message="Sincronizado" />
+        <Toast
+          tone="danger"
+          icon={<AlertTriangle size={16} />}
+          message="Não foi possível salvar no aparelho. Libere espaço e tente de novo."
+          action={<IconButton aria-label="Dispensar aviso" variant="plain" icon={<X size={16} />} />}
+        />
+      </Section>
+
+      <Section title="EmptyState">
+        <EmptyState
+          icon={<ClipboardList size={32} />}
+          title="Nenhuma rotina ainda"
+          description="Crie uma rotina ou comece por um treino avulso."
+          action={<Button variant="primary">Criar rotina</Button>}
         />
       </Section>
 
