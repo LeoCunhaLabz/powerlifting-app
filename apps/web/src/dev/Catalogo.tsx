@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Button, IconButton, Segments } from '../ui';
+import { Block, Button, IconButton, ListRow, Segments } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
 import { MoreHorizontal, Play, Plus } from 'lucide-react';
 import styles from './Catalogo.module.css';
@@ -94,6 +94,19 @@ export default function Catalogo() {
           <IconButton aria-label="Mais opções" variant="plain" icon={<MoreHorizontal size={20} />} />
           <IconButton aria-label="Desabilitado" disabled icon={<Plus size={20} />} />
         </div>
+      </Section>
+
+      <Section title="Block e ListRow">
+        <Block label="Depois" aside="3 exercícios">
+          <div>
+            <ListRow title="Supino pausado" meta="4 séries, 102,5 kg" onClick={() => undefined} />
+            <ListRow title="Stiff" meta="3 séries, 120 kg" onClick={() => undefined} />
+            <ListRow title="Remada curvada com nome bem longo para testar o corte" meta="3 séries, 80 kg" onClick={() => undefined} />
+          </div>
+        </Block>
+        <Block>
+          <ListRow title="Linha sem toque" meta="só informação" />
+        </Block>
       </Section>
 
       {/* fim das seções */}
