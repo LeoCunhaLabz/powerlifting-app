@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Block, Button, IconButton, ListRow, Segments } from '../ui';
+import { useState, type ReactNode } from 'react';
+import { Block, Button, Field, IconButton, ListRow, SegmentedControl, Segments, Stat } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
 import { MoreHorizontal, Play, Plus } from 'lucide-react';
 import styles from './Catalogo.module.css';
@@ -24,6 +24,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /** Catálogo dos componentes base em todos os estados. Só existe no `npm run dev` (ver main.tsx). */
 export default function Catalogo() {
+  const [metric, setMetric] = useState<'e1rm' | 'rel'>('e1rm');
+
   return (
     <main className={styles.page}>
       <h1 className={styles.pageTitle}>Catálogo ONYX</h1>
@@ -107,6 +109,34 @@ export default function Catalogo() {
         <Block>
           <ListRow title="Linha sem toque" meta="só informação" />
         </Block>
+      </Section>
+
+      <Section title="Stat">
+        <Stat size="xl" value={522.5} decimals={1} unit="kg" label="Total estimado" delta="+7,5 kg nas últimas 4 semanas" />
+        <Stat size="xl" value={1102.5} decimals={1} unit="lbs" label="Total em lbs (número grande)" />
+        <div className={styles.row}>
+          <Stat size="md" value={83.4} unit="kg" label="Peso corporal" />
+          <Stat size="sm" value={NaN} unit="kg" label="Sem registro" />
+        </div>
+      </Section>
+
+      <Section title="Field">
+        <Field label="Peso de hoje (kg)" inputMode="decimal" placeholder="83,4" />
+        <Field label="E-mail" defaultValue="nome@" error="Digite um e-mail completo." />
+        <Field label="Observação" hint="Opcional. Aparece no histórico." />
+        <div className={styles.pair}>
+          <Field label="Peso em kg" hideLabel variant="set" defaultValue="150" inputMode="decimal" />
+          <Field label="Repetições" hideLabel variant="set" defaultValue="4" inputMode="numeric" />
+        </div>
+      </Section>
+
+      <Section title="SegmentedControl">
+        <SegmentedControl
+          label="Métrica da evolução"
+          value={metric}
+          onChange={setMetric}
+          options={[{ value: 'e1rm', label: 'e1RM' }, { value: 'rel', label: 'Força relativa' }]}
+        />
       </Section>
 
       {/* fim das seções */}
