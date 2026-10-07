@@ -70,7 +70,7 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
     {
       tab: 'settings',
       label: 'Configurações',
-      desc: 'Tema, unidades, barra, anilhas e backup dos dados',
+      desc: 'Unidades, barra, anilhas e backup dos dados',
       icon: <SettingsIcon size={22} />,
     },
   ];
