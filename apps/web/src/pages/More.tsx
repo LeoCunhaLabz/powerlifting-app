@@ -3,6 +3,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
 import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, Dumbbell, Award, Radar } from 'lucide-react';
 import { calculateDots } from '../utils/powerlifting';
+import { ScreenHeader } from '../ui';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
 export type MoreTab = 'calculators' | 'settings' | 'calendar' | 'history' | 'exercises' | 'prs' | 'comparison';
@@ -77,7 +78,7 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>MAIS</h1>
+      <ScreenHeader title="Mais" />
 
       {/* Resumo do atleta */}
       <div style={styles.summary}>
@@ -120,15 +121,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-  },
-  pageTitle: {
-    fontSize: '20px',
-    fontWeight: 800,
-    fontFamily: 'var(--font-display)',
-    letterSpacing: '0.05em',
-    marginBottom: '16px',
-    borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '8px',
   },
   summary: {
     display: 'flex',

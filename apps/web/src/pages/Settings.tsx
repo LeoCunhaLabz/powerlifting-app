@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, LogOut, Plus, X } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
 import { ErrorBox } from '../components/ErrorBox';
+import { ScreenHeader } from '../ui';
 
 export const Settings: React.FC = () => {
   const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData, reseedDemoData } = useWorkout();
@@ -118,7 +119,7 @@ export const Settings: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>CONFIGURAÇÕES</h1>
+      <ScreenHeader title="Configurações" />
 
       {/* Preferências do Atleta */}
       <div style={styles.section}>
@@ -421,15 +422,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-  },
-  pageTitle: {
-    fontSize: '20px',
-    fontWeight: '800',
-    fontFamily: 'var(--font-display)',
-    letterSpacing: '0.05em',
-    marginBottom: '16px',
-    borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '8px',
   },
   section: {
     backgroundColor: 'var(--bg-secondary)',

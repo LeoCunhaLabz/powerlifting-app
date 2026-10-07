@@ -5,6 +5,7 @@ import type { TemplateExercise, WorkoutTemplate, Program, WeekOverride } from '@
 import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListOrdered, CheckCircle2, ArrowUp, ArrowDown, Archive, ArchiveX, History as HistoryIcon } from 'lucide-react';
 import History from './History';
 import { TYPE_CYCLE } from '../utils/setTypeCycle';
+import { ScreenHeader } from '../ui';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -441,11 +442,15 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.headerRow}>
-        <h1 style={styles.pageTitle}>BIBLIOTECA</h1>
-        {mainView === 'rotinas' && <button onClick={() => setIsCreating(true)} style={styles.newBtn}><Plus size={16} /> Nova rotina</button>}
-        {mainView === 'programas' && <button onClick={() => setIsProgramForm(true)} style={styles.newBtn}><Plus size={16} /> Novo programa</button>}
-      </div>
+      <ScreenHeader
+        title="Biblioteca"
+        actions={
+          <>
+            {mainView === 'rotinas' && <button onClick={() => setIsCreating(true)} style={styles.newBtn}><Plus size={16} /> Nova rotina</button>}
+            {mainView === 'programas' && <button onClick={() => setIsProgramForm(true)} style={styles.newBtn}><Plus size={16} /> Novo programa</button>}
+          </>
+        }
+      />
 
       {/* Main view toggle */}
       <div style={styles.segmented}>
@@ -979,8 +984,6 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
-  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
-  pageTitle: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em' },
   newBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '12px', fontWeight: 800, padding: '8px 13px', borderRadius: '999px' },
   segmented: { display: 'flex', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '3px', marginBottom: '16px' },
   segOn: { flex: 1, textAlign: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '8px', borderRadius: '9px' },

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { Plus, Trash2, Dumbbell } from 'lucide-react';
+import { ScreenHeader } from '../ui';
 
 export const CustomExercises: React.FC = () => {
   const { state, addCustomExercise, removeCustomExercise } = useWorkout();
@@ -20,10 +21,10 @@ export const CustomExercises: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>EXERCÍCIOS</h1>
-      <p style={styles.subtitle}>
-        Crie exercícios reutilizáveis. Eles aparecem na busca ao montar rotinas e durante o treino.
-      </p>
+      <ScreenHeader
+        title="Exercícios"
+        meta="Crie exercícios reutilizáveis. Eles aparecem na busca ao montar rotinas e durante o treino."
+      />
 
       <div style={styles.addRow}>
         <input
@@ -62,8 +63,6 @@ export const CustomExercises: React.FC = () => {
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
-  title: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em', marginBottom: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' },
-  subtitle: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 16 },
   addRow: { display: 'flex', gap: 8, marginBottom: 16 },
   input: { flex: 1, height: 44, padding: '0 12px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 14, boxSizing: 'border-box' },
   addBtn: { width: 44, height: 44, flexShrink: 0, borderRadius: 'var(--radius-md)', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' },
