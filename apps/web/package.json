@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "generate-pwa-assets": "pwa-assets-generator --config pwa-assets.config.ts",
     "og-image": "node scripts/og-image.mjs",
+    "catalogo:shots": "node scripts/catalogo-shots.mjs",
     "opl:percentiles": "tsx scripts/opl/build-strength-percentiles.ts"
   },
   "dependencies": {
