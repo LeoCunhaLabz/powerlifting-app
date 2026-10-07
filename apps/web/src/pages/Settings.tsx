@@ -1,16 +1,9 @@
 import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
-import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Check, LogOut, Plus, X } from 'lucide-react';
+import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, LogOut, Plus, X } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
-import type { ThemeName } from '@powerlifting/shared';
 import { ErrorBox } from '../components/ErrorBox';
-
-const THEMES: { id: ThemeName; name: string; swatch: string; desc: string }[] = [
-  { id: 'onyx', name: 'Onyx', swatch: '#fafafa', desc: 'Monocromático' },
-  { id: 'brass', name: 'Brass', swatch: '#e3a83b', desc: 'Padrão' },
-  { id: 'volt', name: 'Volt', swatch: '#b6e34a', desc: 'Elétrico' },
-];
 
 export const Settings: React.FC = () => {
   const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData, reseedDemoData } = useWorkout();
@@ -126,41 +119,6 @@ export const Settings: React.FC = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.pageTitle}>CONFIGURAÇÕES</h1>
-
-      {/* Aparência / Tema */}
-      <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>Aparência</h2>
-        <div style={{ ...styles.settingDesc, marginBottom: '12px' }}>
-          Escolha a cor de acento do app. Brass é o padrão.
-        </div>
-
-        <div style={styles.themeGrid}>
-          {THEMES.map((theme) => {
-            const isActive = settings.theme === theme.id;
-            return (
-              <button
-                key={theme.id}
-                onClick={() => updateSettings({ theme: theme.id })}
-                style={{
-                  ...styles.themeCard,
-                  borderColor: isActive ? 'var(--accent)' : 'var(--border-color)',
-                }}
-              >
-                {isActive && (
-                  <span style={styles.themeCheck}>
-                    <Check size={13} strokeWidth={3} />
-                  </span>
-                )}
-                <span style={styles.themeSwatchWrap}>
-                  <span style={{ ...styles.themeSwatch, borderColor: theme.swatch }} />
-                </span>
-                <span style={styles.themeName}>{theme.name}</span>
-                <span style={styles.themeDesc}>{theme.desc}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Preferências do Atleta */}
       <div style={styles.section}>
@@ -488,61 +446,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '14px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
     paddingBottom: '6px',
-  },
-  themeGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '10px',
-  },
-  themeCard: {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    padding: '14px 8px',
-  },
-  themeCheck: {
-    position: 'absolute',
-    top: '-7px',
-    right: '-7px',
-    width: '22px',
-    height: '22px',
-    borderRadius: '50%',
-    backgroundColor: 'var(--accent)',
-    color: 'var(--accent-ink)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeSwatchWrap: {
-    width: '100%',
-    height: '44px',
-    borderRadius: 'var(--radius-sm)',
-    backgroundColor: 'var(--bg-primary)',
-    border: '1px solid var(--border-color)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeSwatch: {
-    width: '26px',
-    height: '26px',
-    borderRadius: '50%',
-    border: '5px solid',
-    boxSizing: 'border-box',
-  },
-  themeName: {
-    fontSize: '13px',
-    fontWeight: '700',
-    color: 'var(--text-primary)',
-  },
-  themeDesc: {
-    fontSize: '10px',
-    color: 'var(--text-muted)',
   },
   settingRow: {
     display: 'flex',

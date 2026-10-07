@@ -15,7 +15,7 @@ O projeto é um **monorepo** (npm workspaces): o frontend (`apps/web`) é **clie
 - **Rotinas (Templates):** templates embutidos (LP Iniciante, Madcow 5x5, Wendler 5/3/1) + criação de rotinas próprias; iniciar treino a partir de um template.
 - **Análises (Analytics):** dashboard a partir do histórico real — evolução de e1RM (SBD), tonelagem por sessão, distribuição de RPE, DOTS/Wilks, heatmap de frequência e linha do tempo de recordes, com filtro de período.
 - **Calculadoras (Calculators):** cálculo/visualização de anilhas na barra e cálculo de pontuações (Wilks, DOTS, IPF GL).
-- **Configurações (Settings):** **tema de acento (Onyx · Brass · Volt)**, unidades (kg/lbs), peso da barra, peso corporal, gênero, status equipado, inventário de anilhas e backup/restauração em JSON.
+- **Configurações (Settings):** unidades (kg/lbs), peso da barra, peso corporal, gênero, status equipado, inventário de anilhas e backup/restauração em JSON.
 - **Mais (More):** hub que agrupa **Calculadoras** e **Configurações**, mantendo a navegação inferior com 4 botões + FAB central (Início · Rotinas · **[+ Treinar]** · Análises · Mais).
 
 ---
@@ -29,7 +29,7 @@ O projeto é um **monorepo** (npm workspaces): o frontend (`apps/web`) é **clie
 | Ícones | lucide-react |
 | Lint | ESLint 10 (flat config) + typescript-eslint + react-hooks |
 | Testes | Vitest 4 (funções puras em `utils/powerlifting.ts`) |
-| Estilo | CSS puro (`apps/web/src/index.css`), design system **ONYX** com temas de acento (Onyx · Brass · Volt) |
+| Estilo | CSS puro + CSS Modules, design system **ONYX** (tokens em `apps/web/src/styles/tokens.css`) |
 | Persistência | `localStorage` (frontend client-side; sincronização com a API prevista na fase 3) |
 | Backend | Fastify 5 + PostgreSQL 16 + Drizzle ORM + `@fastify/jwt` |
 | Landing | Astro 5 + ilhas React (`apps/landing`), HTML estático na raiz de `onyxtreino.com.br`; calculadoras públicas reutilizam `powerlifting.ts` e `strength.ts`; CSS puro, sem bibliotecas de efeito |
@@ -231,20 +231,12 @@ powerlifting-app/
 ## 🎨 Design system — ONYX
 
 - Tema escuro, layout travado em `--max-width: 480px` (mobile-first, centralizado no desktop).
-- Fontes: **Outfit** (títulos e números) e **Plus Jakarta Sans** (corpo), via Google Fonts.
-- Tokens de cor, raio e transição definidos como CSS variables em [apps/web/src/index.css](apps/web/src/index.css).
+- Fontes: **Barlow Condensed** (números e títulos) e **Plus Jakarta Sans** (corpo), via Google Fonts; Outfit 900 só no wordmark.
+- Tokens em [apps/web/src/styles/tokens.css](apps/web/src/styles/tokens.css); regras e referência visual na [spec de 06/10/2026](docs/superpowers/specs/2026-10-06-redesign-identidade-app-design.md) e em [apps/web/DESIGN.md](apps/web/DESIGN.md).
 
-### Tema de acento (Onyx · Brass · Volt)
+### Cor
 
-A cor de destaque é uma **única** variável `--accent` (com `--accent-soft`, `--accent-border` e `--accent-ink`). Trocar de tema é só mudar o atributo `data-theme` no `<html>`:
-
-| Tema | `--accent` | Caráter |
-|---|---|---|
-| **Brass** (padrão) | `#e3a83b` | dourado de anilha |
-| **Onyx** | `#fafafa` | monocromático |
-| **Volt** | `#b6e34a` | elétrico |
-
-Escolhido em **Configurações → Aparência**, persistido em `settings.theme` e aplicado pelo `WorkoutContext` no `<html>`. Use sempre `var(--accent)` / `var(--accent-ink)` para destaques — não hardcode `#ffffff`/`#000000`.
+Tema único. O dourado (`--now`) significa "agora / sua vez": ação principal, série atual, descanso correndo, dia de hoje. O que já foi feito fica branco; recorde é ícone. Não há seletor de tema.
 
 ### Marca
 

@@ -1,48 +1,50 @@
 ---
 name: ONYX (app)
-description: Diário de treino de powerlifting, escuro, mobile-first, um único acento.
+description: Diário de treino de powerlifting, escuro, mobile-first. Dourado só para o que é agora.
 colors:
-  page: "#000000"
-  surface: "#060606"
-  surface-raised: "#161616"
-  surface-high: "#1e1e1e"
-  text-primary: "#fafafa"
-  text-secondary: "#9a9aa0"
-  text-muted: "#5c5c61"
-  border: "#242424"
-  border-focus: "#4a4a4a"
-  brass: "#e3a83b"
-  brass-soft: "rgba(227, 168, 59, 0.12)"
-  brass-border: "rgba(227, 168, 59, 0.30)"
-  brass-ink: "#1a1304"
-  success: "#37b87f"
-  error: "#e5544b"
-  warning: "#e0a93f"
+  surface-0: "#0c0b0a"
+  surface-1: "#171614"
+  surface-2: "#211f1c"
+  surface-3: "#2b2925"
+  line: "#26231f"
+  text-1: "#f2efe8"
+  text-2: "#9c978e"
+  text-3: "#87827b"
+  text-off: "#5f5b55"
+  now: "#e3a83b"
+  now-ink: "#1a1304"
+  danger: "#e5544b"
+  danger-ink: "#1c0605"
   chart-bench: "#7b8aa6"
 typography:
-  headline:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "28px"
+  number-xl:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "84px"
     fontWeight: 700
-    letterSpacing: "-0.02em"
-  title-lg:
-    fontFamily: "Outfit, system-ui, sans-serif"
+  number-lg:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "46px"
+    fontWeight: 700
+  number-md:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "30px"
+    fontWeight: 700
+  number-sm:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
     fontSize: "22px"
     fontWeight: 700
-  title:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "20px"
+  title-1:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "40px"
     fontWeight: 700
-    letterSpacing: "-0.02em"
-  title-sm:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "18px"
+  title-2:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "28px"
     fontWeight: 700
-  subtitle:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "16px"
-    fontWeight: 700
-    letterSpacing: "-0.02em"
+  title-3:
+    fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "21px"
+    fontWeight: 600
   body:
     fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
     fontSize: "15px"
@@ -57,155 +59,171 @@ typography:
   caption:
     fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
     fontSize: "12px"
-  micro:
-    fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
-    fontSize: "11px"
   label:
     fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
-    fontSize: "10px"
-    fontWeight: 500
+    fontSize: "11px"
+    fontWeight: 600
+  field:
+    fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
+    fontSize: "16px"
+  wordmark:
+    fontFamily: "Outfit, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 900
 rounded:
-  sm: "4px"
-  md: "8px"
-  lg: "14px"
-  pill: "999px"
+  segment: "1px"
+  day: "3px"
+  field: "8px"
+  button: "10px"
+  block: "14px"
 spacing:
   page: "16px"
+  block: "16px"
+  between-blocks: "10px"
 components:
   button-primary:
-    backgroundColor: "{colors.brass}"
-    textColor: "{colors.brass-ink}"
-    rounded: "{rounded.md}"
-    padding: "14px"
-  card:
-    backgroundColor: "{colors.surface-raised}"
-    rounded: "{rounded.lg}"
-    padding: "15px"
+    backgroundColor: "{colors.now}"
+    textColor: "{colors.now-ink}"
+    rounded: "{rounded.button}"
+    height: "56px"
+  block:
+    backgroundColor: "{colors.surface-1}"
+    rounded: "{rounded.block}"
+    padding: "16px"
   input:
-    backgroundColor: "{colors.surface-high}"
-    textColor: "{colors.text-primary}"
-    rounded: "{rounded.sm}"
-    padding: "10px 14px"
+    backgroundColor: "{colors.surface-0}"
+    textColor: "{colors.text-1}"
+    rounded: "{rounded.field}"
+    padding: "0 12px"
 ---
 
 # Design System: ONYX (app)
 
-> Fonte normativa dos valores: `apps/web/src/index.css`. Este arquivo descreve como usá-los; se divergirem, o CSS vence e este arquivo deve ser corrigido. Vale para `apps/web`; a landing tem o próprio `apps/landing/DESIGN.md`.
+> Valores normativos: `apps/web/src/styles/tokens.css` (tokens) e `apps/web/src/index.css` (base global e apelidos dos tokens antigos). Decisões e referência visual: [spec de 06/10/2026](../../docs/superpowers/specs/2026-10-06-redesign-identidade-app-design.md) e os HTML da V3 na pasta dela. Se este arquivo divergir do CSS, o CSS vence e este arquivo deve ser corrigido. Vale para `apps/web`; a landing tem o próprio `apps/landing/DESIGN.md`.
 
 ## Overview
 
-**Creative North Star: "A anilha no escuro"**
+**Creative North Star: "O placar do treino"**
 
-Um diário de treino que some atrás dos números. Fundo quase preto, superfícies em degraus de cinza e **um** acento metálico (brass) reservado para o que importa agora: a ação principal, a aba ativa, o dado que mudou. Denso como uma ferramenta, não como um dashboard de marketing: quem usa está entre séries, com o celular numa mão.
-
-O app vive num shell travado em 480 px, centralizado no desktop com bordas laterais. Tudo precisa funcionar nessa largura e com o polegar.
+Esportivo de elite: números grandes e confiantes, cor que significa alguma coisa, cara de equipamento de atleta. O app some atrás da carga, das repetições e do tempo. Quem usa está entre séries, com o celular numa mão.
 
 **Key Characteristics:**
-- Escuro sempre (não há modo claro).
-- Um acento, trocável pelo usuário (Brass padrão, Onyx branco, Volt verde) via `data-theme` no `<html>`; o código só usa `var(--accent)`.
-- Profundidade por tom, não por sombra.
-- Números grandes e legíveis; texto de apoio em cinza.
+- Escuro sempre e tema único (não há seletor de cor).
+- Dourado só para o que é agora.
+- Números em Barlow Condensed, sempre maiores que o rótulo.
+- Barrinhas segmentadas como assinatura.
+- Profundidade por tom: blocos em degraus de cinza quente, sem borda e sem sombra.
+
+## Princípios
+
+1. **Dourado = agora / sua vez.**
+   - Usado em: ação principal da tela (no máximo uma), série atual, descanso correndo, dia de hoje, semana atual do bloco, botão central da barra com treino em andamento e foco de teclado.
+   - Nunca em: aba ativa, opção selecionada, recorde, ícone, decoração ou texto corrido.
+   - Exceção: a marca (anilha) mantém o anel dourado, porque é marca e não sinal.
+2. **Feito é branco** nos indicadores (segmentos concluídos, dias treinados). O controle de uma série já feita recua: fundo `--surface-3` e check branco.
+3. **Recorde é ícone** (`Award` do lucide), na cor do texto ao redor.
+4. **Segmentos, nunca barra lisa,** no progresso de séries, no descanso (o restante em dourado, esvaziando), nas semanas do bloco e no histórico curto.
+5. **Número de placar:** Barlow Condensed com `tabular-nums`.
+6. **Sem dado, sem número:** valor ausente aparece como "sem dado", nunca como 0 inventado.
 
 ## Colors
 
-Neutros frios e quase pretos, com um único acento quente.
-
-### Primary
-- **Brass** (`--accent`, #e3a83b no tema padrão): botão primário, aba ativa da navegação, foco, dia concluído no calendário, destaque do programa atual. Texto sobre ele usa `--accent-ink`. Tons de apoio: `--accent-soft` (fundo de seleção, anel de foco) e `--accent-border` (contorno de destaque).
-
-### Neutral
-- **Página** (#000000): só o fundo fora do shell, no desktop.
-- **Superfície** (`--bg-primary`, #060606): fundo do app.
-- **Superfície elevada** (`--bg-secondary`, #161616): cards.
-- **Superfície alta** (`--bg-tertiary`, #1e1e1e): campos, tooltips, toasts.
-- **Texto** (`--text-primary` #fafafa, `--text-secondary` #9a9aa0, `--text-muted` #5c5c61): três níveis de ênfase; `p` já nasce em secundário.
-- **Linhas** (`--border-color` #242424, `--border-focus` #4a4a4a).
-
-### Status
-- `--success` (PR, conclusão), `--error` (cancelar, excluir), `--warning`. Status não substitui o acento.
+| Token | Valor | Uso |
+|---|---|---|
+| `--surface-0` | #0c0b0a | fundo da tela |
+| `--surface-1` | #171614 | blocos |
+| `--surface-2` | #211f1c | linha da série atual, descanso, botão secundário sobre a tela |
+| `--surface-3` | #2b2925 | check de série feita, botão sobre bloco, opção selecionada |
+| `--line` | #26231f | divisórias dentro de bloco |
+| `--text-1` | #f2efe8 | texto principal; "feito" nos indicadores |
+| `--text-2` | #9c978e | texto que informa |
+| `--text-3` | #87827b | legenda pequena |
+| `--text-off` | #5f5b55 | só desabilitado ou pendente |
+| `--now` / `--now-ink` | #e3a83b / #1a1304 | ver Princípio 1 |
+| `--danger` / `--danger-ink` | #e5544b / #1c0605 | só ação destrutiva |
 
 ### Dados (gráficos)
-- Séries por levantamento em Análises: agachamento `--accent`, supino `--chart-bench` (#7b8aa6, aço apagado), terra `--text-primary`. A escala de RPE (≤5 a 10, de azul a vermelho) é a outra paleta de dados e vive em `Analytics.tsx`.
-
-### Named Rules
-**A Regra do Acento Único.** Toda ênfase usa `var(--accent)` / `var(--accent-ink)`. Nunca hex do brass no código, nunca `#ffffff`/`#000000` como destaque (o alias legado `--accent-white` aponta para o acento). Nada de segunda cor de marca, gradiente ou "cor por categoria" na interface; a única exceção são as séries de gráfico (ver Dados).
+- Séries por levantamento em Análises: agachamento `--accent` (dourado), supino `--chart-bench` (#7b8aa6, aço apagado), terra `--text-primary`. A escala de RPE (≤5 a 10, de azul a vermelho) é a outra paleta de dados e vive em `Analytics.tsx`. A #346 revê as séries à luz do Princípio 1.
 
 **A Regra das Anilhas.** As cores das anilhas no `PlateVisualizer` seguem o padrão IPF; junto com as séries de gráfico, são a única paleta extra permitida, cada uma só no seu lugar.
 
 ## Typography
 
-**Display Font:** Outfit (fallback system-ui)
-**Body Font:** Plus Jakarta Sans (fallback system-ui)
+- **Barlow Condensed** (`--font-num`, 600/700) em números, títulos de tela e de bloco, nomes de exercício e botão principal grande.
+- **Plus Jakarta Sans** (`--font-text`) em todo o resto.
+- **Outfit 900** (`--font-wordmark`) só no wordmark.
 
-**Character:** Outfit dá peso e geometria aos títulos e números; Plus Jakarta Sans mantém o corpo legível em tamanho pequeno. As duas vêm do Google Fonts (import no topo do `index.css`).
+| Papel | Tokens |
+|---|---|
+| Número | `--num-xl` 84 (placar), `--num-lg` 46 (cronômetro aberto), `--num-md` 30 (campo da série atual), `--num-sm` 22 (número de linha) |
+| Título | `--title-1` 40 (título de tela), `--title-2` 28 (bloco, exercício), `--title-3` 21 (linha de lista) |
+| Texto | `--fs-body` 15, `--fs-sm` 14, `--fs-xs` 13, `--fs-caption` 12, `--fs-label` 11 (só rótulo da barra) |
 
-### Hierarchy
-- **Headline** (Outfit 700, 28 px, -0.02em): `h1`, título de página.
-- **Title** (Outfit 700, 22 / 20 / 18 px): `h2`, título de seção ou card, número de destaque em card.
-- **Subtitle** (Outfit 700, 16 px): `h3`.
-- **Body** (Plus Jakarta Sans 400, 15 px, 1.5): texto corrido e listas.
-- **Apoio** (Plus Jakarta Sans, 14 / 13 / 12 / 11 px): texto secundário de card, legendas, metadados, unidades. É onde o app vive na prática: use estes degraus, não valores intermediários.
-- **Label** (Plus Jakarta Sans 500, 10 px): rótulos da navegação inferior.
-
-Tamanhos fora dessa escala (8, 9, 17, 23 px…) existem em telas antigas e são desvio; não os repita em código novo.
-
-### Named Rules
-**A Regra do Número.** Carga, repetições, e1RM e PR são o conteúdo principal: maiores e mais pesados que o rótulo que os acompanha. Em colunas de números, `font-variant-numeric: tabular-nums`.
+Nada abaixo de 11 px. Campos com 16 px ou mais. Todo número em `tabular-nums`. Rótulos em caixa normal, sem caixa alta.
 
 ## Layout
 
-Coluna única dentro de `--max-width: 480px`. Conteúdo com 16 px de margem (`.app-content`), respeitando `safe-area-inset` em cima e embaixo. A navegação inferior é fixa, com 5 slots: Início · Rotinas · **[+ Treinar]** (FAB central) · Análises · Mais. Páginas secundárias vivem no hub "Mais", com botão de voltar. Espaçamento entre cards de 14 px; agrupar apertado, separar com folga.
+- Coluna única dentro de `--max-width: 480px`, com 16 px de margem e 10 px entre blocos.
+- As seções não encolhem (`flex-shrink: 0`): a tela rola.
+- A barra inferior tem Início, Biblioteca, botão central, Análises e Mais. O botão central é neutro e vira o cronômetro dourado da sessão com treino em andamento. A aba ativa fica em `--text-1`.
 
 ## Elevation & Depth
 
-Plano por padrão: a profundidade vem dos degraus de superfície (#060606 → #161616 → #1e1e1e) e de bordas de 1 px. Sombra só em elementos que realmente flutuam sobre o conteúdo:
-
-### Shadow Vocabulary
-- **FAB central** (`0 8px 20px rgba(0,0,0,0.45)`).
-- **Sheet do descanso** (`0 -8px 24px rgba(0,0,0,0.5)`): entra de baixo.
-- **Tooltip / toast** (`0 4px 12px rgba(0,0,0,0.3)` a `0 4px 16px rgba(0,0,0,0.4)`).
-
-A barra de navegação usa fundo `rgba(10,10,10,0.95)` com `backdrop-filter: blur(8px)` por função (o conteúdo rola por baixo), não como efeito de vidro.
+- Plano: degraus `--surface-0` a `--surface-3`, sem borda nos blocos.
+- Sombra só em folha flutuante (`--shadow-sheet`).
+- A barra inferior usa fundo translúcido com `backdrop-filter` por função (o conteúdo rola por baixo), não como efeito.
 
 ## Shapes
 
-Raios contidos: 4 px em campos e tags, 8 px em botões, 14 px em cards. Pílula (`999px`) só para toasts e chips. Bordas de 1 px; nenhuma borda colorida grossa em lateral de card.
+- **Raios:** `--radius-seg` 1, `--radius-day` 3, `--radius-field` 8, `--radius-button` 10, `--radius-block` 14.
+- **Segmentos:** altura `--seg-h-sm` 6 ou `--seg-h` 8, com `--seg-gap` 3.
+- **Toque:** alvo `--tap` 44 (mínimo `--tap-min` 40).
+
+## Motion
+
+- Curva `--ease-out`.
+- Durações: `--dur-press` 120 ms (toque), `--dur-state` 200 ms (troca de estado), `--dur-sheet` 280 ms (folha).
+- Botão pressionado encolhe para `scale(0.97)`. Segmento muda só de cor.
+- Com `prefers-reduced-motion`, nada se move.
+- Os `--transition-*` antigos são apelidos dessas durações.
+
+## Estilo no código
+
+- **Componente novo e tela migrada usam CSS Modules** (`<Nome>.module.css`) com os tokens. `style={}` inline só para valor calculado em tempo de execução.
+- O objeto `styles` no fim do arquivo continua nas telas antigas até a issue de cada uma. Não o use em código novo.
+- **Código novo usa os nomes novos dos tokens.** Os antigos (`--accent`, `--bg-*`, `--text-primary|secondary|muted`, `--border-color`, `--font-display`…) são apelidos em `index.css` e somem no fim da migração.
 
 ## Components
 
-### Buttons
-- **Primário:** fundo `--accent`, texto `--accent-ink`, raio 8 px, 14 px de padding, peso 800. Um por tela.
-- **Secundário / texto:** sem fundo ou em superfície, texto `--text-secondary` ou `--accent` para links de ação.
-- **Estados:** `:disabled` com opacidade 0.4; pressão com `scale(0.9)` nos ícones da navegação; transição `--transition-fast`.
+Contratos da spec §4.
 
-### Segmented control
-- Segmento ativo com fundo `--accent` e texto `--accent-ink`; inativos em `--text-secondary`. Usado em Análises e Calculadoras.
+**Base:**
+- `Button`: `primary` (uma por tela), `secondary`, `link`, `danger`; alturas 56 e 44.
+- `IconButton`: 44×44, com `aria-label`.
+- `Block`: superfície com cabeçalho opcional; nunca aninhado.
+- `ListRow`: linha de lista com título, meta e chevron.
+- `Segments`: `progress` e `countdown`.
+- `Stat`: número, unidade, legenda e variação.
+- `Field`: rótulo acima, erro abaixo.
+- `SegmentedControl`: a opção selecionada em `--surface-3`.
+- `Sheet`: folha de baixo.
+- `Toast`: aviso curto acima da barra.
+- `ScreenHeader`: título de tela único.
+- `EmptyState`: título, uma frase e uma ação.
 
-### Cards / Containers
-- Fundo `--bg-secondary`, borda `--border-color`, raio 14 px, padding 15 px. Card em destaque ganha borda `--accent` e anel `0 0 0 1px var(--accent-border)`. Nunca card dentro de card.
-
-### Inputs / Fields
-- Fundo `--bg-tertiary`, borda `--border-color`, raio 4 px, 16 px de fonte.
-- **Foco:** borda `--accent` + anel `0 0 0 3px var(--accent-soft)`. Placeholder em `--text-muted`.
-
-### Navigation
-- `.bottom-nav` fixa de 70 px + safe area; ícones lucide de 20 px; rótulo de 10 px; item ativo em `--accent`. O FAB central mostra um ponto quando há treino ativo.
-
-### Ícones
-- Somente `lucide-react`, traço único, tamanho coerente por contexto.
+**Do treino:** `SetRow`, `RestBar` (compacta e aberta) e `WeekStrip`.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** usar os tokens de `index.css`; se faltar um valor, criar um token novo no mesmo padrão de nome.
-- **Do** estilizar com o objeto `styles: Record<string, React.CSSProperties>` no fim do arquivo, como o resto do app.
-- **Do** desenhar os estados vazio, carregando e erro de toda tela nova; sem histórico, dizer que não há dados em vez de inventar número.
-- **Do** manter alvos de toque com pelo menos 40 px e testar em 375 px e 480 px.
-- **Do** animar só com CSS (transições com `--transition-fast`/`--transition-normal`, `@keyframes` como o `slideUp` do descanso) e respeitar `prefers-reduced-motion`.
+- **Do** usar os tokens de `tokens.css`; se faltar um valor, criar um token novo no mesmo padrão de nome.
+- **Do** desenhar os estados vazio, carregando, erro e desabilitado de toda tela.
+- **Do** testar em 375 px e 480 px, e o Treino ativo também em 390×844.
+- **Do** manter alvos de toque com 44 px.
 
 ### Don't:
-- **Don't** adicionar Tailwind, CSS-in-JS, biblioteca de componentes ou de animação (Motion, GSAP, Sonner, Vaul etc.).
-- **Don't** usar gradiente, brilho (glow), vidro decorativo, textura ou granulado.
+- **Don't** usar dourado fora do Princípio 1, nem reintroduzir temas ou `data-theme`.
+- **Don't** usar gradiente, glow, vidro decorativo, textura ou sombra em bloco.
+- **Don't** adicionar Tailwind, CSS-in-JS, biblioteca de componentes ou de animação.
 - **Don't** criar modo claro nem segunda cor de destaque.
-- **Don't** trocar as fontes Outfit e Plus Jakarta Sans por recomendação de skill; troca de fonte é decisão de produto.
 - **Don't** escrever texto de interface fora do pt-BR nem usar travessão.

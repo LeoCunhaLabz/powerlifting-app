@@ -2,30 +2,16 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
+import SessionClock from '../components/SessionClock';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 import type { ExerciseState, WorkoutTemplate } from '@powerlifting/shared';
 import { TYPE_CYCLE } from '../utils/setTypeCycle';
 
-// Componente folha do cronômetro: o tick de 1s re-renderiza só este span,
+// Componente folha do cronômetro: o tick de 1s re-renderiza só o SessionClock,
 // não a lista inteira do treino (#267).
-const WorkoutTimer: React.FC<{ startIso: string }> = ({ startIso }) => {
-  const [elapsed, setElapsed] = useState('00:00');
-
-  useEffect(() => {
-    const tick = () => {
-      const diff = Math.max(0, Math.floor((Date.now() - new Date(startIso).getTime()) / 1000));
-      const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
-      setElapsed(h > 0
-        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-        : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-    };
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [startIso]);
-
-  return <span style={styles.timer}><Clock size={14} /> {elapsed}</span>;
-};
+const WorkoutTimer: React.FC<{ startIso: string }> = ({ startIso }) => (
+  <span style={styles.timer}><Clock size={14} /> <SessionClock startIso={startIso} /></span>
+);
 
 export const Workout: React.FC = () => {
   const {
@@ -508,7 +494,7 @@ const styles: Record<string, React.CSSProperties> = {
   emptyIcon: { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' },
   emptyTitle: { fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' },
   emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
-  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
+  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
   nextProgramKicker: { fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', textTransform: 'uppercase' },
   nextProgramName: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 },
   nextProgramSub: { fontSize: 12, color: 'var(--text-secondary)' },

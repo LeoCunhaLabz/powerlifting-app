@@ -21,8 +21,8 @@ export default defineConfig({
         short_name: 'ONYX',
         description: 'Acompanhe seus treinos de powerlifting: e1RM, RPE, Wilks, DOTS e IPF GL.',
         lang: 'pt-BR',
-        theme_color: '#060606',
-        background_color: '#060606',
+        theme_color: '#0c0b0a',
+        background_color: '#0c0b0a',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -31,6 +31,23 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: '/index.html',
+        // Barlow Condensed é parte da identidade: sem cache, sem sinal o app cai na fonte do sistema.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'google-fonts-css' },
+          },
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-files',
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

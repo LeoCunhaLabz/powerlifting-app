@@ -843,11 +843,6 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     };
   }, []);
 
-  // Aplica o tema de acento no documento (lido pelo CSS via [data-theme])
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', state.settings.theme);
-  }, [state.settings.theme]);
-
   // Sync active workout to local storage on change
   useEffect(() => {
     if (activeWorkout) {
