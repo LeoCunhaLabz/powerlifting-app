@@ -228,6 +228,11 @@ describe('isValidImportedState — Settings inválido', () => {
     expect(isValidImportedState({ ...validState, settings: { ...validSettings, theme: 'blue' } })).toBe(false);
   });
 
+  it('aceita backup antigo com tema "volt" ou "onyx" (seletor removido, campo mantido)', () => {
+    expect(isValidImportedState({ ...validState, settings: { ...validSettings, theme: 'volt' } })).toBe(true);
+    expect(isValidImportedState({ ...validState, settings: { ...validSettings, theme: 'onyx' } })).toBe(true);
+  });
+
   it('rejeita barWeight zero ou negativo', () => {
     expect(isValidImportedState({ ...validState, settings: { ...validSettings, barWeight: 0 } })).toBe(false);
     expect(isValidImportedState({ ...validState, settings: { ...validSettings, barWeight: -20 } })).toBe(false);
