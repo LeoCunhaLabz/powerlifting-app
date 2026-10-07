@@ -213,7 +213,7 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
 - `ScreenHeader`: título de tela único.
 - `EmptyState`: título, uma frase e uma ação.
 
-**Do treino:** `SetRow`, `RestBar` (compacta e aberta) e `WeekStrip`.
+**Do treino (etapa 3, ainda a implementar em `apps/web/src/components/workout/`):** `SetRow`, `RestBar` (compacta e aberta) e `WeekStrip`.
 
 ## Do's and Don'ts
 

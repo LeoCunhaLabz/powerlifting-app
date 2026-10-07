@@ -84,6 +84,7 @@
 
 .typeSample {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-3);
 }

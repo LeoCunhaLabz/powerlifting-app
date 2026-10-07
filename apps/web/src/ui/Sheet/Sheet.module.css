@@ -25,6 +25,7 @@
   gap: var(--space-4);
   max-height: 85dvh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
 }
 
