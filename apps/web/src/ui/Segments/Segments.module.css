@@ -1,0 +1,30 @@
+.segments {
+  display: grid;
+  gap: var(--seg-gap);
+  width: 100%;
+}
+
+.sm {
+  height: var(--seg-h-sm);
+}
+
+.md {
+  height: var(--seg-h);
+}
+
+.segment {
+  border-radius: var(--radius-seg);
+  transition: background-color var(--dur-state) var(--ease-out);
+}
+
+.done {
+  background: var(--text-1);
+}
+
+.current {
+  background: var(--now);
+}
+
+.pending {
+  background: var(--surface-3);
+}

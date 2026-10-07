@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Segments } from '../ui';
+import { countdownFilled } from '../ui/Segments/segmentStates';
 import styles from './Catalogo.module.css';
 
 const COLORS = [
@@ -59,6 +61,16 @@ export default function Catalogo() {
             <span style={{ fontSize: `var(${t})` }}>Bloco de força, semana 3 de 4</span>
           </div>
         ))}
+      </Section>
+
+      <Section title="Segments">
+        <Segments total={17} filled={5} label="5 de 17 séries concluídas" />
+        <Segments total={18} filled={countdownFilled(108, 180, 18)} mode="countdown" label="1:48 de descanso restantes" />
+        <div className={styles.narrow}>
+          <Segments total={4} filled={2} size="sm" label="Semana 3 de 4 do bloco" />
+        </div>
+        <Segments total={40} filled={12} label="12 de 40 séries concluídas" />
+        <Segments total={0} filled={0} label="Sem séries" />
       </Section>
 
       {/* fim das seções */}
