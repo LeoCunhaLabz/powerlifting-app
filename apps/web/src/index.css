@@ -1,70 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Outfit:wght@900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import './styles/tokens.css';
 
+/*
+ * Apelidos dos tokens antigos → tokens novos (spec 2026-10-06 §5).
+ * As telas ainda não migradas leem estes nomes e já ganham a identidade nova.
+ * Código novo não usa estes nomes. Apagar quando a última tela migrar.
+ */
 :root {
-  /* ONYX — Superfícies (escala de elevação) */
-  --bg-primary: #060606;
-  --bg-secondary: #161616;
-  --bg-tertiary: #1e1e1e;
+  --bg-primary: var(--surface-0);
+  --bg-secondary: var(--surface-1);
+  --bg-tertiary: var(--surface-2);
 
-  /* Texto (3 níveis de ênfase) */
-  --text-primary: #fafafa;
-  --text-secondary: #9a9aa0;
-  --text-muted: #5c5c61;
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-2);
+  --text-muted: var(--text-3);
 
-  /* Linhas / foco */
-  --border-color: #242424;
-  --border-focus: #4a4a4a;
+  --border-color: var(--line);
+  --border-focus: #4a4640;
 
-  /* Compat: usados como "destaque" em vários componentes — agora seguem o acento do tema */
-  --accent-white: var(--accent);
-  --accent-gray: #333333;
-  --accent-dark: #1a1a1a;
+  --accent: var(--now);
+  --accent-ink: var(--now-ink);
+  --accent-soft: var(--surface-2);
+  --accent-border: var(--line);
+  --accent-white: var(--now);
+  --accent-gray: var(--surface-3);
+  --accent-dark: var(--surface-1);
 
-  /* Status */
-  --success: #37b87f;
-  --error: #e5544b;
-  --warning: #e0a93f;
+  --success: var(--text-1);
+  --error: var(--danger);
+  --warning: var(--text-2);
 
-  /* Dados (gráficos): série do supino. Agachamento usa o acento e terra o texto primário. */
-  --chart-bench: #7b8aa6;
-
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-text);
+  --font-display: var(--font-num);
 
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 14px;
 
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
+  --transition-fast: var(--dur-press) var(--ease-out);
+  --transition-normal: var(--dur-state) var(--ease-out);
 
-  /* Layout constraints */
-  --max-width: 480px; /* Locked to a premium mobile shell for optimal UX, centered on desktop */
+  /* Layout */
+  --max-width: 480px; /* shell mobile travado, centralizado no desktop */
   --template-desc-min-height: clamp(88px, 16vh, 120px);
-}
-
-/* ====== Temas de acento (selecionáveis em Configurações) ====== */
-/* Padrão (sem atributo) = Brass */
-:root,
-:root[data-theme='brass'] {
-  --accent: #e3a83b;
-  --accent-soft: rgba(227, 168, 59, 0.12);
-  --accent-border: rgba(227, 168, 59, 0.30);
-  --accent-ink: #1a1304;
-}
-
-:root[data-theme='onyx'] {
-  --accent: #fafafa;
-  --accent-soft: rgba(255, 255, 255, 0.10);
-  --accent-border: rgba(255, 255, 255, 0.22);
-  --accent-ink: #0a0a0a;
-}
-
-:root[data-theme='volt'] {
-  --accent: #b6e34a;
-  --accent-soft: rgba(182, 227, 74, 0.12);
-  --accent-border: rgba(182, 227, 74, 0.30);
-  --accent-ink: #11160a;
 }
 
 /* Base Reset */
@@ -73,6 +51,10 @@
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  overscroll-behavior-y: none; /* puxar para baixo não recarrega o app (Android/TWA) */
 }
 
 body {
@@ -107,7 +89,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 h1 {
@@ -134,7 +116,19 @@ button {
   border: none;
   background: none;
   color: inherit;
-  transition: all var(--transition-fast);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color var(--dur-state) var(--ease-out),
+    border-color var(--dur-state) var(--ease-out),
+    color var(--dur-state) var(--ease-out),
+    opacity var(--dur-state) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 button:disabled {
@@ -220,7 +214,7 @@ input::placeholder, textarea::placeholder {
   width: 100%;
   max-width: var(--max-width);
   height: calc(70px + env(safe-area-inset-bottom, 0px));
-  background-color: rgba(10, 10, 10, 0.95);
+  background-color: rgba(12, 11, 10, 0.95);
   border-top: 1px solid var(--border-color);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -235,9 +229,9 @@ input::placeholder, textarea::placeholder {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--text-3);
   text-decoration: none;
-  font-size: 10px;
+  font-size: var(--fs-label);
   font-weight: 500;
   gap: 4px;
   height: 70px;
@@ -245,7 +239,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .nav-item.active {
-  color: var(--accent);
+  color: var(--text-1);
 }
 
 .nav-item svg {
@@ -265,5 +259,21 @@ input::placeholder, textarea::placeholder {
   }
   to {
     transform: translateY(0);
+  }
+}
+
+/* Movimento reduzido: nada se move, só cor e opacidade mudam */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  button:active:not(:disabled) {
+    transform: none;
   }
 }

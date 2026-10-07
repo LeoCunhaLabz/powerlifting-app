@@ -1,0 +1,75 @@
+/*
+ * ONYX: tokens da identidade do app.
+ * Spec: docs/superpowers/specs/2026-10-06-redesign-identidade-app-design.md §3. Valores normativos.
+ * Código novo usa só estes nomes; os nomes antigos são apelidos em index.css.
+ */
+:root {
+  /* Superfícies em degraus de cinza quente: profundidade por tom, sem borda nem sombra */
+  --surface-0: #0c0b0a;
+  --surface-1: #171614;
+  --surface-2: #211f1c;
+  --surface-3: #2b2925;
+  --line: #26231f;
+
+  /* Texto: 1 principal e "feito"; 2 informa; 3 legenda; off só desabilitado ou pendente */
+  --text-1: #f2efe8;
+  --text-2: #9c978e;
+  --text-3: #87827b;
+  --text-off: #5f5b55;
+
+  /* Dourado = agora / sua vez (nunca enfeite). Vermelho só em ação destrutiva. */
+  --now: #e3a83b;
+  --now-ink: #1a1304;
+  --danger: #e5544b;
+  --danger-ink: #1c0605;
+
+  /* Dados (gráficos, #327): série do supino em Análises. Agachamento usa --now e terra --text-1;
+     a #346 revê as séries à luz de "dourado = agora". */
+  --chart-bench: #7b8aa6;
+
+  /* Tipografia */
+  --font-num: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-text: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-wordmark: 'Outfit', system-ui, sans-serif;
+
+  --num-xl: 84px;
+  --num-lg: 46px;
+  --num-md: 30px;
+  --num-sm: 22px;
+  --title-1: 40px;
+  --title-2: 28px;
+  --title-3: 21px;
+  --fs-body: 15px;
+  --fs-sm: 14px;
+  --fs-xs: 13px;
+  --fs-caption: 12px;
+  --fs-label: 11px;
+
+  /* Espaço (escala de 4) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Forma */
+  --radius-seg: 1px;
+  --radius-day: 3px;
+  --radius-field: 8px;
+  --radius-button: 10px;
+  --radius-block: 14px;
+  --seg-h-sm: 6px;
+  --seg-h: 8px;
+  --seg-gap: 3px;
+  --tap: 44px;
+  --tap-min: 40px;
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Movimento */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --dur-press: 120ms;
+  --dur-state: 200ms;
+  --dur-sheet: 280ms;
+}
