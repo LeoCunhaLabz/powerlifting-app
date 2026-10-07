@@ -15,9 +15,10 @@ import ComparisonEstimated from './pages/ComparisonEstimated';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
 import RestTimer from './components/RestTimer';
+import SessionClock from './components/SessionClock';
 import { trackTabView } from './utils/analytics';
 import { takeHandoff } from './utils/strengthHandoff';
-import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff, Dumbbell } from 'lucide-react';
+import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff } from 'lucide-react';
 
 type Tab = 'dashboard' | 'workout' | 'templates' | 'analytics' | 'calculators' | 'settings' | 'more' | 'calendar' | 'history' | 'exercises' | 'prs' | 'comparison';
 
@@ -156,6 +157,7 @@ const AppContent: React.FC = () => {
         <button
           onClick={() => setCurrentTab('dashboard')}
           className={`nav-item ${currentTab === 'dashboard' ? 'active' : ''}`}
+          aria-current={currentTab === 'dashboard' ? 'page' : undefined}
         >
           <Home />
           <span>Início</span>
@@ -164,6 +166,7 @@ const AppContent: React.FC = () => {
         <button
           onClick={() => setCurrentTab('templates')}
           className={`nav-item ${currentTab === 'templates' ? 'active' : ''}`}
+          aria-current={currentTab === 'templates' ? 'page' : undefined}
         >
           <ClipboardList />
           <span>Biblioteca</span>
@@ -175,6 +178,7 @@ const AppContent: React.FC = () => {
         <button
           onClick={() => setCurrentTab('analytics')}
           className={`nav-item ${currentTab === 'analytics' ? 'active' : ''}`}
+          aria-current={currentTab === 'analytics' ? 'page' : undefined}
         >
           <TrendingUp />
           <span>Análises</span>
@@ -183,29 +187,25 @@ const AppContent: React.FC = () => {
         <button
           onClick={() => setCurrentTab('more')}
           className={`nav-item ${moreActive ? 'active' : ''}`}
+          aria-current={moreActive ? 'page' : undefined}
         >
           <MoreHorizontal />
           <span>Mais</span>
         </button>
 
-        {/* FAB central — iniciar / continuar treino */}
+        {/* Botão central: neutro; dourado (= agora) só com treino em andamento, mostrando o tempo da sessão */}
         <button
           onClick={() => setCurrentTab('workout')}
-          style={{
-            ...styles.fab,
-            boxShadow: currentTab === 'workout'
-              ? '0 0 0 4px var(--accent-soft), 0 8px 20px rgba(0,0,0,0.45)'
-              : '0 8px 20px rgba(0,0,0,0.45)',
-          }}
-          aria-label="Treinar"
+          style={styles.fab}
+          aria-label={activeWorkout ? 'Treino em andamento' : 'Treinar'}
+          aria-current={currentTab === 'workout' ? 'page' : undefined}
         >
-          <span style={styles.fabCircle}>
+          <span style={{ ...styles.fabCircle, ...(activeWorkout ? styles.fabCircleLive : {}) }}>
             {activeWorkout
-              ? <Dumbbell size={24} color="var(--accent-ink)" />
-              : <Plus size={26} strokeWidth={3} color="var(--accent-ink)" />}
-            {activeWorkout && <span style={styles.fabActiveDot} />}
+              ? <SessionClock startIso={activeWorkout.date} />
+              : <Plus size={22} strokeWidth={2.5} />}
           </span>
-          <span style={styles.fabLabel}>Treinar</span>
+          <span style={styles.fabLabel}>{activeWorkout ? 'Treinando' : 'Treinar'}</span>
         </button>
       </nav>
     </div>
@@ -266,39 +266,38 @@ const styles: Record<string, React.CSSProperties> = {
   fab: {
     position: 'absolute',
     left: '50%',
-    top: '-18px',
+    top: '8px',
     transform: 'translateX(-50%)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '2px',
+    gap: '4px',
     background: 'none',
     padding: 0,
   },
   fabCircle: {
-    position: 'relative',
-    width: '54px',
-    height: '54px',
-    borderRadius: '18px',
-    backgroundColor: 'var(--accent)',
+    minWidth: '56px',
+    height: '36px',
+    padding: '0 8px',
+    borderRadius: 'var(--radius-button)',
+    backgroundColor: 'var(--surface-3)',
+    color: 'var(--text-1)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    fontFamily: 'var(--font-num)',
+    fontWeight: 700,
+    fontSize: 'var(--title-3)',
+    fontVariantNumeric: 'tabular-nums',
   },
-  fabActiveDot: {
-    position: 'absolute',
-    top: '-2px',
-    right: '-2px',
-    width: '12px',
-    height: '12px',
-    borderRadius: '50%',
-    backgroundColor: 'var(--success)',
-    border: '2px solid var(--bg-primary)',
+  fabCircleLive: {
+    backgroundColor: 'var(--now)',
+    color: 'var(--now-ink)',
   },
   fabLabel: {
-    fontSize: '10px',
-    fontWeight: 800,
-    color: 'var(--accent)',
+    fontSize: 'var(--fs-label)',
+    fontWeight: 600,
+    color: 'var(--text-1)',
   },
   saveErrorBanner: {
     position: 'absolute',

@@ -2,30 +2,16 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
 import PlateVisualizer from '../components/PlateVisualizer';
+import SessionClock from '../components/SessionClock';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 import type { ExerciseState, WorkoutTemplate } from '@powerlifting/shared';
 import { TYPE_CYCLE } from '../utils/setTypeCycle';
 
-// Componente folha do cronômetro: o tick de 1s re-renderiza só este span,
+// Componente folha do cronômetro: o tick de 1s re-renderiza só o SessionClock,
 // não a lista inteira do treino (#267).
-const WorkoutTimer: React.FC<{ startIso: string }> = ({ startIso }) => {
-  const [elapsed, setElapsed] = useState('00:00');
-
-  useEffect(() => {
-    const tick = () => {
-      const diff = Math.max(0, Math.floor((Date.now() - new Date(startIso).getTime()) / 1000));
-      const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
-      setElapsed(h > 0
-        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-        : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-    };
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [startIso]);
-
-  return <span style={styles.timer}><Clock size={14} /> {elapsed}</span>;
-};
+const WorkoutTimer: React.FC<{ startIso: string }> = ({ startIso }) => (
+  <span style={styles.timer}><Clock size={14} /> <SessionClock startIso={startIso} /></span>
+);
 
 export const Workout: React.FC = () => {
   const {
