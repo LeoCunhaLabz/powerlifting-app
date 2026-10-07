@@ -81,6 +81,7 @@ Os valores normativos passam a viver em `apps/web/src/styles/tokens.css`. Nomes 
 | `--now` | `#E3A83B` | ver §2.1 |
 | `--now-ink` | `#1A1304` | texto e ícone sobre `--now` |
 | `--danger` | `#E5544B` | só ação destrutiva |
+| `--danger-ink` | `#1C0605` | texto sobre `--danger` (branco não passa no contraste) |
 
 Saem o verde de sucesso, o amarelo de aviso, os gradientes, `--accent-white` e os blocos `[data-theme]`. Confirmação usa texto mais ícone, sem cor própria.
 
@@ -104,7 +105,7 @@ Nada abaixo de 11 px. Campos com 16 px ou mais. Todo número em `tabular-nums`. 
 ### Espaço, forma e toque
 
 - **Espaço:** 4, 8, 12, 16, 20, 24, 32. Margem da tela e padding de bloco: 16 (os HTML usam 18 no bloco; vale 16). Espaço entre blocos: 10.
-- **Raios:** 3 (segmento, dia), 8 (campo, check), 10 (botão), 14 (bloco).
+- **Raios:** 1 (segmento), 3 (dia), 8 (campo, check), 10 (botão), 14 (bloco).
 - **Segmentos:** altura 6 (semanas do bloco) ou 8 (séries, descanso), 3 px entre eles, raio 1. Muda só a cor, nunca a largura.
 - **Alvo de toque:** 44 px; mínimo absoluto de 40.
 - **Sombra:** só em folha flutuante, `0 -8px 24px rgba(0,0,0,.5)`.
@@ -128,7 +129,7 @@ Todos nascem com os estados normal, pressionado e desabilitado desenhados, mais 
 | `IconButton` | 44×44; `aria-label` obrigatório no tipo |
 | `Block` | superfície `--surface-1`, raio 14; cabeçalho opcional (rótulo à esquerda, meta ou ação à direita); proibido aninhar |
 | `ListRow` | título, meta, chevron ou ação; divisória `--line` |
-| `Segments` | `total`, `done` e `current`; modos `progress`, `countdown` e `days`; os estados de cada segmento vêm de função pura |
+| `Segments` | `total` e `filled`; modos `progress` (feitos + o atual) e `countdown` (restante em dourado); os estados vêm de função pura. Os dias da semana são o `WeekStrip` |
 | `Stat` | número, unidade, legenda e variação, nos tamanhos da escala; usa o formatador pt-BR |
 | `Field` | rótulo acima, erro abaixo; variante numérica grande (série atual) |
 | `SegmentedControl` | 2 a 4 opções; a selecionada fica em `--surface-3` com `--text-1`, nunca em dourado |
@@ -173,7 +174,10 @@ Todos nascem com os estados normal, pressionado e desabilitado desenhados, mais 
   - `html { overscroll-behavior-y: none }`;
   - `touch-action: manipulation` e `user-select: none` nos controles;
   - bloco `prefers-reduced-motion`;
-  - `h1` único.
+  - aba ativa da barra em `--text-1` (não dourado) e rótulo da barra com 11 px;
+  - cor da barra do sistema (`theme-color` no `index.html` e no manifesto do PWA) igual a `--surface-0`.
+
+  O título de página único vem do `ScreenHeader`, aplicado na etapa 2.
 - **Fontes sem internet.** Regra de `runtimeCaching` (CacheFirst) no Workbox do `vite-plugin-pwa` para `fonts.googleapis.com` e `fonts.gstatic.com`. Hoje, sem sinal, o app cai na fonte do sistema. É só configuração, sem dependência nova.
 - **Layout que rola.** As seções de uma tela não encolhem (`flex-shrink: 0`); a tela rola. No Treino ativo, a série atual precisa ficar visível acima do descanso compacto num celular de 844 px (ver `treino-celular.html`).
 - **Sem dependência nova.** Nada de Testing Library, Storybook, `clsx` ou biblioteca de animação.
@@ -196,9 +200,10 @@ Os HTML da V3 são normativos para a **linguagem visual**: tokens, aparência do
    - p1 de dados: #331, #332, #333, #334 e #335.
 2. **Etapa 1, fundação (issue nova).**
    - Inclui: `tokens.css`, apelidos, base global, remoção dos temas, fim dos gradientes nas telas, cache das fontes e atualização da documentação (§8).
-   - Fecha **#351** e **#352** e faz a parte global da **#344**.
+   - Faz a parte de gradientes e botão central da **#351** e as partes globais da **#352** e da **#344**.
 3. **Etapa 2, componentes base e catálogo (issue nova).**
    - Os componentes da §4 (base), o catálogo e o formatador de números pt-BR em `apps/web/src/utils` (puro, testado, espelhando o `format.ts` da landing), que é a fundação da **#345**.
+   - Aplica o `ScreenHeader` nos títulos das telas antigas e fecha a **#352**.
 4. **Etapa 3, Treino ativo.**
    - 3a, série e ações: **#339** e **#340** (mais a parte visual da #328, se ainda faltar).
    - 3b, descanso: **#330**, **#341** e **#342**, com o `RestBar`.
@@ -206,7 +211,7 @@ Os HTML da V3 são normativos para a **linguagem visual**: tokens, aparência do
 6. **Etapa 5, entrada e primeiro uso:** **#337** e **#336**.
 7. **Etapa 6, demais telas.**
    - **#348** (Biblioteca e Mais), **#349** (Recordes), **#350** (Calendário), **#347** (Comparação) e **#346** (Análises, depois de #332 e #333).
-   - Com elas fecham o resto da **#338** e as partes por tela da **#344** e da **#345**, que ficam abertas como lista de conferência até a última tela.
+   - Com elas fecham o resto da **#338** e as partes por tela da **#344**, da **#345** e da **#351** (um dourado por tela), que ficam abertas como lista de conferência até a última tela.
 8. **Fechamento:** apagar os apelidos dos tokens antigos. A Play Store (#259) passa a depender também das duas issues novas.
 
 Cada etapa segue o fluxo normal de issues (`resolver-issue`), com a revisão de design da `design-onyx` §5 usando o catálogo e estes HTML como referência.
