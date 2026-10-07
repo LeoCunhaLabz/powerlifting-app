@@ -35,7 +35,7 @@ O app de powerlifting brasileiro: fala a língua do esporte (RPE, %1RM, DOTS, to
 ## Capabilities and Constraints
 
 - Registro de treino com séries de aquecimento, normais e drop sets; rotinas, programas e exercícios próprios; descanso cronometrado; histórico, calendário e análises; backup JSON; sincronização entre dispositivos (offline-first, last-write-wins).
-- Unidades em kg ou lbs. Temas de acento selecionáveis no app (Brass padrão, Onyx, Volt).
+- Unidades em kg ou lbs. Tema único (dourado), sem seletor de cor.
 - Toda interface em pt-BR.
 - Frontend sem frameworks de CSS nem bibliotecas de animação; dependência nova só quando essencial.
 - **Ainda não existe** e não pode aparecer como promessa: modo competição, coach compartilhado, percentil global, paywall, versão em inglês.

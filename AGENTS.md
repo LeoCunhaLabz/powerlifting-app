@@ -138,12 +138,17 @@ O CTA da calculadora da landing abre `app.…/registro#forca=<payload>` (formato
 
 ### Estilo / design system ONYX
 
-- **CSS puro** em [apps/web/src/index.css](apps/web/src/index.css). Não introduza Tailwind, CSS-in-JS libs ou outros frameworks.
-- Use as **CSS variables** existentes (cores, raios, transições). Não hardcode hex que já tenha token.
-- **Tema de acento (ONYX).** A cor de destaque é uma **única** variável `--accent` (+ `--accent-soft`, `--accent-border`, `--accent-ink`), trocada por `:root[data-theme="onyx|brass|volt"]`; padrão **Brass** (`#e3a83b`). O `WorkoutContext` aplica `data-theme` no `<html>` a partir de `settings.theme`. Para qualquer destaque (botão primário, aba ativa, badge, foco) use `var(--accent)` / `var(--accent-ink)` — **nunca** `#ffffff`/`#000000`. O alias legado `--accent-white` aponta para `var(--accent)`.
+Identidade e regras: [spec de 06/10/2026](docs/superpowers/specs/2026-10-06-redesign-identidade-app-design.md) (referência visual: os HTML da V3 na pasta dela) e [apps/web/DESIGN.md](apps/web/DESIGN.md).
+
+- **CSS puro.** Tokens em [apps/web/src/styles/tokens.css](apps/web/src/styles/tokens.css); base global em [apps/web/src/index.css](apps/web/src/index.css). Não introduza Tailwind, CSS-in-JS libs ou outros frameworks.
+- **CSS Modules em código novo.** Componente novo e tela migrada usam `<Nome>.module.css` com os tokens; `style={}` inline só para valor calculado em tempo de execução. O objeto `styles` no fim do arquivo continua nas telas antigas até a issue de cada uma; não o use em código novo.
+- **Tokens novos em código novo:** `--surface-0..3`, `--line`, `--text-1..3`, `--text-off`, `--now`/`--now-ink`, `--danger`/`--danger-ink`, escalas `--num-*`, `--title-*`, `--fs-*`, `--space-*`, raios `--radius-*`, movimento `--ease-out` e `--dur-*`. Os nomes antigos (`--accent`, `--bg-*`, `--text-primary|secondary|muted`, `--border-color`, `--font-display`…) são apelidos dos novos em `index.css` enquanto houver tela não migrada.
+- **Dourado = agora.** `--now` marca só a ação principal (uma por tela), a série atual, o descanso correndo, o dia de hoje e o botão central da barra com treino em andamento. Aba ativa e opção selecionada ficam em `--text-1`/`--surface-3`; recorde é ícone. Nunca hardcode hex que tenha token.
+- **Tema único.** O seletor Brass/Onyx/Volt foi removido; `Settings.theme` continua no tipo e no schema da API só por compatibilidade (backups antigos seguem válidos). Não reintroduza `data-theme`.
+- **Fontes:** Barlow Condensed (`--font-num`, números e títulos) + Plus Jakarta Sans (`--font-text`) + Outfit 900 só no wordmark (`--font-wordmark`), via Google Fonts, com cache no service worker (Workbox `runtimeCaching`) para funcionar sem sinal.
 - **Marca ONYX.** Wordmark Outfit 900 + a marca (anilha de frente — anel dourado). Assets do PWA em `apps/web/public/`; `favicon.svg` é a fonte vetorial — para refazer os PNGs (`pwa-*`, maskable, apple-touch) parta dela via `@vite-pwa/assets-generator` (`pwa-assets.config.ts`). **og-image** (meta tags de compartilhamento, issue #249): `npm run og-image -w @powerlifting/web` renderiza `scripts/og.html` com o Chromium do Playwright (mesma dependência do `test:e2e`) e salva `public/og-image.png` (commitado; regerar ao mudar a arte).
 - Layout travado em `--max-width: 480px` (mobile-first). Componentes devem funcionar bem nessa largura.
-- Estilos inline pontuais (objeto `styles`) são aceitáveis quando seguem o padrão já usado nos componentes.
+- Estilos inline pontuais só para valor calculado em tempo de execução.
 - Ícones via `lucide-react`.
 
 ### Skills de design (frontend)

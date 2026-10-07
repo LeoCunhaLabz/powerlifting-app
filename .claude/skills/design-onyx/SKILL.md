@@ -31,22 +31,22 @@ Quando uma skill vendorizada mandar o contrário, siga esta lista e siga em fren
 
 - **Stack:** CSS puro (sem Tailwind, CSS-in-JS ou biblioteca de componentes) e nenhuma dependência nova sem necessidade clara aprovada. Ignore recomendações de Motion/framer-motion, GSAP, OGL, Three.js, Sonner, Vaul, Base UI, NumberFlow, react-window, Tippy/Shepherd/Joyride, bibliotecas de i18n, next-themes e clsx/cva. Exemplos em Tailwind ou Motion nas skills servem como intenção: traduza para CSS puro, `@keyframes`, Web Animations API ou `requestAnimationFrame`.
 - **Movimento:**
-  - App: transições CSS com `--transition-fast` / `--transition-normal` e `@keyframes` (como o `slideUp` do descanso).
+  - App: transições CSS com os tokens `--ease-out` e `--dur-press` / `--dur-state` / `--dur-sheet`, e `@keyframes` quando a peça entra de baixo (folha).
   - Landing: só o `useCountUp` atrás de `useMotionAllowed()`.
   - Nos dois: `prefers-reduced-motion` respeitado, sem scroll reveal, parallax, entrada animada de seção ou biblioteca de mola.
-  - Uma curva de easing melhor (as do Emil) é bem-vinda como token novo `--ease-*`, aplicada onde a issue mexe. Trocar os `--transition-*` globais é decisão à parte.
+  - A curva do app é `--ease-out` (a do Emil); os `--transition-*` antigos são apelidos dela até as telas migrarem.
 - **Cor:**
-  - Um acento, sempre via `var(--accent)` / `var(--accent-ink)`. O app tem três temas; a landing é Brass fixa.
+  - Um acento. No app é `var(--now)` / `var(--now-ink)` e significa "agora / sua vez" (spec 2026-10-06 §2): nunca em aba ativa, opção selecionada, recorde ou decoração. Na landing, o brass dos tokens dela. Tema único nas duas superfícies.
   - Escuro sempre, sem modo claro.
   - Proibidos: segunda cor de marca, gradiente, glow, vidro decorativo, granulado ou textura, sombra pesada.
   - Ignore conselhos do tipo "cinza com um acento é genérico", estratégias de cor "Committed/Drenched", variações em outra família de matiz e vetos a paletas com brass.
 - **Tipografia:**
-  - App: Outfit + Plus Jakarta Sans.
+  - App: Barlow Condensed (números e títulos) + Plus Jakarta Sans (texto); Outfit 900 só no wordmark.
   - Landing: Archivo (wght 800, wdth 85) + Plus Jakarta Sans, e Outfit 900 só no wordmark.
   - Tudo via Google Fonts (a CSP já libera).
-  - Ignore "evite Outfit / Plus Jakarta Sans", "auto-hospede as fontes", "use uma família só", "reduza o peso 900", "use a fonte do sistema". Troca de fonte é decisão de produto, não de skill.
+  - Ignore "evite Barlow Condensed / Outfit / Plus Jakarta Sans", "auto-hospede as fontes", "use uma família só", "reduza o peso 900", "use a fonte do sistema". Troca de fonte é decisão de produto, não de skill.
 - **Ícones:** só `lucide-react`. Ignore trocas por Phosphor, Heroicons, Radix, Tabler ou outra biblioteca.
-- **Estilo no app:** o objeto `styles: Record<string, React.CSSProperties>` no fim do arquivo é o padrão; não migre para classes.
+- **Estilo no app:** CSS Modules (`<Nome>.module.css`) com os tokens de `src/styles/tokens.css`, em componente novo e em tela migrada. `style={}` inline só para valor calculado em tempo de execução. O objeto `styles` no fim do arquivo continua nas telas antigas até a issue delas: não o use em código novo e não migre tela fora da issue dela.
 - **Estado:** só via `useWorkout()`; nunca `localStorage` direto em componente, mesmo que um playbook de onboarding sugira.
 - **Kicker da landing:** decisão aprovada (spec de 21/09/2026). A proibição absoluta de kicker do Impeccable não se aplica; em seção nova, use só se o título sozinho não situar o leitor.
 - **Copy:**
