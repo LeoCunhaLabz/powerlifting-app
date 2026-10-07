@@ -16,7 +16,7 @@
 }
 
 .sheet::backdrop {
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--scrim);
 }
 
 .inner {
@@ -32,7 +32,7 @@
   align-self: center;
   width: 40px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-day);
   background: var(--surface-3);
 }
 

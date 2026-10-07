@@ -66,6 +66,7 @@
   --tap: 44px;
   --tap-min: 40px;
   --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  --scrim: rgba(0, 0, 0, 0.6); /* fundo atrás de folha aberta */
 
   /* Movimento */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);

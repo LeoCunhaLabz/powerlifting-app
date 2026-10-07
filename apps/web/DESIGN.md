@@ -16,6 +16,7 @@ colors:
   danger: "#e5544b"
   danger-ink: "#1c0605"
   chart-bench: "#7b8aa6"
+  scrim: "rgba(0, 0, 0, 0.6)"
 typography:
   number-xl:
     fontFamily: "Barlow Condensed, Arial Narrow, sans-serif"
@@ -141,6 +142,7 @@ Esportivo de elite: números grandes e confiantes, cor que significa alguma cois
 | `--text-off` | #5f5b55 | só desabilitado ou pendente |
 | `--now` / `--now-ink` | #e3a83b / #1a1304 | ver Princípio 1 |
 | `--danger` / `--danger-ink` | #e5544b / #1c0605 | só ação destrutiva |
+| `--scrim` | rgba(0, 0, 0, 0.6) | fundo atrás de folha aberta |
 
 ### Dados (gráficos)
 - Séries por levantamento em Análises: agachamento `--accent` (dourado), supino `--chart-bench` (#7b8aa6, aço apagado), terra `--text-primary`. A escala de RPE (≤5 a 10, de azul a vermelho) é a outra paleta de dados e vive em `Analytics.tsx`. A #346 revê as séries à luz do Princípio 1.
@@ -195,7 +197,7 @@ Nada abaixo de 11 px. Campos com 16 px ou mais. Todo número em `tabular-nums`. 
 
 ## Components
 
-Contratos da spec §4.
+Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do próprio arquivo, ex.: `ui/Segments/segmentStates`). Todos aparecem em todos os estados no catálogo `/catalogo` (só no `npm run dev`). Use-os antes de criar botão, bloco, folha ou campo.
 
 **Base:**
 - `Button`: `primary` (uma por tela), `secondary`, `link`, `danger`; alturas 56 e 44.
