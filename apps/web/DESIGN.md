@@ -63,6 +63,13 @@ typography:
     fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
     fontSize: "11px"
     fontWeight: 600
+  field:
+    fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
+    fontSize: "16px"
+  wordmark:
+    fontFamily: "Outfit, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 900
 rounded:
   segment: "1px"
   day: "3px"
