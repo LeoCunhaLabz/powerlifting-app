@@ -465,7 +465,7 @@ const styles: Record<string, React.CSSProperties> = {
   kicker: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-secondary)' },
   title: { fontSize: '23px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)', marginTop: '2px' },
   streak: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 800, padding: '6px 11px', borderRadius: '999px' },
-  hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-lg)', padding: '18px', marginBottom: '12px' },
+  hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-lg)', padding: '18px', marginBottom: '12px' },
   heroProgram: { borderColor: 'var(--accent)', boxShadow: '0 0 0 1px var(--accent-border)' },
   heroKicker: { fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)', textTransform: 'uppercase' },
   heroTitle: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' },

@@ -508,7 +508,7 @@ const styles: Record<string, React.CSSProperties> = {
   emptyIcon: { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' },
   emptyTitle: { fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' },
   emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
-  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
+  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
   nextProgramKicker: { fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', textTransform: 'uppercase' },
   nextProgramName: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 },
   nextProgramSub: { fontSize: 12, color: 'var(--text-secondary)' },

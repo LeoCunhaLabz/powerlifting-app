@@ -463,7 +463,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   wordmark: {
-    fontFamily: 'var(--font-display)',
+    fontFamily: 'var(--font-wordmark)',
     fontWeight: 900,
     fontSize: '22px',
     letterSpacing: '0.08em',

@@ -134,7 +134,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '14px',
-    background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-primary))',
+    background: 'var(--bg-secondary)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
     padding: '16px',
