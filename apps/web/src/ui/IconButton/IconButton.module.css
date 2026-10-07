@@ -1,0 +1,48 @@
+.iconButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-state) var(--ease-out);
+}
+
+.iconButton:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.filled {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+.plain {
+  background: transparent;
+  color: var(--text-2);
+}
+
+.glyph {
+  display: inline-flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconButton {
+    transition: none;
+  }
+
+  .iconButton:active:not(:disabled) {
+    transform: none;
+  }
+}

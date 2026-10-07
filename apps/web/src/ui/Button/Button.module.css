@@ -1,0 +1,87 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-button);
+  font-family: var(--font-text);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-state) var(--ease-out),
+    opacity var(--dur-state) var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lg {
+  height: 56px;
+  padding: 0 var(--space-6);
+  font-family: var(--font-num);
+  font-size: var(--title-3);
+}
+
+.md {
+  height: var(--tap);
+  padding: 0 var(--space-4);
+  font-size: var(--fs-sm);
+}
+
+.block {
+  width: 100%;
+}
+
+.primary {
+  background: var(--now);
+  color: var(--now-ink);
+}
+
+.secondary {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+.danger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
+.link {
+  background: transparent;
+  color: var(--text-1);
+  padding: 0 var(--space-2);
+}
+
+.loading,
+.loading:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.icon {
+  display: inline-flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button:active:not(:disabled) {
+    transform: none;
+  }
+}

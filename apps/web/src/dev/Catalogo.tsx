@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Segments } from '../ui';
+import { Button, IconButton, Segments } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
+import { MoreHorizontal, Play, Plus } from 'lucide-react';
 import styles from './Catalogo.module.css';
 
 const COLORS = [
@@ -71,6 +72,28 @@ export default function Catalogo() {
         </div>
         <Segments total={40} filled={12} label="12 de 40 séries concluídas" />
         <Segments total={0} filled={0} label="Sem séries" />
+      </Section>
+
+      <Section title="Button">
+        <Button variant="primary" size="lg" block icon={<Play size={18} fill="currentColor" />}>Começar treino</Button>
+        <Button variant="link">Treino avulso</Button>
+        <div className={styles.row}>
+          <Button variant="secondary">Registrar</Button>
+          <Button variant="secondary" disabled>Desabilitado</Button>
+          <Button variant="secondary" loading>Salvando</Button>
+        </div>
+        <div className={styles.row}>
+          <Button variant="primary">Concluir série</Button>
+          <Button variant="danger">Descartar treino</Button>
+        </div>
+      </Section>
+
+      <Section title="IconButton">
+        <div className={styles.row}>
+          <IconButton aria-label="Registrar peso" icon={<Plus size={20} />} />
+          <IconButton aria-label="Mais opções" variant="plain" icon={<MoreHorizontal size={20} />} />
+          <IconButton aria-label="Desabilitado" disabled icon={<Plus size={20} />} />
+        </div>
       </Section>
 
       {/* fim das seções */}
