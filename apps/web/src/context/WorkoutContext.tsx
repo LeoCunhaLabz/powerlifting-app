@@ -18,6 +18,7 @@ import { trySetItem, shouldClearActiveBackup } from '../utils/persistence';
 import { trackEvent } from '../utils/analytics';
 import { buildReferenceSession, REFERENCE_SESSION_NAME } from '../utils/strengthSeed';
 import { appendSet, completesSet, patchSet } from '../utils/workoutSets';
+import { adjustRest, clampRestSeconds, parseStoredRest, serializeRest, DEFAULT_REST_SECONDS, type RestTimerData } from '../utils/restTimer';
 
 /** Recalculates isPr flags for all sessions chronologically. */
 function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
@@ -106,10 +107,11 @@ interface WorkoutContextType {
   getMaxE1RM: (exerciseName: string) => number;
   exportData: () => string;
   importData: (jsonData: string) => boolean;
-  restTimerDuration: number;
-  setRestTimerDuration: (duration: number) => void;
-  restTimerEnd: number | null;
-  startRestTimer: (seconds: number) => void;
+  /** Descanso em andamento ou encerrado e ainda na tela; null sem descanso (#341). */
+  restTimer: RestTimerData | null;
+  startRestTimer: (seconds: number, exercise?: string) => void;
+  /** ±segundos só no descanso atual (#342); a duração padrão fica em settings.restSeconds. */
+  adjustRestTimer: (deltaSeconds: number) => void;
   stopRestTimer: () => void;
   logBodyweight: (weight: number, date?: string) => void;
   deleteBodyweightEntry: (date: string) => void;
@@ -269,7 +271,8 @@ const DEFAULT_SETTINGS: Settings = {
   bodyweight: 80,
   gender: 'male',
   isEquipped: false,
-  theme: 'brass'
+  theme: 'brass',
+  restSeconds: DEFAULT_REST_SECONDS,
 };
 
 const DEFAULT_STATE: AppState = {
@@ -673,11 +676,10 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   });
 
   // Rest Timer State
-  const [restTimerDuration, setRestTimerDuration] = useState(120); // 2 minutes default
-  const [restTimerEnd, setRestTimerEnd] = useState<number | null>(() => {
+  // Descanso: fim, total e exercício. Lê também o formato antigo (só o número do fim).
+  const [restTimer, setRestTimer] = useState<RestTimerData | null>(() => {
     try {
-      const saved = localStorage.getItem(storageKeys.restTimerEnd);
-      return saved ? parseInt(saved, 10) : null;
+      return parseStoredRest(localStorage.getItem(storageKeys.restTimerEnd));
     } catch (e) {
       console.error('Failed to load rest timer from localStorage:', e);
     }
@@ -748,7 +750,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
     await purgeServerData(token);
     setActiveWorkout(null);
-    setRestTimerEnd(null);
+    setRestTimer(null);
     setState(createDemoState(new Date()));
 
     return { ok: true, message: 'Dataset demo anual recriado com sucesso.' };
@@ -864,22 +866,25 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
 
   // Sync rest timer target time to local storage
   useEffect(() => {
-    if (restTimerEnd !== null) {
+    if (restTimer !== null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- ver safeSetItem (bail-out no sucesso)
-      safeSetItem(storageKeys.restTimerEnd, restTimerEnd.toString());
+      safeSetItem(storageKeys.restTimerEnd, serializeRest(restTimer));
     } else {
       try { localStorage.removeItem(storageKeys.restTimerEnd); } catch { /* SecurityError: falha silenciosa */ }
     }
-  }, [restTimerEnd, storageKeys.restTimerEnd]);
+  }, [restTimer, storageKeys.restTimerEnd]);
 
   // Rest Timer Functions — definidas antes das funcoes que as referenciam nos deps
   const stopRestTimer = useCallback(() => {
-    setRestTimerEnd(null);
+    setRestTimer(null);
   }, []);
 
-  const startRestTimer = useCallback((seconds: number) => {
-    const endTime = Date.now() + seconds * 1000;
-    setRestTimerEnd(endTime);
+  const startRestTimer = useCallback((seconds: number, exercise?: string) => {
+    setRestTimer({ end: Date.now() + seconds * 1000, total: seconds, ...(exercise ? { exercise } : {}) });
+  }, []);
+
+  const adjustRestTimer = useCallback((deltaSeconds: number) => {
+    setRestTimer((prev) => (prev ? adjustRest(prev, deltaSeconds, Date.now()) : prev));
   }, []);
 
   // Helper: Find absolute max e1RM for an exercise from history
@@ -1208,11 +1213,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
     // React pode rodar o updater mais de uma vez e ele não pode ter efeito colateral.
     const targetEx = activeWorkout.exercises[exerciseIndex];
     if (targetEx && completesSet(targetEx.sets[setIndex], fields)) {
-      startRestTimer(targetEx.restSeconds ?? restTimerDuration);
+      startRestTimer(targetEx.restSeconds ?? clampRestSeconds(state.settings.restSeconds), targetEx.name);
     }
 
     setActiveWorkout(prev => prev ? patchSet(prev, exerciseIndex, setIndex, fields) : null);
-  }, [activeWorkout, startRestTimer, restTimerDuration]);
+  }, [activeWorkout, startRestTimer, state.settings.restSeconds]);
 
   // Update notes of the active workout session
   const updateWorkoutNotes = useCallback((notes: string) => {
@@ -1666,10 +1671,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       getMaxE1RM,
       exportData,
       importData,
-      restTimerDuration,
-      setRestTimerDuration,
-      restTimerEnd,
+      restTimer,
       startRestTimer,
+      adjustRestTimer,
       stopRestTimer,
       logBodyweight,
       deleteBodyweightEntry,
@@ -1694,8 +1698,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       state, activeWorkout, startWorkout, repeatWorkout, cancelWorkout, completeActiveWorkout,
       addExerciseToActiveWorkout, removeExerciseFromActiveWorkout, addSetToExercise,
       removeSetFromExercise, updateSet, updateWorkoutNotes, updateExerciseNotes, saveTemplate, deleteTemplate,
-      updateSettings, getMaxE1RM, exportData, importData, restTimerDuration,
-      restTimerEnd, startRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
+      updateSettings, getMaxE1RM, exportData, importData,
+      restTimer, startRestTimer, adjustRestTimer, stopRestTimer, logBodyweight, deleteBodyweightEntry,
       getBodyweightAt, saveError, dismissSaveError, syncStatus, pullFromServer,
       saveProgram, deleteProgram, getNextTemplate, archiveTemplate, unarchiveTemplate,
       updateHistorySession, deleteHistorySession, addCustomPlate, removeCustomPlate,

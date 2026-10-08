@@ -21,6 +21,7 @@ function baseState(overrides: Partial<AppState> = {}): AppState {
       gender: 'male',
       isEquipped: false,
       theme: 'brass',
+      restSeconds: 120,
     },
     ...overrides,
   };

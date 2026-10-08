@@ -86,6 +86,8 @@ export interface Settings {
   gender: 'male' | 'female';
   isEquipped: boolean;
   theme: ThemeName;
+  /** Descanso padrão entre séries, em segundos, quando a rotina não define o do exercício (#342). Só local. */
+  restSeconds: number;
 }
 
 export interface BodyweightEntry {

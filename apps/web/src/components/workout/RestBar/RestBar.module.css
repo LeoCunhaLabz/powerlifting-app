@@ -1,0 +1,182 @@
+/* Barra compacta e estado encerrado: uma linha acima da navegação (spec 2026-10-06, RestBar). */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-block);
+  background: var(--surface-2);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--tap);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-button);
+  color: var(--text-1);
+}
+
+.time,
+.overtime {
+  flex: none;
+  font-family: var(--font-num);
+  font-size: var(--num-md);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.segments {
+  flex: 1;
+  min-width: 0;
+}
+
+button.small {
+  flex: none;
+  padding: 0 var(--space-3);
+  font-size: var(--fs-xs);
+}
+
+/* Encerrado: tempo extra em cinza, sem dourado (o descanso não está mais correndo). */
+.ended {
+  padding-left: var(--space-4);
+}
+
+.overtime {
+  color: var(--text-2);
+}
+
+.endedText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.endedTitle {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.endedNext {
+  font-size: var(--fs-caption);
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Aberta: painel por cima do conteúdo, sem cobrir a navegação. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  border-radius: var(--radius-block);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sheet);
+  animation: panel-in var(--dur-sheet) var(--ease-out);
+}
+
+.handle {
+  align-self: center;
+  margin-bottom: calc(-1 * var(--space-3));
+}
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.label {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.timeLg {
+  font-family: var(--font-num);
+  font-size: var(--num-lg);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.load {
+  font-family: var(--font-num);
+  font-size: var(--num-sm);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.nextName {
+  max-width: 100%;
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: var(--space-2);
+}
+
+.actions > button {
+  padding: 0 var(--space-2);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
