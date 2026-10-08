@@ -46,7 +46,7 @@ Quando uma skill vendorizada mandar o contrário, siga esta lista e siga em fren
   - Tudo via Google Fonts (a CSP já libera).
   - Ignore "evite Barlow Condensed / Outfit / Plus Jakarta Sans", "auto-hospede as fontes", "use uma família só", "reduza o peso 900", "use a fonte do sistema". Troca de fonte é decisão de produto, não de skill.
 - **Ícones:** só `lucide-react`. Ignore trocas por Phosphor, Heroicons, Radix, Tabler ou outra biblioteca.
-- **Estilo no app:** CSS Modules (`<Nome>.module.css`) com os tokens de `src/styles/tokens.css`, em componente novo e em tela migrada. `style={}` inline só para valor calculado em tempo de execução. O objeto `styles` no fim do arquivo continua nas telas antigas até a issue delas: não o use em código novo e não migre tela fora da issue dela.
+- **Estilo no app:** CSS Modules (`<Nome>.module.css`) com os tokens de `src/styles/tokens.css`, em componente novo e em tela migrada. `style={}` inline só para valor calculado em tempo de execução. O objeto `styles` no fim do arquivo continua nas telas antigas até a issue delas: não o use em código novo e não migre tela fora da issue dela. Componentes base em `src/ui/`: use-os antes de criar botão, bloco, folha ou campo novo.
 - **Estado:** só via `useWorkout()`; nunca `localStorage` direto em componente, mesmo que um playbook de onboarding sugira.
 - **Kicker da landing:** decisão aprovada (spec de 21/09/2026). A proibição absoluta de kicker do Impeccable não se aplica; em seção nova, use só se o título sozinho não situar o leitor.
 - **Copy:**
@@ -105,7 +105,7 @@ Rode depois de implementar e antes de abrir o PR, numa rodada de correção e no
 2. **`review-animations`** se o diff mexe em `transition`, `animation`, `@keyframes`, `transform` ou no `useCountUp`.
 3. **`break-ui`** se a issue cria tela ou componente que mostra dados do usuário. Use o catálogo de casos extremos (nome longo, lista vazia, número enorme, kg e lbs) para corrigir o que quebrar; não commite o alternador de dados de demonstração nem as fixtures, salvo pedido.
 4. **`mobile-native`** como checklist em mudanças de `apps/web`.
-5. **Verificação visual** no preview (`preview_start`), com screenshot em 375 px e 480 px (app) ou 375 px e desktop (landing).
+5. **Verificação visual** no preview (`preview_start`), com screenshot em 375 px e 480 px (app) ou 375 px e desktop (landing). Componente novo ou alterado: catálogo em `/catalogo` e `npm run catalogo:shots -w @powerlifting/web` (com `--sem-fontes` para o fallback).
 6. Corrija o que for compatível com a §2. O que conflitar ou extrapolar o escopo vai para a seção **Design** do PR, com o motivo.
 
 ## 6. Impeccable: limites

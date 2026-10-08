@@ -1,0 +1,55 @@
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.value {
+  font-family: var(--font-num);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.unit {
+  font-family: var(--font-num);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.empty {
+  padding: var(--space-2) 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.delta {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.xl .value { font-size: var(--num-xl); }
+.xl .unit { font-size: var(--num-sm); }
+.lg .value { font-size: var(--num-lg); }
+.lg .unit { font-size: var(--title-3); }
+.md .value { font-size: var(--num-md); }
+.md .unit { font-size: var(--fs-body); }
+.sm .value { font-size: var(--num-sm); }
+.sm .unit { font-size: var(--fs-xs); }

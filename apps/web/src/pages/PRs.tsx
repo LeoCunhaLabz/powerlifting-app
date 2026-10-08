@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateE1RM } from '../utils/powerlifting';
 import { Award } from 'lucide-react';
+import { ScreenHeader } from '../ui';
 
 const isSBD = (name: string): boolean => {
   const n = name.toLowerCase();
@@ -36,7 +37,7 @@ export const PRs: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>RECORDES</h1>
+      <ScreenHeader title="Recordes" />
 
       <div style={styles.segmented}>
         <button onClick={() => setFilter('all')} style={filter === 'all' ? styles.segOn : styles.segOff}>Todos</button>
@@ -65,7 +66,6 @@ export const PRs: React.FC = () => {
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
-  title: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' },
   segmented: { display: 'flex', gap: 6, marginBottom: 14 },
   segOn: { flex: 1, height: 34, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', fontSize: 12, fontWeight: 700 },
   segOff: { flex: 1, height: 34, borderRadius: 'var(--radius-sm)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontSize: 12, fontWeight: 700 },

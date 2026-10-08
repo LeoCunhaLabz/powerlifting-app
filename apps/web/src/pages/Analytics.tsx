@@ -10,6 +10,7 @@ import {
   type E1rmSelection,
   type E1rmPlotPoint,
 } from '../utils/e1rmSelection';
+import { ScreenHeader } from '../ui';
 
 type Period = '4w' | '12w' | 'year' | 'all' | 'custom';
 
@@ -530,7 +531,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>ANÁLISES</h1>
+      <ScreenHeader title="Análises" />
 
       {/* Period filter */}
       <div style={styles.periodWrap}>
@@ -1175,7 +1176,6 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
-  pageTitle: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' },
   periodWrap: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginBottom: '10px' },
   periodBtn: { height: '34px', padding: '0 13px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, border: '1px solid var(--border-color)' },
   dateRow: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' },

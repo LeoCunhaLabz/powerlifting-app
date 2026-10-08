@@ -57,6 +57,11 @@ html {
   overscroll-behavior-y: none; /* puxar para baixo não recarrega o app (Android/TWA) */
 }
 
+/* Folha (dialog modal) aberta: a página de trás não rola */
+:root:has(dialog:modal) {
+  overflow: hidden;
+}
+
 body {
   background-color: #000000;
   color: var(--text-primary);

@@ -4,6 +4,7 @@ import type { Program, WorkoutTemplate } from '@powerlifting/shared';
 import { ChevronLeft, ChevronRight, Play, CalendarDays } from 'lucide-react';
 import { toLocalDate, weekDayIdx, computeMissedTrainingDays, sessionDayKey } from '../utils/programProgress';
 import { SessionDetail } from '../components/SessionDetail';
+import { ScreenHeader } from '../ui';
 
 interface CalendarProps {
   onStartWorkoutTab: () => void;
@@ -150,7 +151,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
   if (!activeProgram) {
     return (
       <div style={styles.container}>
-        <h1 style={styles.pageTitle}>CALENDÁRIO</h1>
+        <ScreenHeader title="Calendário" />
         <div style={styles.empty}>
           <CalendarDays size={40} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
           <p>Nenhum programa ativo.</p>
@@ -198,7 +199,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>CALENDÁRIO</h1>
+      <ScreenHeader title="Calendário" />
 
       {/* Program info */}
       <div style={styles.progBadge}>
@@ -333,7 +334,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%', gap: 0 },
-  pageTitle: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em', marginBottom: 14 },
   empty: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', textAlign: 'center', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 },
   progBadge: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-md)', marginBottom: 14 },
   progBadgeDot: { width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--accent)', flexShrink: 0 } as React.CSSProperties,

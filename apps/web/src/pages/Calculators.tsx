@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import PlateVisualizer from '../components/PlateVisualizer';
 import { calculateWilks, calculateDots, calculateIpfGl, calculateE1RM, calculateE1RMBrzycki, calculateE1RMEpley } from '../utils/powerlifting';
+import { ScreenHeader } from '../ui';
 
 export const Calculators: React.FC = () => {
   const { state } = useWorkout();
@@ -46,7 +47,7 @@ export const Calculators: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>CALCULADORAS</h1>
+      <ScreenHeader title="Calculadoras" />
       
       {/* Sub tabs */}
       <div style={styles.subTabs}>
@@ -340,15 +341,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-  },
-  pageTitle: {
-    fontSize: '20px',
-    fontWeight: '800',
-    fontFamily: 'var(--font-display)',
-    letterSpacing: '0.05em',
-    marginBottom: '16px',
-    borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '8px',
   },
   subTabs: {
     display: 'flex',

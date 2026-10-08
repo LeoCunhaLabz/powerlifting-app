@@ -1,0 +1,69 @@
+.sheet {
+  width: 100%;
+  max-width: var(--max-width);
+  max-height: 85dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-block) var(--radius-block) 0 0;
+  background: var(--surface-1);
+  color: var(--text-1);
+  box-shadow: var(--shadow-sheet);
+}
+
+.sheet[open] {
+  animation: sheet-in var(--dur-sheet) var(--ease-out);
+}
+
+.sheet::backdrop {
+  background: var(--scrim);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: 85dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+}
+
+.handle {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-day);
+  background: var(--surface-3);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-num);
+  font-size: var(--title-2);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.body {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: none;
+  }
+}

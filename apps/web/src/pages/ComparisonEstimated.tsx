@@ -3,6 +3,7 @@ import { TrendingUp, Scale, Trophy, Users, Info } from 'lucide-react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateDots } from '../utils/powerlifting';
 import { compareLift, compareTotal, type SingleLift } from '../utils/strength';
+import { ScreenHeader } from '../ui';
 
 type LiftKey = SingleLift;
 
@@ -86,7 +87,7 @@ export const ComparisonEstimated: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>COMPARAÇÃO ESTIMADA</h1>
+      <ScreenHeader title="Comparação estimada" />
 
       {!dataReady && (
         <div style={styles.emptyState}>
@@ -243,15 +244,6 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     width: '100%',
     gap: '12px',
-  },
-  pageTitle: {
-    fontSize: '20px',
-    fontWeight: 800,
-    fontFamily: 'var(--font-display)',
-    letterSpacing: '0.05em',
-    marginBottom: '4px',
-    borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '8px',
   },
   emptyState: {
     border: '1px solid var(--border-color)',

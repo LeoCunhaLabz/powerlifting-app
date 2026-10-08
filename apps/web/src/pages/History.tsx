@@ -4,6 +4,7 @@ import type { WorkoutSession, ExerciseState, SetState } from '@powerlifting/shar
 import { Clock, TrendingUp, Award, X, RotateCcw, Pencil, Check, Trash2, Plus, AlertTriangle } from 'lucide-react';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 import { SessionDetail } from '../components/SessionDetail';
+import { ScreenHeader } from '../ui';
 
 interface HistoryProps {
   onRepeat: (session: WorkoutSession) => void;
@@ -195,7 +196,7 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>HISTÓRICO</h1>
+      <ScreenHeader title="Histórico" />
 
       <input
         type="search"
@@ -463,7 +464,6 @@ export const History: React.FC<HistoryProps> = ({ onRepeat, initialSessionId, in
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
-  title: { fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.05em', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' },
   search: { width: '100%', height: 40, padding: '0 12px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' },
   empty: { fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', padding: '32px 0' },
   monthLabel: { fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 8, marginTop: 4 },
