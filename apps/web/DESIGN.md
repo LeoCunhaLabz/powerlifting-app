@@ -213,7 +213,15 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
 - `ScreenHeader`: título de tela único.
 - `EmptyState`: título, uma frase e uma ação.
 
-**Do treino (etapa 3, ainda a implementar em `apps/web/src/components/workout/`):** `SetRow`, `RestBar` (compacta e aberta) e `WeekStrip`.
+**Do treino (`apps/web/src/components/workout/`):**
+- `SetRow` (#339): grade tipo, carga, reps, RPE e check (`40 | 4fr | 3fr | 44 | 44`), sem coluna "Anterior": em 360 px a carga fica com cerca de 78 px e "112,5" cabe em `--num-md`. Três estados:
+  - **feita:** valores como texto e check recuado;
+  - **atual:** linha `--surface-2` até a borda do bloco, campos de 54 px sem borda, check dourado e "Anterior" embaixo;
+  - **pendente:** campos discretos, ainda editáveis.
+
+  Aquecimento aparece como "Aq" e as séries normais são numeradas sem ele. A série atual vem de `utils/workoutSets` (primeira pendente depois da última concluída). Carga com 6 ou mais caracteres desce para `--num-sm`.
+- `ExerciseCard`: cabeçalho com o botão "Anilhas" (abre o `PlateSheet` na carga da próxima série pendente) e o menu de opções (notas, remover com confirmação).
+- A implementar: `RestBar` (compacta e aberta) e `WeekStrip`.
 
 ## Do's and Don'ts
 
