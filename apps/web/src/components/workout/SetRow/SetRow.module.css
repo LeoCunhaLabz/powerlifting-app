@@ -1,0 +1,225 @@
+/*
+ * Grade da série: tipo | carga | reps | RPE | check (#339).
+ * Sem coluna "Anterior": em 360 px ela tirava da carga o espaço de "112,5". Carga e reps dividem
+ * o que sobra em 4:3 (reps tem no máximo 2 dígitos): cerca de 78 e 58 px em 360 px.
+ */
+.grid {
+  display: grid;
+  grid-template-columns: var(--tap-min) minmax(0, 4fr) minmax(0, 3fr) var(--tap) var(--tap);
+  column-gap: var(--space-2);
+  align-items: center;
+}
+
+.head {
+  height: 28px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.head > :nth-child(n + 2) {
+  text-align: center;
+}
+
+.row {
+  min-height: 48px;
+  border-top: 1px solid transparent;
+}
+
+.row + .row {
+  border-top-color: var(--line);
+}
+
+/* A série atual ocupa a largura do bloco (sangra o padding) e dispensa as divisórias vizinhas. */
+.row.current,
+.row.current + .row {
+  border-top-color: transparent;
+}
+
+.current {
+  row-gap: var(--space-1);
+  margin: 0 calc(-1 * var(--space-4));
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+}
+
+/* Tipo da série: o número (ou Aq / D) é o botão que troca o tipo. */
+.type {
+  display: flex;
+  align-items: center;
+  width: var(--tap-min);
+  height: var(--tap);
+  padding: 0;
+  border-radius: var(--radius-field);
+  font-family: var(--font-num);
+  font-size: var(--num-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.typeLetter {
+  font-family: var(--font-text);
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}
+
+.pending .type {
+  color: var(--text-3);
+}
+
+.current .type {
+  font-size: var(--num-md);
+  color: var(--now);
+}
+
+.current .typeLetter {
+  font-size: var(--fs-sm);
+}
+
+/* Valores da série feita: texto, não campo. */
+.value {
+  text-align: center;
+  font-family: var(--font-num);
+  font-size: var(--num-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rpeValue {
+  font-weight: 600;
+}
+
+.warmup .value {
+  color: var(--text-2);
+}
+
+/* Campos: sem borda; o foco é o anel dourado (foco = agora). */
+.input,
+.rpe {
+  width: 100%;
+  min-width: 0;
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-field);
+  background: transparent;
+  color: var(--text-3);
+  text-align: center;
+  font-family: var(--font-num);
+  font-size: var(--num-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input::placeholder {
+  color: var(--text-off);
+}
+
+.input:focus,
+.rpe:focus {
+  border: 0;
+  background: var(--surface-0);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1.5px var(--now);
+}
+
+.rpe {
+  appearance: none;
+  -webkit-appearance: none;
+  text-align-last: center;
+  cursor: pointer;
+}
+
+.rpe option {
+  background: var(--surface-1);
+  color: var(--text-1);
+}
+
+.current .input,
+.current .rpe {
+  height: 54px;
+  background: var(--surface-0);
+  color: var(--text-1);
+}
+
+.current .input {
+  font-size: var(--num-md);
+  font-weight: 700;
+}
+
+.current .input.long {
+  font-size: var(--num-sm);
+}
+
+/* Sem RPE, a célula fica vazia (o rótulo da coluna já diz o que é); "Sem RPE" só aparece na lista. */
+.rpe.rpeEmpty,
+.rpe.rpeEmpty:focus {
+  color: transparent;
+}
+
+/* Check: 44 px; recua na série feita, dourado na atual. */
+.check {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--radius-field);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--surface-3);
+  color: var(--text-3);
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-state) var(--ease-out);
+}
+
+.check:active {
+  transform: scale(0.97);
+}
+
+.done .check {
+  background: var(--surface-3);
+  box-shadow: none;
+  color: var(--text-1);
+}
+
+.current .check {
+  height: 54px;
+  background: var(--now);
+  box-shadow: none;
+  color: var(--now-ink);
+}
+
+.previous {
+  grid-column: 2 / 4;
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .check {
+    transition: none;
+  }
+
+  .check:active {
+    transform: none;
+  }
+}

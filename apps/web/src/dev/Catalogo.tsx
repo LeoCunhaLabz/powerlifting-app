@@ -1,4 +1,8 @@
 import { useState, type ReactNode } from 'react';
+import type { SetState } from '@powerlifting/shared';
+import { SetRow, SetRowHeader } from '../components/workout/SetRow/SetRow';
+import { TYPE_CYCLE } from '../utils/setTypeCycle';
+import { currentSetIndex, setLabel } from '../utils/workoutSets';
 import { Block, Button, EmptyState, Field, IconButton, ListRow, ScreenHeader, SegmentedControl, Segments, Sheet, Stat, Toast } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
 import { AlertTriangle, ClipboardList, CloudCheck, MoreHorizontal, Play, Plus, X } from 'lucide-react';
@@ -12,6 +16,43 @@ const COLORS = [
 const NUMBERS = [['--num-xl', '522,5'], ['--num-lg', '1:48'], ['--num-md', '150'], ['--num-sm', '182,5']] as const;
 const TITLES = ['--title-1', '--title-2', '--title-3'] as const;
 const TEXTS = ['--fs-body', '--fs-sm', '--fs-xs', '--fs-caption', '--fs-label'] as const;
+
+const SAMPLE_SETS: SetState[] = [
+  { id: 'a', type: 'W', weight: 60, reps: 5, completed: true },
+  { id: 'b', type: 'W', weight: 100, reps: 3, completed: true },
+  { id: 'c', type: 'N', weight: 150, reps: 4, rpe: 7.5, completed: true },
+  { id: 'd', type: 'N', weight: 112.5, reps: 4, completed: false },
+  { id: 'e', type: 'N', weight: 150, reps: 4, completed: false },
+  { id: 'f', type: 'D', weight: 0, reps: 0, completed: false },
+];
+const LONG_SETS: SetState[] = [{ id: 'g', type: 'N', weight: 1102.5, reps: 1, rpe: 9.5, completed: false }];
+
+/** Séries de exemplo com estado local, para testar toque e digitação no catálogo. */
+function SetRowSample({ initial, units }: { initial: SetState[]; units: 'kg' | 'lbs' }) {
+  const [sets, setSets] = useState(initial);
+  const current = currentSetIndex(sets.map((s) => s.completed));
+  const update = (i: number, fields: Partial<SetState>) =>
+    setSets((prev) => prev.map((s, j) => (j === i ? { ...s, ...fields } : s)));
+  return (
+    <Block>
+      <div>
+        <SetRowHeader units={units} />
+        {sets.map((set, i) => (
+          <SetRow
+            key={set.id}
+            set={set}
+            label={setLabel(sets, i)}
+            current={i === current}
+            units={units}
+            previous={i === current ? '147,5 × 4' : null}
+            onChange={(fields) => update(i, fields)}
+            onCycleType={() => update(i, { type: TYPE_CYCLE[set.type] })}
+          />
+        ))}
+      </div>
+    </Block>
+  );
+}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -180,6 +221,11 @@ export default function Catalogo() {
           description="Crie uma rotina ou comece por um treino avulso."
           action={<Button variant="primary">Criar rotina</Button>}
         />
+      </Section>
+
+      <Section title="SetRow (treino)">
+        <SetRowSample initial={SAMPLE_SETS} units="kg" />
+        <SetRowSample initial={LONG_SETS} units="lbs" />
       </Section>
 
       {/* fim das seções */}
