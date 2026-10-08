@@ -1,8 +1,9 @@
 /**
- * Série atual, rótulo da série (#339) e resumo para finalizar o treino (#340, #328).
+ * Série atual, rótulo da série (#339), resumo para finalizar o treino (#340, #328) e as
+ * transformações das séries do treino ativo usadas nos updaters do WorkoutContext.
  * Funções puras, testadas em workoutSets.test.ts.
  */
-import type { SetState } from '@powerlifting/shared';
+import type { SetState, WorkoutSession } from '@powerlifting/shared';
 
 type ExerciseSets = ReadonlyArray<{ sets: ReadonlyArray<Pick<SetState, 'completed'>> }>;
 
@@ -63,4 +64,48 @@ export function firstPendingSet(exercises: ExerciseSets): { exIdx: number; setId
     if (setIdx !== -1) return { exIdx, setIdx };
   }
   return null;
+}
+
+// Transformações do treino ativo: nunca mutam a sessão anterior, porque o React pode rodar o
+// updater do setState mais de uma vez (sempre no StrictMode do dev) e mutar dobrava o efeito.
+
+/**
+ * Acrescenta uma série pendente ao exercício copiando peso, reps, RPE/RIR e tipo da última
+ * (0 × 5 normal no exercício sem séries). O id vem de fora para o updater continuar puro.
+ */
+export function appendSet(session: WorkoutSession, exerciseIndex: number, id: string): WorkoutSession {
+  const ex = session.exercises[exerciseIndex];
+  if (!ex) return session;
+  const last = ex.sets[ex.sets.length - 1];
+  const newSet: SetState = {
+    id,
+    weight: last ? last.weight : 0,
+    reps: last ? last.reps : 5,
+    rpe: last ? last.rpe : undefined,
+    rir: last ? last.rir : undefined,
+    completed: false,
+    type: last ? last.type : 'N',
+  };
+  const exercises = [...session.exercises];
+  exercises[exerciseIndex] = { ...ex, sets: [...ex.sets, newSet] };
+  return { ...session, exercises };
+}
+
+/** Aplica `fields` a uma série do treino ativo. */
+export function patchSet(
+  session: WorkoutSession,
+  exerciseIndex: number,
+  setIndex: number,
+  fields: Partial<SetState>,
+): WorkoutSession {
+  const ex = session.exercises[exerciseIndex];
+  if (!ex?.sets[setIndex]) return session;
+  const exercises = [...session.exercises];
+  exercises[exerciseIndex] = { ...ex, sets: ex.sets.map((s, i) => (i === setIndex ? { ...s, ...fields } : s)) };
+  return { ...session, exercises };
+}
+
+/** A edição conclui uma série que estava pendente (é o que dispara o descanso). */
+export function completesSet(set: Pick<SetState, 'completed'> | undefined, fields: Partial<SetState>): boolean {
+  return !!set && !set.completed && fields.completed === true;
 }
