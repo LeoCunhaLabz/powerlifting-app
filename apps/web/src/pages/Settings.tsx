@@ -5,6 +5,7 @@ import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, LogOut, Plus, X 
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
 import { ErrorBox } from '../components/ErrorBox';
 import { ScreenHeader } from '../ui';
+import { RestDefaultSetting } from '../components/RestDefaultSetting/RestDefaultSetting';
 
 export const Settings: React.FC = () => {
   const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData, reseedDemoData } = useWorkout();
@@ -168,6 +169,8 @@ export const Settings: React.FC = () => {
             <option value="female">Feminino</option>
           </select>
         </div>
+
+        <RestDefaultSetting seconds={settings.restSeconds} onChange={(restSeconds) => updateSettings({ restSeconds })} />
       </div>
 
       {/* Configuração de Equipamento */}
