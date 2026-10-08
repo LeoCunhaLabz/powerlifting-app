@@ -813,7 +813,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       setSaveError(prev => (prev === null ? prev : null));
     } else {
       console.error(`Failed to save "${key}" to localStorage (cota cheia ou indisponível)`);
-      setSaveError('Não foi possível salvar no dispositivo — o armazenamento pode estar cheio. Seu treino atual ainda está aberto; libere espaço ou exporte um backup em Mais › Configurações antes de recarregar.');
+      setSaveError('Não foi possível salvar no aparelho: o armazenamento pode estar cheio. Seu treino continua aberto; libere espaço ou exporte um backup em Mais › Configurações antes de recarregar.');
     }
     return ok;
   };

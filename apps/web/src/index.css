@@ -213,7 +213,7 @@ input::placeholder, textarea::placeholder {
 
 /* Com a barra de descanso: folga extra para o fim da página não ficar atrás dela (#330). */
 .app-content--rest {
-  padding-bottom: calc(90px + 64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(90px + 84px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Faixa fixa acima da navegação, presa ao shell de 480 px como a .bottom-nav (#330):

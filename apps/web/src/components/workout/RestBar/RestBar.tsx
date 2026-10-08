@@ -101,11 +101,9 @@ export function RestBarView({ status, exercise, next, open, onOpen, onCollapse, 
         <span className={styles.overtime}>
           <span className={styles.srOnly}>Tempo extra </span>+{formatClock(status.overtime)}
         </span>
-        <span className={styles.endedText}>
-          <span className={styles.endedTitle}>Descanso encerrado</span>
-          {next && <span className={styles.endedNext}>{`Próxima: ${next.exercise}, ${next.set}${next.load ? `, ${next.load}` : ''}`}</span>}
-        </span>
+        <span className={styles.endedTitle}>Descanso encerrado</span>
         <Button variant="secondary" className={styles.small} onClick={onSkip}>Fechar</Button>
+        {next && <span className={styles.endedNext}>{`Próxima: ${next.exercise}, ${next.set}${next.load ? `, ${next.load}` : ''}`}</span>}
       </section>
     );
   }

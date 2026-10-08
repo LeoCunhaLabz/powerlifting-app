@@ -110,6 +110,8 @@ Para **adicionar uma aba/página**:
 - **Não** acesse `localStorage` diretamente nos componentes; use as funções do contexto.
 - Persistência é feita por `useEffect` que sincroniza o estado com as chaves:
   - `powerlifting_app_state`, `powerlifting_active_workout`, `powerlifting_rest_timer_end`.
+  - `powerlifting_rest_timer_end` guarda o descanso como JSON `{ end, total, exercise }` (funções puras em `utils/restTimer.ts`); o formato antigo, só o número do fim, continua sendo lido.
+- **Configurações são só locais.** `Settings` (unidade, barra, anilhas, `restSeconds` do descanso padrão…) vive no `AppState` e no backup exportado, mas não sincroniza com a API.
 - Ao expor nova funcionalidade de estado: adicione a função ao `WorkoutContextType`, implemente no provider e mantenha a persistência consistente.
 
 ### Tipos de domínio
