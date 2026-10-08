@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
 import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, LogOut, Plus, X } from 'lucide-react';
 import { DEFAULT_PLATES_KG, DEFAULT_PLATES_LBS } from '../utils/powerlifting';
+import { countUserData, readBackup, type DataCounts } from '../utils/backup';
 import { ErrorBox } from '../components/ErrorBox';
-import { ScreenHeader } from '../ui';
+import { Button, ScreenHeader } from '../ui';
 import { RestDefaultSetting } from '../components/RestDefaultSetting/RestDefaultSetting';
+import { ClearDataSheet } from '../components/settings/ClearDataSheet/ClearDataSheet';
+import { ImportSheet } from '../components/settings/ImportSheet/ImportSheet';
 
 export const Settings: React.FC = () => {
-  const { state, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData, reseedDemoData } = useWorkout();
+  const { state, activeWorkout, updateSettings, exportData, importData, addCustomPlate, removeCustomPlate, resetAllData, reseedDemoData } = useWorkout();
   const { user, logout, deleteAccount } = useAuth();
   const { settings } = state;
 
-  const [importText, setImportText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImport, setPendingImport] = useState<{ text: string; fileName: string; counts: DataCounts } | null>(null);
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
   const [showConfirmDeleteAccount, setShowConfirmDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [customPlateInput, setCustomPlateInput] = useState('');
@@ -70,22 +75,42 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleImportJson = () => {
-    if (!importText.trim()) return;
-    const success = importData(importText);
-    if (success) {
-      setImportStatus('success');
-      setImportText('');
-      setTimeout(() => setImportStatus('idle'), 4000);
-    } else {
-      setImportStatus('error');
-      setTimeout(() => setImportStatus('idle'), 4000);
+  const showImportStatus = (status: 'success' | 'error') => {
+    setImportStatus(status);
+    setTimeout(() => setImportStatus('idle'), 4000);
+  };
+
+  // Valida o arquivo antes de perguntar: backup inválido nem abre a confirmação.
+  const handleFileChosen = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // escolher o mesmo arquivo de novo dispara o change
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const counts = readBackup(text);
+      if (!counts) {
+        showImportStatus('error');
+        return;
+      }
+      setImportStatus('idle');
+      setPendingImport({ text, fileName: file.name, counts });
+    } catch {
+      showImportStatus('error');
     }
+  };
+
+  const handleConfirmImport = () => {
+    if (!pendingImport) return;
+    const success = importData(pendingImport.text);
+    setPendingImport(null);
+    showImportStatus(success ? 'success' : 'error');
   };
 
   const handleResetData = () => {
     resetAllData();
     setShowConfirmReset(false);
+    setResetDone(true);
+    setTimeout(() => setResetDone(false), 4000);
   };
 
   const handleDeleteAccount = async () => {
@@ -266,37 +291,51 @@ export const Settings: React.FC = () => {
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Backup dos Dados</h2>
         <p style={{ ...styles.settingDesc, marginBottom: '14px' }}>
-          Toda a persistência é salva localmente no seu navegador. Exporte regularmente para não perder seus dados de treino.
+          Seus treinos ficam neste aparelho e sincronizados com sua conta. O arquivo é uma cópia extra que você guarda.
         </p>
 
-        <button onClick={handleExportFile} style={{ ...styles.btn, ...styles.btnBackup }}>
-          <Download size={16} /> Exportar Arquivo JSON
-        </button>
+        <Button variant="secondary" block icon={<Download size={16} />} onClick={handleExportFile}>
+          Exportar arquivo de backup
+        </Button>
 
         <div style={styles.divider} />
 
         <div style={styles.formGroup}>
-          <div style={{ ...styles.settingLabel, marginBottom: '6px' }}>Importar Backup</div>
-          <textarea
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            placeholder="Cole o código JSON do seu backup aqui..."
-            style={styles.textarea}
+          <div style={styles.settingLabel}>Importar backup</div>
+          <div style={{ ...styles.settingDesc, marginBottom: '10px' }}>
+            Troca os dados deste aparelho pelos de um arquivo exportado antes.
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleFileChosen}
+            hidden
           />
-          <button onClick={handleImportJson} style={{ ...styles.btn, ...styles.btnImport, marginTop: '8px' }}>
-            <Upload size={16} /> Importar Código JSON
-          </button>
+          <Button variant="secondary" block icon={<Upload size={16} />} onClick={() => fileInputRef.current?.click()}>
+            Escolher arquivo
+          </Button>
 
           {importStatus === 'success' && (
-            <div style={styles.successAlert}>
-              <CheckCircle2 size={16} /> Dados importados com sucesso!
+            <div role="status" style={styles.successAlert}>
+              <CheckCircle2 size={16} /> Dados importados.
             </div>
           )}
           {importStatus === 'error' && (
-            <ErrorBox style={{ marginTop: '10px' }}>Backup inválido ou corrompido. Nenhuma alteração foi feita.</ErrorBox>
+            <ErrorBox style={{ marginTop: '10px' }}>Este arquivo não é um backup válido ou está corrompido. Nada foi alterado.</ErrorBox>
           )}
         </div>
       </div>
+
+      {pendingImport && (
+        <ImportSheet
+          fileName={pendingImport.fileName}
+          incoming={pendingImport.counts}
+          current={countUserData(state)}
+          onConfirm={handleConfirmImport}
+          onClose={() => setPendingImport(null)}
+        />
+      )}
 
       {/* Conta */}
       <div style={styles.section}>
@@ -321,12 +360,12 @@ export const Settings: React.FC = () => {
                 Excluir a conta apaga permanentemente todos os seus dados do servidor (treinos, rotinas, programas). Esta ação não pode ser desfeita.
               </div>
               <div style={styles.confirmButtons}>
-                <button onClick={() => setShowConfirmDeleteAccount(false)} style={styles.cancelBtn} disabled={deletingAccount}>
+                <Button variant="secondary" block onClick={() => setShowConfirmDeleteAccount(false)} disabled={deletingAccount}>
                   Cancelar
-                </button>
-                <button onClick={handleDeleteAccount} style={styles.confirmDeleteBtn} disabled={deletingAccount}>
+                </Button>
+                <Button variant="danger" block onClick={handleDeleteAccount} loading={deletingAccount}>
                   {deletingAccount ? 'Excluindo…' : 'Sim, excluir conta'}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -340,27 +379,28 @@ export const Settings: React.FC = () => {
       {/* Perigo / Reset */}
       <div style={styles.section}>
         <h2 style={{ ...styles.sectionTitle, color: 'var(--error)' }}>Perigo</h2>
-        {showConfirmReset ? (
-          <div style={styles.confirmBox}>
-            <div style={styles.confirmText}>
-              <AlertTriangle size={20} color="var(--error)" />
-              Tem certeza? Isso apagará permanentemente todo seu histórico de treinos e recordes pessoais.
-            </div>
-            <div style={styles.confirmButtons}>
-              <button onClick={() => setShowConfirmReset(false)} style={styles.cancelBtn}>
-                Cancelar
-              </button>
-              <button onClick={handleResetData} style={styles.confirmDeleteBtn}>
-                Sim, Apagar Tudo
-              </button>
-            </div>
+        <p style={{ ...styles.settingDesc, marginBottom: '12px' }}>
+          Apaga seus treinos, rotinas e programas neste aparelho e na sua conta.
+        </p>
+        <button onClick={() => setShowConfirmReset(true)} style={{ ...styles.btn, ...styles.btnDelete }}>
+          <Trash2 size={16} /> Limpar todos os dados
+        </button>
+        {resetDone && (
+          <div role="status" style={styles.successAlert}>
+            <CheckCircle2 size={16} /> Dados apagados.
           </div>
-        ) : (
-          <button onClick={() => setShowConfirmReset(true)} style={{ ...styles.btn, ...styles.btnDelete }}>
-            <Trash2 size={16} /> Limpar Todos os Dados
-          </button>
         )}
       </div>
+
+      {showConfirmReset && (
+        <ClearDataSheet
+          counts={countUserData(state)}
+          hasActiveWorkout={activeWorkout !== null}
+          onExport={handleExportFile}
+          onConfirm={handleResetData}
+          onClose={() => setShowConfirmReset(false)}
+        />
+      )}
 
       {/* Demo Seed */}
       {user?.email?.trim().toLowerCase() === 'leonardovalcesio@gmail.com' && (
@@ -529,15 +569,6 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     gap: '8px',
   },
-  btnBackup: {
-    backgroundColor: 'var(--accent)',
-    color: 'var(--accent-ink)',
-  },
-  btnImport: {
-    backgroundColor: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    border: '1px solid var(--border-color)',
-  },
   btnDelete: {
     backgroundColor: 'rgba(229, 84, 75, 0.1)',
     color: 'var(--error)',
@@ -574,15 +605,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     cursor: 'pointer',
     flexShrink: 0,
-  },
-  textarea: {
-    width: '100%',
-    height: '80px',
-    fontSize: '12px',
-    fontFamily: 'monospace',
-    resize: 'none',
-    backgroundColor: 'var(--bg-primary)',
-    marginTop: '6px',
   },
   successAlert: {
     display: 'flex',
@@ -625,15 +647,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: '32px',
     backgroundColor: 'var(--bg-tertiary)',
     border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '12px',
-    fontWeight: '700',
-    color: 'var(--text-primary)',
-  },
-  confirmDeleteBtn: {
-    flex: 1,
-    height: '32px',
-    backgroundColor: 'var(--error)',
     borderRadius: 'var(--radius-sm)',
     fontSize: '12px',
     fontWeight: '700',

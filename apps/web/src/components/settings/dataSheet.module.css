@@ -1,0 +1,78 @@
+/* Corpo das folhas de dados de Configurações (ClearDataSheet, ImportSheet). */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lead,
+.line {
+  margin: 0;
+}
+
+.lead {
+  color: var(--text-1);
+}
+
+/* Recebe o foco inicial da folha por programa; não é um controle. */
+.lead:focus {
+  outline: none;
+}
+
+.line {
+  margin-top: var(--space-2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item,
+.stacked {
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line);
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  min-width: 0;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.count {
+  flex: none;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.caption,
+.file {
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}
+
+.file {
+  overflow-wrap: anywhere;
+}
+
+.field {
+  margin-top: var(--space-2);
+}
