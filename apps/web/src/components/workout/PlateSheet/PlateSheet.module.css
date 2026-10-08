@@ -1,0 +1,36 @@
+.context {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.adjust {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+}
+
+.step {
+  min-width: 64px;
+  font-family: var(--font-num);
+  font-size: var(--title-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.weight {
+  font-family: var(--font-num);
+  font-size: var(--num-lg);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.unit {
+  font-family: var(--font-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}

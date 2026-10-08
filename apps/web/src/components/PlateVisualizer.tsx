@@ -6,6 +6,9 @@ interface PlateVisualizerProps {
   barWeight: number;
   availablePlates: number[];
   units: 'kg' | 'lbs';
+  /** false: esconde a carga total quando quem usa já mostra o número (folha de anilhas do treino);
+   *  ela volta se as anilhas não fecharem a carga pedida. */
+  showTotal?: boolean;
 }
 
 // Map plates to standard IPF/Competition colors and relative heights
@@ -117,6 +120,7 @@ export const PlateVisualizer: React.FC<PlateVisualizerProps> = ({
   barWeight,
   availablePlates,
   units,
+  showTotal = true,
 }) => {
   const { plates, actualWeight } = calculatePlates(weight, barWeight, availablePlates);
 
@@ -131,14 +135,16 @@ export const PlateVisualizer: React.FC<PlateVisualizerProps> = ({
   return (
     <div style={styles.container}>
       <div style={styles.textDetails}>
-        <div style={styles.weightSummary}>
-          <span style={styles.actualVal}>{actualWeight} {units}</span>
-          {actualWeight !== weight && (
-            <span style={styles.targetDiff}>
-              (Alvo: {weight} {units})
-            </span>
-          )}
-        </div>
+        {(showTotal || actualWeight !== weight) && (
+          <div style={styles.weightSummary}>
+            <span style={styles.actualVal}>{actualWeight} {units}</span>
+            {actualWeight !== weight && (
+              <span style={styles.targetDiff}>
+                (Alvo: {weight} {units})
+              </span>
+            )}
+          </div>
+        )}
         <div style={styles.subtitle}>
           Cada lado da barra (+ barra de {barWeight} {units})
         </div>
