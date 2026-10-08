@@ -65,20 +65,6 @@
   flex-direction: column;
 }
 
-.actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.addSet {
-  flex: 1;
-}
-
-.actions .removeSet {
-  color: var(--text-2);
-  padding: 0 var(--space-4);
-}
-
 .menu {
   display: flex;
   flex-direction: column;

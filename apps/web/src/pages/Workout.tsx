@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Dumbbell, Check, Clock, Play, AlertTriangle, Plus, X, RotateCcw, Award, TrendingUp } from 'lucide-react';
-import SessionClock from '../components/SessionClock';
+import { Dumbbell, Check, Clock, Play, Plus, X, RotateCcw, Award, TrendingUp } from 'lucide-react';
 import { ExerciseCard } from '../components/workout/ExerciseCard/ExerciseCard';
+import { FinishSheet } from '../components/workout/FinishSheet/FinishSheet';
 import { PlateSheet } from '../components/workout/PlateSheet/PlateSheet';
+import { WorkoutHeader } from '../components/workout/WorkoutHeader/WorkoutHeader';
+import { Button } from '../ui';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 import { formatCompact } from '../utils/format';
-import { currentSetIndex, findCurrentSet, setLabel } from '../utils/workoutSets';
+import { currentSetIndex, findCurrentSet, finishSummary, firstPendingSet, setLabel } from '../utils/workoutSets';
 import type { ExerciseState, WorkoutTemplate } from '@powerlifting/shared';
-
-// Componente folha do cronômetro: o tick de 1s re-renderiza só o SessionClock,
-// não a lista inteira do treino (#267).
-const WorkoutTimer: React.FC<{ startIso: string }> = ({ startIso }) => (
-  <span style={styles.timer}><Clock size={14} /> <SessionClock startIso={startIso} /></span>
-);
 
 export const Workout: React.FC = () => {
   const {
@@ -40,8 +36,7 @@ export const Workout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   // Anilhas: exercício, série que recebe a carga (-1 = todas feitas) e a carga montada.
   const [plate, setPlate] = useState<{ exIdx: number; setIdx: number; weight: number } | null>(null);
-  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
-  const [showConfirmFinish, setShowConfirmFinish] = useState(false);
+  const [showFinish, setShowFinish] = useState(false);
   const [workoutSummary, setWorkoutSummary] = useState<typeof history[number] | null>(null);
   const pendingFinishRef = useRef(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -160,7 +155,7 @@ export const Workout: React.FC = () => {
           <span style={styles.templateName}>{t.name}</span>
           <span style={styles.templateSub}>{t.exercises.length} exercícios · {t.exercises.reduce((a, e) => a + e.sets.length, 0)} séries</span>
         </span>
-        <Play size={14} fill="var(--accent)" stroke="none" />
+        <Play size={14} fill="var(--text-2)" stroke="none" aria-hidden="true" />
       </button>
     );
 
@@ -197,9 +192,14 @@ export const Workout: React.FC = () => {
 
         {/* Modo 3 — Treino vazio ou repetir sem vínculo */}
         <p style={styles.sectionHeader}>Sem rotina</p>
-        <button onClick={() => startWorkout()} style={styles.startBtn}>
-          <Play size={16} fill="var(--accent-ink)" stroke="none" /> Iniciar treino avulso
-        </button>
+        {/* Um primário por tela (#340): com a próxima rotina do programa, ela é a ação dourada. */}
+        <Button
+          variant={nextFromProgram ? 'secondary' : 'primary'}
+          icon={<Play size={16} fill="currentColor" stroke="none" />}
+          onClick={() => startWorkout()}
+        >
+          Iniciar treino avulso
+        </Button>
         {history.length > 0 && (
           <button onClick={() => repeatWorkout(history[0])} style={styles.repeatLastBtn}>
             <RotateCcw size={15} /> Repetir último treino
@@ -217,6 +217,23 @@ export const Workout: React.FC = () => {
   };
 
   const currentSet = findCurrentSet(activeWorkout.exercises);
+  const summary = finishSummary(activeWorkout.exercises);
+
+  // "Revisar séries" (#328): fecha a folha e leva à primeira série sem check. A folha desmonta
+  // no clique; o rAF roda depois do commit, com a lista já sem o <dialog> por cima.
+  const reviewPending = () => {
+    setShowFinish(false);
+    const first = firstPendingSet(activeWorkout.exercises);
+    if (!first) return;
+    const id = activeWorkout.exercises[first.exIdx].sets[first.setIdx].id;
+    requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-set-id="${CSS.escape(id)}"]`);
+      if (!row) return;
+      row.querySelector('button')?.focus({ preventScroll: true });
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      row.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+    });
+  };
 
   // Abre com a carga da próxima série pendente do exercício (ou da última, se todas foram feitas).
   const openPlates = (exIdx: number) => {
@@ -242,17 +259,13 @@ export const Workout: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      {/* App bar */}
-      <div style={styles.appbar}>
-        <div style={styles.titleWrap}>
-          <h1 style={styles.title}>{activeWorkout.name}</h1>
-          <WorkoutTimer startIso={activeWorkout.date} />
-        </div>
-        <div style={styles.actions}>
-          <button onClick={() => setShowConfirmCancel(true)} style={styles.discardBtn}>Descartar</button>
-          <button onClick={() => setShowConfirmFinish(true)} style={styles.finishBtn}>Finalizar</button>
-        </div>
-      </div>
+      <WorkoutHeader
+        name={activeWorkout.name}
+        startIso={activeWorkout.date}
+        done={summary.done}
+        total={summary.total}
+        onFinish={() => setShowFinish(true)}
+      />
 
       {(() => {
         const routineNote = activeWorkout.templateId
@@ -281,10 +294,6 @@ export const Workout: React.FC = () => {
         />
       )}
 
-      <p style={styles.typeLegend}>
-        Toque no nº da série para alternar: <strong style={{ color: 'var(--text-secondary)' }}>N</strong> normal · <strong style={{ color: 'var(--text-secondary)' }}>Aq</strong> aquec. · <strong style={{ color: 'var(--text-secondary)' }}>D</strong> drop
-      </p>
-
       {/* Exercises */}
       <div style={styles.exList}>
         {activeWorkout.exercises.map((ex, exIdx) => (
@@ -297,7 +306,7 @@ export const Workout: React.FC = () => {
             previousFor={(setIdx) => lastPerf(ex.name, setIdx)}
             onUpdateSet={(setIdx, fields) => updateSet(exIdx, setIdx, fields)}
             onAddSet={() => addSetToExercise(exIdx)}
-            onRemoveLastSet={() => removeSetFromExercise(exIdx, ex.sets.length - 1)}
+            onRemoveSet={(setIdx) => removeSetFromExercise(exIdx, setIdx)}
             onNotesChange={(notes) => updateExerciseNotes(exIdx, notes)}
             onRemove={() => removeExerciseFromActiveWorkout(exIdx)}
             onOpenPlates={() => openPlates(exIdx)}
@@ -306,6 +315,8 @@ export const Workout: React.FC = () => {
       </div>
 
       <button onClick={() => setShowAddExModal(true)} style={styles.addEx}><Plus size={15} /> Adicionar exercício</button>
+
+      <Button variant="primary" size="lg" block onClick={() => setShowFinish(true)}>Finalizar treino</Button>
 
       {/* Add exercise modal */}
       {showAddExModal && (
@@ -331,45 +342,17 @@ export const Workout: React.FC = () => {
         </div>
       )}
 
-      {/* Finish confirmation modal */}
-      {showConfirmFinish && (() => {
-        const completedSets = activeWorkout.exercises.reduce((acc, ex) => acc + ex.sets.filter((s) => s.completed).length, 0);
-        const totalSets = activeWorkout.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
-        return (
-          <div style={styles.overlay} onClick={() => setShowConfirmFinish(false)}>
-            <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-              <Check size={40} color="var(--accent)" style={{ marginBottom: 12 }} />
-              <h3 style={styles.modalTitle}>Finalizar treino?</h3>
-              {completedSets === 0 ? (
-                <p style={styles.confirmDesc}>Nenhuma série foi marcada como concluída — finalizar agora <strong>descarta o treino</strong> e nada será salvo no histórico.</p>
-              ) : (
-                <p style={styles.confirmDesc}>{completedSets} de {totalSets} séries concluídas · {activeWorkout.exercises.length} exercícios.</p>
-              )}
-              <div style={styles.confirmActions}>
-                <button onClick={() => setShowConfirmFinish(false)} style={styles.confirmBack}>Voltar</button>
-                {/* Sem séries concluídas nada entra no history: não arma o pendingFinishRef,
-                    senão a próxima mudança do array (ex.: merge de sync) abre o resumo
-                    "Treino concluído" com uma sessão antiga. */}
-                <button onClick={() => { pendingFinishRef.current = completedSets > 0; completeActiveWorkout(); setShowConfirmFinish(false); }} style={completedSets === 0 ? styles.confirmDiscard : styles.finishBtn}>{completedSets === 0 ? 'Descartar' : 'Finalizar'}</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Discard modal */}
-      {showConfirmCancel && (
-        <div style={styles.overlay} onClick={() => setShowConfirmCancel(false)}>
-          <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12 }} />
-            <h3 style={styles.modalTitle}>Descartar treino</h3>
-            <p style={styles.confirmDesc}>Todo o progresso registrado nesta sessão será perdido.</p>
-            <div style={styles.confirmActions}>
-              <button onClick={() => setShowConfirmCancel(false)} style={styles.confirmBack}>Voltar</button>
-              <button onClick={() => { cancelWorkout(); setShowConfirmCancel(false); }} style={styles.confirmDiscard}>Descartar</button>
-            </div>
-          </div>
-        </div>
+      {showFinish && (
+        <FinishSheet
+          summary={summary}
+          onClose={() => setShowFinish(false)}
+          onReview={reviewPending}
+          // Sem séries concluídas nada entra no history: não arma o pendingFinishRef,
+          // senão a próxima mudança do array (ex.: merge de sync) abre o resumo
+          // "Treino concluído" com uma sessão antiga.
+          onFinish={() => { pendingFinishRef.current = summary.done > 0; completeActiveWorkout(); setShowFinish(false); }}
+          onDiscard={() => { cancelWorkout(); setShowFinish(false); }}
+        />
       )}
 
       {plate && (() => {
@@ -401,30 +384,21 @@ const styles: Record<string, React.CSSProperties> = {
   emptyIcon: { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' },
   emptyTitle: { fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' },
   emptyDesc: { fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', maxWidth: '300px', marginBottom: '24px' },
-  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
-  nextProgramKicker: { fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', textTransform: 'uppercase' },
+  nextProgramCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, width: '100%', maxWidth: 320, marginBottom: 16, padding: '14px 16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', textAlign: 'left' },
+  nextProgramKicker: { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' },
   nextProgramName: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 },
   nextProgramSub: { fontSize: 12, color: 'var(--text-secondary)' },
   nextProgramPlay: { display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 13, fontWeight: 800, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '7px 14px', borderRadius: 'var(--radius-sm)' },
   sectionHeader: { width: '100%', maxWidth: 320, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 22, marginBottom: 8, textAlign: 'left' },
-  startBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '12px 24px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   repeatLastBtn: { marginTop: '10px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px 22px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '7px' },
   templateList: { display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 },
   templateRow: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '11px 14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', textAlign: 'left' },
-  templateAvatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, flexShrink: 0 },
+  templateAvatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'var(--surface-3)', color: 'var(--text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, flexShrink: 0 },
   templateTexts: { display: 'flex', flexDirection: 'column', gap: 2, flex: 1 },
   templateName: { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' },
   templateSub: { fontSize: 11, color: 'var(--text-muted)' },
-  appbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
-  titleWrap: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  title: { fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)' },
-  timer: { display: 'inline-flex', alignItems: 'center', gap: '7px', alignSelf: 'flex-start', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-display)', padding: '5px 12px', borderRadius: '999px' },
-  actions: { display: 'flex', gap: '8px' },
-  discardBtn: { backgroundColor: 'rgba(229,84,75,0.1)', color: 'var(--error)', padding: '8px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '999px', border: '1px solid rgba(229,84,75,0.18)' },
-  finishBtn: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '8px 18px', fontSize: '12px', fontWeight: 800, borderRadius: '999px' },
   metaRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
   metaItem: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 },
-  typeLegend: { fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 10px', lineHeight: 1.4 },
   routineNote: { display: 'flex', flexDirection: 'column', gap: 3, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-md)', padding: '10px 12px', marginBottom: 10 },
   routineNoteLabel: { fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' },
   routineNoteText: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, whiteSpace: 'pre-wrap' },
@@ -440,10 +414,6 @@ const styles: Record<string, React.CSSProperties> = {
   search: { height: '44px', marginBottom: '12px' },
   suggestions: { overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' },
   suggestion: { textAlign: 'left', padding: '13px 8px', fontSize: '14px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'none' },
-  confirmDesc: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.4 },
-  confirmActions: { display: 'flex', gap: '12px', width: '100%' },
-  confirmBack: { flex: 1, height: '44px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' },
-  confirmDiscard: { flex: 1, height: '44px', backgroundColor: 'var(--error)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800, color: '#fff' },
 };
 
 export default Workout;

@@ -17,7 +17,8 @@ export interface SetRowProps {
   /** Desempenho da mesma série no último treino ("147,5 × 4"); aparece só na série atual. */
   previous?: string | null;
   onChange: (fields: Partial<SetState>) => void;
-  onCycleType: () => void;
+  /** Toque no número da série: abre a folha de tipo e remoção (#340). */
+  onTypePress: () => void;
 }
 
 /** Cabeçalho das colunas da tabela de séries, na mesma grade do SetRow. */
@@ -37,7 +38,7 @@ export function SetRowHeader({ units }: { units: 'kg' | 'lbs' }) {
  * Linha de uma série no treino ativo, em três estados: feita (valores como texto e check recuado),
  * atual (campos grandes, check dourado e o "Anterior") e pendente (campos discretos, editáveis).
  */
-export function SetRow({ set, label, current, units, previous, onChange, onCycleType }: SetRowProps) {
+export function SetRow({ set, label, current, units, previous, onChange, onTypePress }: SetRowProps) {
   const done = set.completed;
   const state = done ? 'done' : current ? 'current' : 'pending';
   const name = set.type === 'N' ? `Série ${label}` : TYPE_NAME[set.type];
@@ -45,13 +46,18 @@ export function SetRow({ set, label, current, units, previous, onChange, onCycle
   const longWeight = String(set.weight).length > 5;
 
   return (
-    <div role="group" aria-label={name} className={cx(styles.grid, styles.row, styles[state], set.type === 'W' && styles.warmup)}>
+    <div
+      role="group"
+      aria-label={name}
+      data-set-id={set.id}
+      className={cx(styles.grid, styles.row, styles[state], set.type === 'W' && styles.warmup)}
+    >
       <button
         type="button"
         className={cx(styles.type, set.type !== 'N' && styles.typeLetter)}
-        onClick={onCycleType}
-        aria-label={`${name}. Toque para trocar o tipo`}
-        title="Tipo: Normal / Aquecimento / Drop"
+        onClick={onTypePress}
+        aria-haspopup="dialog"
+        aria-label={`${name}. Trocar o tipo ou remover`}
       >
         {label}
       </button>

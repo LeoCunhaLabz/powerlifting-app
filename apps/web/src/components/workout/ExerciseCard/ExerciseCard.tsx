@@ -3,9 +3,9 @@ import type { ExerciseState, SetState } from '@powerlifting/shared';
 import { MessageSquare, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { Block, Button, IconButton, Sheet } from '../../../ui';
 import { formatCompact } from '../../../utils/format';
-import { TYPE_CYCLE } from '../../../utils/setTypeCycle';
 import { setLabel } from '../../../utils/workoutSets';
 import { SetRow, SetRowHeader } from '../SetRow/SetRow';
+import { SetTypeSheet } from '../SetTypeSheet/SetTypeSheet';
 import styles from './ExerciseCard.module.css';
 
 export interface ExerciseCardProps {
@@ -19,7 +19,7 @@ export interface ExerciseCardProps {
   previousFor: (setIdx: number) => string | null;
   onUpdateSet: (setIdx: number, fields: Partial<SetState>) => void;
   onAddSet: () => void;
-  onRemoveLastSet: () => void;
+  onRemoveSet: (setIdx: number) => void;
   onNotesChange: (notes: string) => void;
   onRemove: () => void;
   onOpenPlates: () => void;
@@ -36,9 +36,11 @@ function subtitle(exercise: ExerciseState, e1rm: number, u: string): string {
 /** Card de um exercício no treino ativo: cabeçalho com Anilhas e opções, tabela de séries e ações. */
 export function ExerciseCard({
   exercise, units, e1rm, currentSetIdx, previousFor,
-  onUpdateSet, onAddSet, onRemoveLastSet, onNotesChange, onRemove, onOpenPlates,
+  onUpdateSet, onAddSet, onRemoveSet, onNotesChange, onRemove, onOpenPlates,
 }: ExerciseCardProps) {
   const [menu, setMenu] = useState<'options' | 'remove' | null>(null);
+  // Série com a folha de tipo aberta (pelo id: o índice muda se uma série sair).
+  const [typeSetId, setTypeSetId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const focusNotes = useRef(false);
@@ -95,19 +97,31 @@ export function ExerciseCard({
             units={units}
             previous={setIdx === currentSetIdx ? previousFor(setIdx) : null}
             onChange={(fields) => onUpdateSet(setIdx, fields)}
-            onCycleType={() => onUpdateSet(setIdx, { type: TYPE_CYCLE[set.type] })}
+            onTypePress={() => setTypeSetId(set.id)}
           />
         ))}
       </div>
 
-      <div className={styles.actions}>
-        <Button variant="secondary" className={styles.addSet} icon={<Plus size={16} />} onClick={onAddSet}>
-          Adicionar série
-        </Button>
-        <Button variant="link" className={styles.removeSet} onClick={onRemoveLastSet} disabled={setCount <= 1}>
-          Remover
-        </Button>
-      </div>
+      <Button variant="secondary" block icon={<Plus size={16} />} onClick={onAddSet}>
+        Adicionar série
+      </Button>
+
+      {(() => {
+        const typeIdx = exercise.sets.findIndex((s) => s.id === typeSetId);
+        if (typeIdx === -1) return null;
+        return (
+          <SetTypeSheet
+            exerciseName={exercise.name}
+            set={exercise.sets[typeIdx]}
+            label={setLabel(exercise.sets, typeIdx)}
+            units={units}
+            canRemove={setCount > 1}
+            onChangeType={(type) => onUpdateSet(typeIdx, { type })}
+            onRemove={() => onRemoveSet(typeIdx)}
+            onClose={() => setTypeSetId(null)}
+          />
+        );
+      })()}
 
       <Sheet
         open={menu !== null}

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { SetState } from '@powerlifting/shared';
 import { SetRow, SetRowHeader } from '../components/workout/SetRow/SetRow';
-import { TYPE_CYCLE } from '../utils/setTypeCycle';
+import { SetTypeSheet } from '../components/workout/SetTypeSheet/SetTypeSheet';
 import { currentSetIndex, setLabel } from '../utils/workoutSets';
 import { Block, Button, EmptyState, Field, IconButton, ListRow, ScreenHeader, SegmentedControl, Segments, Sheet, Stat, Toast } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
@@ -30,6 +30,7 @@ const LONG_SETS: SetState[] = [{ id: 'g', type: 'N', weight: 1102.5, reps: 1, rp
 /** Séries de exemplo com estado local, para testar toque e digitação no catálogo. */
 function SetRowSample({ initial, units }: { initial: SetState[]; units: 'kg' | 'lbs' }) {
   const [sets, setSets] = useState(initial);
+  const [typeIdx, setTypeIdx] = useState<number | null>(null);
   const current = currentSetIndex(sets.map((s) => s.completed));
   const update = (i: number, fields: Partial<SetState>) =>
     setSets((prev) => prev.map((s, j) => (j === i ? { ...s, ...fields } : s)));
@@ -46,10 +47,22 @@ function SetRowSample({ initial, units }: { initial: SetState[]; units: 'kg' | '
             units={units}
             previous={i === current ? '147,5 × 4' : null}
             onChange={(fields) => update(i, fields)}
-            onCycleType={() => update(i, { type: TYPE_CYCLE[set.type] })}
+            onTypePress={() => setTypeIdx(i)}
           />
         ))}
       </div>
+      {typeIdx !== null && sets[typeIdx] && (
+        <SetTypeSheet
+          exerciseName="Agachamento"
+          set={sets[typeIdx]}
+          label={setLabel(sets, typeIdx)}
+          units={units}
+          canRemove={sets.length > 1}
+          onChangeType={(type) => update(typeIdx, { type })}
+          onRemove={() => setSets((prev) => prev.filter((_, j) => j !== typeIdx))}
+          onClose={() => setTypeIdx(null)}
+        />
+      )}
     </Block>
   );
 }
