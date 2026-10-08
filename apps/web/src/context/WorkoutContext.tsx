@@ -61,6 +61,7 @@ function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
 import { isValidImportedState } from '../utils/validateAppState';
 import { useSyncManager } from '../hooks/useSyncManager';
 import { applyServerData } from '../utils/syncMerge';
+import { currentWeekIndex } from '../utils/programProgress';
 
 /** Assinatura dos flags de PR de uma sessão — detecta mudança derivada pelo recálculo. */
 function prSignature(s: WorkoutSession): string {
@@ -620,16 +621,6 @@ async function purgeServerData(token: string): Promise<void> {
 // O merge com dados do servidor vive em utils/syncMerge.ts (applyServerData) —
 // puro e testado. O merge antigo daqui tinha os 3 defeitos da issue #264
 // (loop infinito, edição sobrescrita, treino excluído ressuscitando).
-// ---------------------------------------------------------------------------
-// Helper puro: índice da semana atual (0-based) a partir da data de início
-// e do número de semanas do mesociclo (ciclo volta ao 0 após weekCount semanas).
-// ---------------------------------------------------------------------------
-function currentWeekIndex(startDate: string, weekCount: number): number {
-  const start = new Date(startDate + 'T00:00:00');
-  const now = new Date();
-  const elapsed = Math.max(0, Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000)));
-  return weekCount > 0 ? elapsed % weekCount : 0;
-}
 
 export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScopeId?: string | null; demoEmail?: string | null }> = ({ children, storageScopeId, demoEmail }) => {
   const storageScope = storageScopeId?.trim() ? storageScopeId.trim() : 'global';

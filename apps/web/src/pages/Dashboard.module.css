@@ -1,0 +1,308 @@
+/* Início (#343), sobre o mock V3 (docs/superpowers/specs/2026-10-06-redesign-identidade-app/inicio.html). */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-blocks);
+  width: 100%;
+}
+
+/* O ScreenHeader traz margem própria; aqui o espaço vem do gap. */
+.screen > header {
+  margin-bottom: var(--space-1);
+}
+
+.kicker {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ─── Próximo treino ─── */
+
+.next {
+  gap: 0;
+  cursor: pointer;
+}
+
+.nextTitle {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-num);
+  font-size: var(--title-1);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.program {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.programSegments {
+  flex: none;
+  max-width: 50%;
+}
+
+.nextMeta {
+  margin-top: var(--space-1);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.nextActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+/* ─── Sua força ─── */
+
+.totalArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.trendRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.bars {
+  flex: none;
+  margin-left: auto;
+}
+
+.bar {
+  fill: var(--surface-3);
+}
+
+.barNow {
+  fill: var(--text-1);
+}
+
+.trend {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.lifts {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lift {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  border-top: 1px solid var(--line);
+}
+
+.liftName {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.liftValue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.recordIcon {
+  display: inline-flex;
+  color: var(--text-1);
+}
+
+.recordNote {
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.liftNum {
+  font-family: var(--font-num);
+  font-size: var(--num-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.liftEmpty {
+  font-family: var(--font-text);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+/* ─── Esta semana ─── */
+
+.weekLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.weekCount {
+  font-family: var(--font-num);
+  font-size: var(--title-1);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekOf {
+  font-family: var(--font-num);
+  font-size: var(--num-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.weekTon {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  text-align: right;
+}
+
+/* ─── Peso e último treino ─── */
+
+/* Sobe a especificidade sobre o .block: as linhas trazem o próprio padding. */
+section.flush {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.weightRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.weightInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.weightLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-2);
+}
+
+.weightNum {
+  font-family: var(--font-num);
+  font-size: var(--num-md);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.weightUnit {
+  font-family: var(--font-num);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.weightTrend {
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+}
+
+.weightEmpty {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.weightActions {
+  flex: none;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.lastRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-1);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: opacity var(--dur-state) var(--ease-out);
+}
+
+/* Linha de lista não encolhe: escurece, como o ListRow. */
+.lastRow:active {
+  transform: none;
+  opacity: 0.7;
+}
+
+.lastInfo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lastName {
+  font-family: var(--font-num);
+  font-size: var(--title-3);
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.lastMeta {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.lastRecord {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.chevron {
+  flex: none;
+  color: var(--text-3);
+}
