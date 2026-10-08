@@ -32,10 +32,11 @@ test('cadastro vindo da calculadora semeia peso e treino de referência', async 
 
   await createAccount(page);
 
-  // Dashboard: peso registrado e o treino de referência contando na semana.
+  // Início: peso registrado e o treino de referência contando hoje, na semana.
   await expect(page.getByRole('button', { name: 'Ver registros de peso' })).toBeVisible();
   await expect(page.getByText('82', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('group', { name: /Sessões: 1 treinos concluídos/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Treino feito hoje' })).toBeVisible();
+  await expect(page.getByRole('listitem', { name: /hoje, treinou/ })).toBeVisible();
   await page.getByText('Registro da calculadora').first().click();
   await expect(page.getByText('Supino Reto').first()).toBeVisible();
 });
@@ -48,6 +49,8 @@ test('payload inválido cai no cadastro normal, sem semeadura', async ({ page })
 
   await createAccount(page);
 
-  await expect(page.getByRole('group', { name: /Sessões: 0 treinos concluídos/ })).toBeVisible();
+  // Início de conta nova: sem histórico e sem peso inventado (#334, #338).
+  await expect(page.getByRole('heading', { name: 'Seu primeiro treino' })).toBeVisible();
+  await expect(page.getByText('Não informado')).toBeVisible();
   await expect(page.getByText('Registro da calculadora')).toHaveCount(0);
 });

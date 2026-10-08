@@ -49,8 +49,9 @@ test('golden path: do registro à sessão no dashboard', async ({ page }) => {
   await expect(page.getByText('100×5')).toBeVisible();
   await page.getByRole('button', { name: 'Concluir', exact: true }).click();
 
-  // --- Dashboard mostra a sessão ---
+  // --- Início mostra a sessão (título do dia, semana e último treino) ---
   await page.getByRole('button', { name: 'Início' }).click();
-  await expect(page.getByRole('group', { name: /Sessões: 1 treinos concluídos/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Treino feito hoje' })).toBeVisible();
+  await expect(page.getByRole('listitem', { name: /hoje, treinou/ })).toBeVisible();
   await expect(page.getByText('Treino Avulso').first()).toBeVisible();
 });

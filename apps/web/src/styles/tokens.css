@@ -53,6 +53,7 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --gap-blocks: 10px; /* entre blocos de uma tela (fora da escala de 4, decisão da spec §3) */
 
   /* Forma */
   --radius-seg: 1px;

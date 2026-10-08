@@ -165,7 +165,7 @@ Nada abaixo de 11 px. Campos com 16 px ou mais. Todo número em `tabular-nums`. 
 
 ## Layout
 
-- Coluna única dentro de `--max-width: 480px`, com 16 px de margem e 10 px entre blocos.
+- Coluna única dentro de `--max-width: 480px`, com 16 px de margem e 10 px entre blocos (`--gap-blocks`).
 - As seções não encolhem (`flex-shrink: 0`): a tela rola.
 - A barra inferior tem Início, Biblioteca, botão central, Análises e Mais. O botão central é neutro e vira o cronômetro dourado da sessão com treino em andamento. A aba ativa fica em `--text-1`.
 - Acima dela, a faixa fixa `.dock` (em `index.css`, presa aos 480 px como a `.bottom-nav`) empilha os avisos (falha ao salvar em `Toast`, selo de sync) e a barra de descanso. Nada flutuante usa `position: absolute` no `#root`: a página rola no documento e isso caía no fim dela (#330).
@@ -231,7 +231,13 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
   - **Encerrada:** "Descanso encerrado" e o tempo extra em `--text-2`, a próxima série numa linha inteira e "Fechar". Some ao concluir a próxima série, ao fechar ou depois de 15 min.
   - No fim, vibra além do bipe e anuncia por `aria-live` (uma vez, não a cada segundo). Reabrir o app com o descanso vencido não alerta de novo. A tela fica acesa durante o treino (`useWakeLock`).
   - A duração padrão é `settings.restSeconds` (Configurações, de 30 s a 10 min), usada quando a rotina não define o descanso do exercício.
-- A implementar: `WeekStrip`.
+
+**Do Início (`apps/web/src/components/home/`, #343):**
+- `WeekStrip`: os sete dias (S T Q Q S S D) em células de 40 px; treinado em `--text-1`, hoje em dourado (vence o treinado), o resto em `--surface-2`. Cada dia tem `aria-label` ("Quinta, hoje, treinou").
+- `SessionSheet`: detalhe de um treino do histórico com Repetir e Editar, "Excluir treino" (link vermelho, com confirmação) e "Ver histórico completo". Repetir só confirma quando descarta um treino em andamento.
+- `WeightSheet`: "Registrar peso", campo de 16 px que aceita vírgula ou ponto.
+
+**Tela do Início (`pages/Dashboard.tsx`, #343):** título que responde ao dia ("Dia de treino", "Treino feito hoje", "Treinou há 3 dias"), card do próximo treino inteiro tocável (o botão dourado é o alvo acessível), "Sua força" com o total atual em `--num-xl` (melhor e1RM de cada levantamento nas últimas 12 semanas), a tendência e 12 mini-barras (a atual em `--text-1`, as outras em `--surface-3`; platô = barras iguais), "Esta semana" com o `WeekStrip` só depois do primeiro treino, e peso corporal com último treino num bloco só. Sem peso registrado, "Não informado" e "Registrar". As contas são puras em `utils/home.ts`.
 
 **De Configurações (`apps/web/src/components/settings/`):**
 - `ClearDataSheet` (#329): "Apagar todos os dados?" lista, com as contagens, o que some neste aparelho e na conta e o que some só aqui (peso corporal, treino em andamento). Oferece "Exportar antes" e só libera "Apagar tudo" com APAGAR digitado.

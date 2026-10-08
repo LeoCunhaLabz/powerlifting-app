@@ -1,9 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { useWorkout } from '../context/WorkoutContext';
+import { Award, ChevronRight, List, Play, Plus } from 'lucide-react';
 import type { WorkoutSession } from '@powerlifting/shared';
-import { calculateE1RM, calculateDots, relativeStrength } from '../utils/powerlifting';
-import { Award, Flame, Play, Plus, TrendingUp, Clock, Eye, X, RotateCcw, Pencil, Trash2, AlertTriangle, ChevronRight, List } from 'lucide-react';
+import { useWorkout } from '../context/WorkoutContext';
+import { Block, Button, IconButton, ScreenHeader, Segments, Sheet, Stat } from '../ui';
+import { cx } from '../ui/cx';
 import BodyweightLogList from '../components/BodyweightLogList';
+import { WeekStrip } from '../components/home/WeekStrip/WeekStrip';
+import { SessionSheet } from '../components/home/SessionSheet/SessionSheet';
+import { WeightSheet } from '../components/home/WeightSheet/WeightSheet';
+import { EMPTY_VALUE, formatCompact, formatNumber } from '../utils/format';
+import {
+  barHeights, bodyweightSummary, bodyweightTrendText, dayHeadline, longDate, programWeek, relativeDay,
+  sessionRecordsText, strengthSummary, templateMeta, tonnage, tonnageText, trendText, weekSummary,
+} from '../utils/home';
+import styles from './Dashboard.module.css';
 
 interface DashboardProps {
   onStartWorkoutTab: () => void;
@@ -11,527 +21,305 @@ interface DashboardProps {
   onNavigateHistory: (opts?: { sessionId?: string; edit?: boolean }) => void;
 }
 
-const SBD = ['Agachamento', 'Supino Reto', 'Levantamento Terra'] as const;
+const sessionLine = (s: WorkoutSession, now: Date, unit: string) => {
+  const parts = [relativeDay(new Date(s.date), now)];
+  if (s.duration > 0) parts.push(`${Math.round(s.duration / 60)} min`);
+  const t = tonnage(s);
+  if (t > 0) parts.push(tonnageText(t, unit));
+  return parts.join(', ');
+};
 
-const tonnage = (s: WorkoutSession) =>
-  s.exercises.reduce((t, ex) => t + ex.sets.reduce((st, set) => st + (set.completed ? set.weight * set.reps : 0), 0), 0);
+const joinNames = (names: string[]) =>
+  names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+
+/** Mini-barras do total nas últimas 12 semanas: a atual em branco, as anteriores recuadas. */
+function StrengthBars({ values, unit }: { values: (number | null)[]; unit: string }) {
+  const present = values.filter((v): v is number => v !== null);
+  if (present.length < 2) return null;
+  const heights = barHeights(values);
+  const W = 6;
+  const GAP = 2.5;
+  const H = 40;
+  const width = values.length * W + (values.length - 1) * GAP;
+  const label = `Total nas últimas 12 semanas, de ${formatNumber(Math.min(...present), 1)} a ${formatNumber(Math.max(...present), 1)} ${unit}`;
+  return (
+    <svg className={styles.bars} width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={label}>
+      {heights.map((h, i) => {
+        if (h <= 0) return null;
+        const barH = Math.max(2, h * H);
+        return (
+          <rect
+            key={i}
+            x={i * (W + GAP)}
+            y={H - barH}
+            width={W}
+            height={barH}
+            rx={1}
+            className={i === values.length - 1 ? styles.barNow : styles.bar}
+          />
+        );
+      })}
+    </svg>
+  );
+}
 
 export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavigateHistory }) => {
-  const { state, activeWorkout, getMaxE1RM, getBodyweightAt, startWorkout, repeatWorkout, logBodyweight, getNextTemplate, deleteHistorySession } = useWorkout();
-  const { history, settings, bodyweightLog, programs } = state;
-
-  const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
-  const [confirmRepeat, setConfirmRepeat] = useState<WorkoutSession | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<WorkoutSession | null>(null);
-  const [metric, setMetric] = useState<'e1rm' | 'rel'>('e1rm');
-  const [showWeightInput, setShowWeightInput] = useState(false);
-  const [showBwList, setShowBwList] = useState(false);
-  const [weightInput, setWeightInput] = useState('');
-  const [isEvoHovered, setIsEvoHovered] = useState(false);
-
+  const { state, activeWorkout, startWorkout, repeatWorkout, logBodyweight, getNextTemplate, deleteHistorySession } = useWorkout();
+  const { history, settings, bodyweightLog, programs, templates } = state;
   const u = settings.units;
 
-  // ---- Agregações do histórico: recalculam só quando os dados mudam, não em hover/toggle (#267) ----
-  const {
-    weekSessionsCount, weekTonnage, avgWeeklySessions, weekStreak,
-    bestE1RM, bestTotal, bw, dots, sortedBw, bwTrend, series, best1RM, recentHistory,
-  } = useMemo(() => {
-    const startOfWeek = (() => {
-      const d = new Date();
-      const day = (d.getDay() + 6) % 7; // Monday = 0
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - day);
-      return d.getTime();
-    })();
+  const [selected, setSelected] = useState<WorkoutSession | null>(null);
+  const [sheet, setSheet] = useState<'weight' | 'weightLog' | null>(null);
 
-    const weekSessions = history.filter((s) => new Date(s.date).getTime() >= startOfWeek);
-    const weekTonnage = weekSessions.reduce((t, s) => t + tonnage(s), 0);
-
-    const last4wStart = new Date().getTime() - 28 * 86400000;
-    const avgWeeklySessions = Math.round((history.filter((s) => new Date(s.date).getTime() >= last4wStart).length / 4) * 10) / 10;
-
-    // Week streak (semanas consecutivas com ao menos 1 treino, terminando nesta semana)
-    const weekStreak = (() => {
-      const weeks = new Set(history.map((s) => Math.floor((new Date(s.date).getTime() - startOfWeek) / (7 * 86400000))));
-      let streak = 0;
-      let k = 0;
-      while (weeks.has(-k) || (k === 0 && weeks.has(0))) {
-        streak += 1;
-        k += 1;
-      }
-      return streak;
-    })();
-
-    // SBD bests
-    const bestE1RM = SBD.map((n) => getMaxE1RM(n));
-    const bestTotal = Math.round(bestE1RM.reduce((a, b) => a + b, 0));
-    const bw = getBodyweightAt(new Date().toISOString());
-    const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
-
-    // Bodyweight trend
-    const sortedBw = [...bodyweightLog].sort((a, b) => a.date.localeCompare(b.date));
-    const bwTrend = sortedBw.length >= 2 ? Math.round((sortedBw[sortedBw.length - 1].weight - sortedBw[0].weight) * 10) / 10 : 0;
-
-    // Evolution series (running best total e1RM / força relativa per session, chronological)
-    const series = (() => {
-      const chrono = [...history].sort((a, b) => a.date.localeCompare(b.date));
-      const best: Record<string, number> = {};
-      const out: { total: number; rel: number }[] = [];
-      chrono.forEach((s) => {
-        s.exercises.forEach((ex) => {
-          const ln = ex.name.toLowerCase();
-          const key = SBD.find((n) => ln === n.toLowerCase());
-          if (!key) return;
-          ex.sets.forEach((set) => {
-            if (set.completed) {
-              const e = calculateE1RM(set.weight, set.reps, set.rpe);
-              if (e > (best[key] || 0)) best[key] = e;
-            }
-          });
-        });
-        const total = SBD.reduce((a, n) => a + (best[n] || 0), 0);
-        if (total > 0) out.push({ total: Math.round(total), rel: relativeStrength(total, getBodyweightAt(s.date)) });
-      });
-      return out.slice(-12);
-    })();
-
-    // Recordes reais de 1RM (melhor série com 1 repetição concluída) por levantamento SBD
-    const best1RM = SBD.map((n) => {
-      const ln = n.toLowerCase();
-      let max = 0;
-      history.forEach((s) => s.exercises.forEach((ex) => {
-        if (ex.name.toLowerCase() !== ln) return;
-        ex.sets.forEach((set) => { if (set.completed && set.reps === 1 && set.weight > max) max = set.weight; });
-      }));
-      return Math.round(max);
-    });
-
-    const recentHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
-
+  const now = new Date();
+  // Recalculam só quando os dados mudam, não a cada render (#267).
+  const { strength, week, lastSession } = useMemo(() => {
+    const at = new Date();
     return {
-      weekSessionsCount: weekSessions.length, weekTonnage, avgWeeklySessions, weekStreak,
-      bestE1RM, bestTotal, bw, dots, sortedBw, bwTrend, series, best1RM, recentHistory,
+      strength: strengthSummary(history, at),
+      week: weekSummary(history, at),
+      lastSession: history.length ? history.reduce((a, b) => (a.date > b.date ? a : b)) : null,
     };
-  }, [history, bodyweightLog, settings.gender, getMaxE1RM, getBodyweightAt]);
-
-  const polyline = (vals: number[], w: number, h: number, pad = 6) => {
-    if (vals.length === 0) return '';
-    if (vals.length === 1) return `0,${h / 2} ${w},${h / 2}`;
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const span = max - min || 1;
-    return vals
-      .map((v, i) => {
-        const x = (i / (vals.length - 1)) * w;
-        const y = h - pad - ((v - min) / span) * (h - pad * 2);
-        return `${Math.round(x)},${Math.round(y)}`;
-      })
-      .join(' ');
-  };
-
-  const evoVals = series.map((p) => (metric === 'e1rm' ? p.total : p.rel));
-  const bwVals = sortedBw.slice(-10).map((e) => e.weight);
-
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    const today = new Date();
-    const yest = new Date();
-    yest.setDate(today.getDate() - 1);
-    if (d.toDateString() === today.toDateString()) return 'Hoje';
-    if (d.toDateString() === yest.toDateString()) return 'Ontem';
-    return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
-  };
-  const formatDuration = (sec: number) => `${Math.floor(sec / 60)} min`;
+  }, [history]);
+  const bw = useMemo(() => bodyweightSummary(bodyweightLog), [bodyweightLog]);
 
   const suggestedTemplate = getNextTemplate();
-  const activeProgram = programs.find((p) => p.isActive);
+  const activeProgram = programs.find((p) => p.isActive && !p.deleted);
   const fromProgram = !!(activeProgram && suggestedTemplate && activeProgram.templateIds.includes(suggestedTemplate.id));
+  const blockWeek = fromProgram && activeProgram ? programWeek(activeProgram, now) : null;
+  const weeklyTarget = activeProgram?.trainingDays?.length ?? 0;
 
-  const handleResume = () => {
-    if (!activeWorkout && suggestedTemplate) startWorkout(suggestedTemplate.id);
+  const headline = dayHeadline({ hasActiveWorkout: !!activeWorkout, history, program: activeProgram, now });
+
+  const handleStart = () => {
+    if (!activeWorkout) startWorkout(suggestedTemplate?.id);
     onStartWorkoutTab();
   };
   const handleAvulso = () => {
     if (!activeWorkout) startWorkout();
     onStartWorkoutTab();
   };
-  const saveWeight = () => {
-    const val = Number(weightInput.replace(',', '.'));
-    if (val > 0) {
-      logBodyweight(val);
-      setWeightInput('');
-      setShowWeightInput(false);
-    }
-  };
+
+  // ---- Próximo treino ----
+  let nextKicker = 'Próximo treino';
+  let nextTitle = suggestedTemplate?.name ?? 'Treino avulso';
+  let nextMeta: string | null = suggestedTemplate ? templateMeta(suggestedTemplate) : 'Comece vazio e adicione os exercícios.';
+  if (activeWorkout) {
+    const sets = activeWorkout.exercises.flatMap((ex) => ex.sets);
+    // O título da tela já diz "Treino em andamento": aqui vai a hora de início.
+    nextKicker = `Começou às ${new Date(activeWorkout.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    nextTitle = activeWorkout.name;
+    nextMeta = `${sets.filter((s) => s.completed).length} de ${sets.length} séries`;
+  }
+
+  const hasAnyLift = strength.lifts.some((l) => l.record > 0);
+  const weekTon = week.tonnage > 0 ? tonnageText(week.tonnage, u) : null;
+  const bwTrend = bw ? bodyweightTrendText(bw, u) : null;
+  const records = lastSession ? sessionRecordsText(lastSession) : null;
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <div style={styles.kicker}>ONYX</div>
-          <h1 style={styles.title}>Pronto pra treinar</h1>
-        </div>
-        {weekStreak > 0 && (
-          <span style={styles.streak}>
-            <Flame size={13} fill="currentColor" /> {weekStreak} sem
-          </span>
-        )}
-      </div>
+    <div className={styles.screen}>
+      <ScreenHeader title={headline} meta={longDate(now)} />
 
-      {/* Resume / start hero */}
-      <div style={{ ...styles.hero, ...(fromProgram && !activeWorkout ? styles.heroProgram : {}) }}>
-        <div>
-          <div style={styles.heroKicker}>
-            {activeWorkout ? 'Em andamento' : fromProgram ? 'Próxima rotina do programa' : 'Próximo treino'}
+      {/* Próximo treino: o card inteiro inicia; o botão é o alvo acessível. */}
+      <Block className={styles.next} onClick={handleStart}>
+        <span className={styles.kicker}>{nextKicker}</span>
+        <h2 className={styles.nextTitle}>{nextTitle}</h2>
+        {!activeWorkout && fromProgram && activeProgram && (
+          <div className={styles.program}>
+            {blockWeek && (
+              // Largura por semana (22 px cada, como no mock): o Segments ocupa o espaço que receber.
+              <span
+                className={styles.programSegments}
+                style={{ width: `calc(${blockWeek.count} * 22px + ${blockWeek.count - 1} * var(--seg-gap))` }}
+              >
+                <Segments
+                  total={blockWeek.count}
+                  filled={blockWeek.week - 1}
+                  size="sm"
+                  label={`Semana ${blockWeek.week} de ${blockWeek.count} do bloco`}
+                />
+              </span>
+            )}
+            <span>{blockWeek ? `${activeProgram.name}, semana ${blockWeek.week} de ${blockWeek.count}` : activeProgram.name}</span>
           </div>
-          <div style={styles.heroTitle}>{activeWorkout ? activeWorkout.name : suggestedTemplate?.name || 'Treino avulso'}</div>
+        )}
+        {nextMeta && <span className={styles.nextMeta}>{nextMeta}</span>}
+        <div className={styles.nextActions}>
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            icon={<Play size={17} fill="currentColor" strokeWidth={0} />}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleStart();
+            }}
+          >
+            {activeWorkout ? 'Continuar treino' : 'Começar treino'}
+          </Button>
           {!activeWorkout && suggestedTemplate && (
-            <div style={styles.heroSub}>
-              {fromProgram && activeProgram ? `${activeProgram.name} · ` : ''}{suggestedTemplate.exercises.length} exercícios
-            </div>
+            <Button
+              variant="link"
+              block
+              onClick={(event) => {
+                event.stopPropagation();
+                handleAvulso();
+              }}
+            >
+              Treino avulso
+            </Button>
           )}
         </div>
-        <button onClick={handleResume} style={styles.heroPlay} aria-label="Iniciar">
-          <Play size={22} fill="var(--accent-ink)" stroke="none" />
-        </button>
-      </div>
-      <button onClick={handleAvulso} style={styles.avulsoBtn}>
-        <Plus size={15} /> Treino avulso
-      </button>
+      </Block>
 
-      {/* Week summary */}
-      <div style={styles.sectionLabel}>Esta semana</div>
-      <div style={styles.statGrid}>
-        <div style={styles.statTile} role="group" aria-label={`Sessões: ${weekSessionsCount} treinos concluídos nesta semana`} title="Treinos concluídos nesta semana"><div style={styles.statVal}>{weekSessionsCount}</div><div style={styles.statLbl}>SESSÕES</div></div>
-        <div style={styles.statTile} role="group" aria-label={`Tonelagem: ${(weekTonnage / 1000).toFixed(1)} toneladas levantadas nesta semana`} title="Tonelagem total levantada nesta semana"><div style={styles.statVal}>{(weekTonnage / 1000).toFixed(1)}<span style={styles.unit}>t</span></div><div style={styles.statLbl}>TONELAGEM</div></div>
-        <div
-          style={styles.statTile}
-          role="group"
-          title="Média de treinos por semana nos últimos 28 dias"
-          aria-label={`Média de treinos: ${avgWeeklySessions} por semana nas últimas 4 semanas`}
-        >
-          <div style={styles.statVal}>{avgWeeklySessions}<span style={styles.unit}> treinos/sem</span></div>
-          <div style={styles.statLbl}>MÉDIA · 4 SEMANAS</div>
-        </div>
-      </div>
-      <div style={styles.statCaption}>Frequência: média de treinos por semana nas últimas 4 semanas</div>
+      {/* Sua força: total atual (12 semanas), tendência e os três levantamentos. */}
+      <Block label="Sua força" aside="soma dos três e1RM, 12 semanas">
+        {strength.total !== null ? (
+          <div className={styles.totalArea}>
+            <Stat value={strength.total} decimals={1} unit={u} size="xl" />
+            {/* Barras na linha da tendência: ao lado do número, o "kg" quebrava em 375 px. */}
+            <div className={styles.trendRow}>
+              {strength.trend && <p className={styles.trend}>{trendText(strength.trend, u)}</p>}
+              <StrengthBars values={strength.weekly} unit={u} />
+            </div>
+          </div>
+        ) : (
+          <p className={styles.note}>
+            {hasAnyLift && strength.missing.length < 3
+              ? `Falta registrar ${joinNames(strength.missing.map((m) => m.toLowerCase()))} nas últimas 12 semanas para somar o total.`
+              : hasAnyLift
+                ? 'Nenhum agachamento, supino ou terra nas últimas 12 semanas.'
+                : 'Registre agachamento, supino e terra para ver seu total e a evolução.'}
+          </p>
+        )}
+        {hasAnyLift && (
+          <ul className={styles.lifts}>
+            {strength.lifts.map((l) => (
+              <li key={l.lift} className={styles.lift}>
+                <span className={styles.liftName}>{l.label}</span>
+                <span className={styles.liftValue}>
+                  {l.current > 0 && l.current >= l.record && (
+                    <span role="img" aria-label="Recorde" className={styles.recordIcon}>
+                      <Award size={16} aria-hidden="true" />
+                    </span>
+                  )}
+                  {l.record > l.current && <span className={styles.recordNote}>recorde {formatNumber(l.record, 1)}</span>}
+                  <span className={cx(styles.liftNum, l.current === 0 && styles.liftEmpty)}>
+                    {l.current > 0 ? formatNumber(l.current, 1) : EMPTY_VALUE}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Block>
 
-      {/* Bodyweight */}
-      <div style={styles.bwCard}>
-        <div style={styles.bwLeft}>
-          <div style={styles.bwLabel}>Peso corporal</div>
-          <div style={styles.bwValRow}>
-            <span style={styles.bwVal}>{bw}</span>
-            <span style={styles.bwUnit}>{u}</span>
-            {bwTrend !== 0 && (
-              <span style={{ ...styles.bwTrend, color: bwTrend > 0 ? 'var(--success)' : 'var(--text-secondary)' }}>
-                {bwTrend > 0 ? '↑' : '↓'} {Math.abs(bwTrend)}
-              </span>
+      {/* Esta semana: só depois do primeiro treino (#338). */}
+      {history.length > 0 && (
+        <Block label="Esta semana" aside={week.streak >= 2 ? `${week.streak} semanas seguidas` : undefined}>
+          <div className={styles.weekLine}>
+            <span className={styles.weekCount}>{week.count}</span>
+            <span className={styles.weekOf}>
+              {weeklyTarget > 0
+                ? `de ${weeklyTarget} ${weeklyTarget === 1 ? 'treino' : 'treinos'}`
+                : week.count === 1 ? 'treino' : 'treinos'}
+            </span>
+            {weekTon && <span className={styles.weekTon}>{weekTon} {weekTon.endsWith(' t') ? 'levantadas' : 'levantados'}</span>}
+          </div>
+          <WeekStrip days={week.days} todayIdx={week.todayIdx} />
+        </Block>
+      )}
+
+      {/* Peso corporal e último treino. */}
+      <Block className={styles.flush}>
+        <div className={styles.weightRow}>
+          <div className={styles.weightInfo}>
+            <span className={styles.kicker}>Peso corporal</span>
+            {bw ? (
+              <div className={styles.weightLine}>
+                <span className={styles.weightNum}>{formatCompact(bw.latest, 1)}</span>
+                <span className={styles.weightUnit}>{u}</span>
+                {bwTrend && <span className={styles.weightTrend}>{bwTrend}</span>}
+              </div>
+            ) : (
+              <span className={styles.weightEmpty}>Não informado</span>
+            )}
+          </div>
+          <div className={styles.weightActions}>
+            {bw ? (
+              <>
+                <IconButton aria-label="Ver registros de peso" icon={<List size={20} />} onClick={() => setSheet('weightLog')} />
+                <IconButton aria-label="Registrar peso" icon={<Plus size={20} />} onClick={() => setSheet('weight')} />
+              </>
+            ) : (
+              <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setSheet('weight')}>Registrar</Button>
             )}
           </div>
         </div>
-        <div style={styles.bwRight}>
-          {bwVals.length >= 2 && (
-            <svg width="74" height="34" viewBox="0 0 74 34" fill="none">
-              <polyline points={polyline(bwVals, 74, 34, 4)} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-          {bwVals.length > 0 && (
-            <button onClick={() => setShowBwList((v) => !v)} style={styles.bwAdd} aria-label="Ver registros de peso">
-              <List size={18} />
-            </button>
-          )}
-          <button onClick={() => setShowWeightInput((v) => !v)} style={styles.bwAdd} aria-label="Registrar peso">
-            <Plus size={18} />
+
+        {lastSession && (
+          <button type="button" className={styles.lastRow} onClick={() => setSelected(lastSession)}>
+            <span className={styles.lastInfo}>
+              <span className={styles.kicker}>Último treino</span>
+              <span className={styles.lastName}>{lastSession.name}</span>
+              <span className={styles.lastMeta}>{sessionLine(lastSession, now, u)}</span>
+              {records && (
+                <span className={styles.lastRecord}>
+                  <Award size={15} aria-hidden="true" /> {records}
+                </span>
+              )}
+            </span>
+            <ChevronRight size={18} className={styles.chevron} aria-hidden="true" />
           </button>
-        </div>
-      </div>
-      {showWeightInput && (
-        <div style={styles.weightInputRow}>
-          <input
-            type="number"
-            inputMode="decimal"
-            autoFocus
-            value={weightInput}
-            onChange={(e) => setWeightInput(e.target.value)}
-            placeholder={`Peso de hoje (${u})`}
-            style={styles.weightInput}
-          />
-          <button onClick={saveWeight} style={styles.weightSave}>Registrar</button>
-        </div>
+        )}
+      </Block>
+
+      {selected && (
+        <SessionSheet
+          session={selected}
+          meta={`${longDate(new Date(selected.date))}${selected.duration > 0 ? `, ${Math.round(selected.duration / 60)} min` : ''}`}
+          templates={templates}
+          units={u}
+          hasActiveWorkout={!!activeWorkout}
+          onRepeat={() => {
+            repeatWorkout(selected);
+            setSelected(null);
+            onStartWorkoutTab();
+          }}
+          onEdit={() => onNavigateHistory({ sessionId: selected.id, edit: true })}
+          onDelete={() => {
+            deleteHistorySession(selected.id);
+            setSelected(null);
+          }}
+          onOpenHistory={() => onNavigateHistory()}
+          onClose={() => setSelected(null)}
+        />
       )}
-      {showBwList && (
-        <div style={{ marginBottom: 14 }}>
+
+      {sheet === 'weight' && (
+        <WeightSheet
+          unit={u}
+          onSave={(weight) => {
+            logBodyweight(weight);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+
+      {sheet === 'weightLog' && (
+        <Sheet
+          open
+          onClose={() => setSheet(null)}
+          title="Registros de peso"
+          actions={<Button variant="link" block onClick={() => setSheet(null)}>Fechar</Button>}
+        >
           <BodyweightLogList />
-        </div>
-      )}
-
-      {/* Evolution */}
-      <div style={styles.card}>
-        <div style={styles.cardHead}>
-          <span style={styles.cardTitle}>Evolução</span>
-          <div style={styles.toggle}>
-            <button onClick={() => setMetric('e1rm')} style={metric === 'e1rm' ? styles.toggleOn : styles.toggleOff}>e1RM</button>
-            <button onClick={() => setMetric('rel')} style={metric === 'rel' ? styles.toggleOn : styles.toggleOff}>Força rel.</button>
-          </div>
-        </div>
-        {evoVals.length >= 2 ? (
-          <svg
-            width="100%"
-            height="84"
-            viewBox="0 0 300 84"
-            fill="none"
-            preserveAspectRatio="none"
-            onMouseEnter={() => setIsEvoHovered(true)}
-            onMouseLeave={() => setIsEvoHovered(false)}
-          >
-            <polyline
-              points={polyline(evoVals, 300, 84, 10)}
-              stroke="var(--accent)"
-              strokeWidth={isEvoHovered ? '2.9' : '2.4'}
-              opacity={isEvoHovered ? 1 : 0.9}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ transition: 'stroke-width var(--transition-fast), opacity var(--transition-fast)' }}
-            />
-          </svg>
-        ) : (
-          <div style={styles.emptyMini}>Registre treinos para ver sua evolução.</div>
-        )}
-      </div>
-
-      {/* PR compact — sem dado real não exibe valor nenhum (#285) */}
-      <div style={styles.card}>
-        <div style={styles.cardHead}>
-          <span style={styles.prKicker}><Award size={14} /> RECORDES</span>
-          {dots > 0 && <span style={styles.dotsBadge}>{dots} DOTS</span>}
-        </div>
-        {bestTotal > 0 ? (
-          <>
-            <div style={styles.prGrid}>
-              {SBD.map((n, i) => (
-                <div key={n} style={{ ...styles.prCol, ...(i === 1 ? styles.prColMid : {}) }}>
-                  <span style={styles.prLbl}>{i === 0 ? 'AGACH.' : i === 1 ? 'SUPINO' : 'TERRA'}</span>
-                  <span style={styles.prVal}>{bestE1RM[i] > 0 ? bestE1RM[i] : '—'}</span>
-                  <span style={styles.prSub}>e1RM</span>
-                  <span style={styles.pr1rm}>{best1RM[i] > 0 ? `${best1RM[i]} ${u}` : '—'}<span style={styles.prSub}> 1RM</span></span>
-                </div>
-              ))}
-            </div>
-            <div style={styles.prFooter}>Total estimado <strong style={{ color: 'var(--text-primary)' }}>{bestTotal} {u}</strong></div>
-          </>
-        ) : (
-          <div style={styles.emptyMini}>Registre treinos com agachamento, supino e terra para ver seus recordes e DOTS.</div>
-        )}
-      </div>
-
-      {/* Recent history */}
-      {recentHistory.length > 0 && (
-        <>
-          <div style={styles.recentHead}>
-            <span style={styles.sectionLabel}>Histórico recente</span>
-            <button onClick={() => onNavigateHistory()} style={styles.seeAllBtn}>Ver tudo</button>
-          </div>
-          <div style={styles.historyList}>
-            {recentHistory.slice(0, 4).map((s) => {
-              const hasPr = s.exercises.some((ex) => ex.sets.some((set) => set.isPr));
-              return (
-                <button key={s.id} onClick={() => setSelectedSession(s)} style={styles.historyCard}>
-                  <div style={styles.historyTop}>
-                    <span style={styles.historyName}>{s.name}{hasPr && <span style={styles.prTag}>PR</span>}</span>
-                    <Eye size={15} color="var(--text-muted)" />
-                  </div>
-                  <div style={styles.historyStats}>
-                    <span style={styles.hStat}>{formatDate(s.date)}</span>
-                    <span style={styles.hStat}><Clock size={12} /> {formatDuration(s.duration)}</span>
-                    <span style={styles.hStat}><TrendingUp size={12} /> {Math.round(tonnage(s))} {u}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Session detail modal */}
-      {selectedSession && (
-        <div style={styles.modalOverlay} onClick={() => setSelectedSession(null)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <div>
-                <h3 style={styles.modalTitle}>{selectedSession.name}</h3>
-                <span style={styles.modalDate}>{new Date(selectedSession.date).toLocaleString('pt-BR')}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  onClick={() => { setConfirmRepeat(selectedSession); }}
-                  style={styles.repeatModalBtn}
-                  aria-label="Repetir este treino"
-                >
-                  <RotateCcw size={14} /> Repetir
-                </button>
-                <button onClick={() => setSelectedSession(null)} style={styles.closeBtn} aria-label="Fechar"><X size={20} /></button>
-              </div>
-            </div>
-            <div style={styles.modalBody}>
-              {selectedSession.exercises.map((ex) => (
-                <div key={ex.id} style={styles.modalEx}>
-                  <div style={styles.modalExName}>{ex.name}</div>
-                  {ex.sets.map((set, i) => (
-                    <div key={set.id} style={styles.modalSet}>
-                      <span>Série {i + 1}{set.isPr && <span style={styles.prTag}>PR</span>}</span>
-                      <span>{set.weight} {u} × {set.reps}{set.rpe ? ` · RPE ${set.rpe}` : ''}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div style={styles.modalActions}>
-              <button onClick={() => onNavigateHistory({ sessionId: selectedSession.id, edit: true })} style={styles.modalActionBtn}>
-                <Pencil size={14} /> Editar
-              </button>
-              <button onClick={() => setConfirmDelete(selectedSession)} style={{ ...styles.modalActionBtn, color: 'var(--error)' }}>
-                <Trash2 size={14} /> Excluir
-              </button>
-            </div>
-            <button onClick={() => onNavigateHistory()} style={styles.fullHistoryLink}>
-              Ver histórico completo <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm delete modal */}
-      {confirmDelete && (
-        <div style={styles.modalOverlay} onClick={() => setConfirmDelete(null)}>
-          <div style={{ ...styles.modalContent, padding: '24px', alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <AlertTriangle size={36} color="var(--error)" style={{ marginBottom: 12 }} />
-            <h3 style={styles.modalTitle}>Excluir treino?</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 20px', lineHeight: 1.4 }}>
-              O treino "{confirmDelete.name}" será removido do histórico e os PRs serão recalculados.
-            </p>
-            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-              <button onClick={() => setConfirmDelete(null)} style={styles.closeBtn}>Cancelar</button>
-              <button
-                onClick={() => { deleteHistorySession(confirmDelete.id); setConfirmDelete(null); setSelectedSession(null); }}
-                style={{ flex: 1, height: 44, backgroundColor: 'var(--error)', color: '#fff', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800 }}
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm repeat modal */}
-      {confirmRepeat && (
-        <div style={styles.modalOverlay} onClick={() => setConfirmRepeat(null)}>
-          <div style={{ ...styles.modalContent, padding: '24px', alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <RotateCcw size={36} color="var(--accent)" style={{ marginBottom: 12 }} />
-            <h3 style={styles.modalTitle}>Repetir treino?</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 20px', lineHeight: 1.4 }}>
-              {activeWorkout
-                ? 'Há um treino em andamento. Iniciar este treino irá descartar o progresso atual.'
-                : `Iniciar um novo treino baseado em "${confirmRepeat.name}".`}
-            </p>
-            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-              <button onClick={() => setConfirmRepeat(null)} style={styles.closeBtn}>Cancelar</button>
-              <button
-                onClick={() => { repeatWorkout(confirmRepeat); setConfirmRepeat(null); setSelectedSession(null); onStartWorkoutTab(); }}
-                style={{ flex: 1, height: 44, backgroundColor: activeWorkout ? 'var(--error)' : 'var(--accent)', color: activeWorkout ? '#fff' : 'var(--accent-ink)', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 800 }}
-              >
-                {activeWorkout ? 'Descartar e iniciar' : 'Iniciar'}
-              </button>
-            </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );
-};
-
-const card: React.CSSProperties = {
-  backgroundColor: 'var(--bg-secondary)',
-  border: '1px solid var(--border-color)',
-  borderRadius: 'var(--radius-lg)',
-  padding: '15px',
-  marginBottom: '14px',
-};
-
-const styles: Record<string, React.CSSProperties> = {
-  container: { display: 'flex', flexDirection: 'column', width: '100%' },
-  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' },
-  kicker: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-secondary)' },
-  title: { fontSize: '23px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em', color: 'var(--text-primary)', marginTop: '2px' },
-  streak: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 800, padding: '6px 11px', borderRadius: '999px' },
-  hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-lg)', padding: '18px', marginBottom: '12px' },
-  heroProgram: { borderColor: 'var(--accent)', boxShadow: '0 0 0 1px var(--accent-border)' },
-  heroKicker: { fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)', textTransform: 'uppercase' },
-  heroTitle: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' },
-  heroSub: { fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' },
-  heroPlay: { width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avulsoBtn: { width: '100%', height: '44px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 700, marginBottom: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' },
-  sectionLabel: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px' },
-  recentHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
-  seeAllBtn: { background: 'none', border: 'none', color: 'var(--accent)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: 0 },
-  modalActions: { display: 'flex', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', marginTop: '4px' },
-  modalActionBtn: { flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '40px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' },
-  fullHistoryLink: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '10px', background: 'none', border: 'none', color: 'var(--accent)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' },
-  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '20px' },
-  statTile: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '13px 10px' },
-  statVal: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' },
-  unit: { fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 },
-  statLbl: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginTop: '2px' },
-  statCaption: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4 },
-  bwCard: { ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
-  bwLeft: {},
-  bwLabel: { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' },
-  bwValRow: { display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' },
-  bwVal: { fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' },
-  bwUnit: { fontSize: '12px', color: 'var(--text-secondary)' },
-  bwTrend: { fontSize: '11px', fontWeight: 700 },
-  bwRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-  bwAdd: { width: '38px', height: '38px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  weightInputRow: { display: 'flex', gap: '8px', margin: '10px 0 14px' },
-  weightInput: { flex: 1, height: '42px' },
-  weightSave: { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: 800, fontSize: '13px', padding: '0 18px' },
-  card,
-  cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
-  cardTitle: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' },
-  toggle: { display: 'flex', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '2px' },
-  toggleOn: { fontSize: '11px', fontWeight: 700, color: 'var(--accent-ink)', background: 'var(--accent)', padding: '4px 10px', borderRadius: '7px' },
-  toggleOff: { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', padding: '4px 10px' },
-  emptyMini: { fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '18px 0' },
-  prKicker: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--text-secondary)' },
-  dotsBadge: { fontSize: '11px', fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '3px 9px', borderRadius: '6px' },
-  prGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', textAlign: 'center' },
-  prCol: { display: 'flex', flexDirection: 'column' },
-  prColMid: { borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' },
-  prLbl: { fontSize: '9px', fontWeight: 800, color: 'var(--text-secondary)' },
-  prVal: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' },
-  prSub: { fontSize: '8px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' },
-  pr1rm: { fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '2px' },
-  prFooter: { borderTop: '1px solid var(--border-color)', marginTop: '10px', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' },
-  historyList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  historyCard: { textAlign: 'left', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' },
-  historyTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
-  historyName: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  prTag: { display: 'inline-block', marginLeft: '6px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '8px', fontWeight: 800, letterSpacing: '0.05em', padding: '2px 5px', borderRadius: '3px', verticalAlign: 'middle' },
-  historyStats: { display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--text-secondary)' },
-  hStat: { display: 'inline-flex', alignItems: 'center', gap: '4px' },
-  modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 1000, backdropFilter: 'blur(4px)' },
-  modalContent: { backgroundColor: 'var(--bg-secondary)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', width: '100%', maxWidth: 'var(--max-width)', maxHeight: '82vh', display: 'flex', flexDirection: 'column', padding: '20px' },
-  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
-  modalTitle: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
-  modalDate: { fontSize: '11px', color: 'var(--text-secondary)' },
-  closeBtn: { color: 'var(--text-secondary)', padding: '4px' },
-  repeatBtn: { color: 'var(--accent)', padding: '4px', display: 'flex', alignItems: 'center' },
-  repeatModalBtn: { display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', padding: '7px 12px', borderRadius: 'var(--radius-md)', fontSize: '12px', fontWeight: 800 },
-  modalBody: { overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' },
-  modalEx: { borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '10px' },
-  modalExName: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' },
-  modalSet: { display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', padding: '3px 0' },
 };
 
 export default Dashboard;
