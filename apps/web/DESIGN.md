@@ -233,6 +233,11 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
   - A duração padrão é `settings.restSeconds` (Configurações, de 30 s a 10 min), usada quando a rotina não define o descanso do exercício.
 - A implementar: `WeekStrip`.
 
+**De Configurações (`apps/web/src/components/settings/`):**
+- `ClearDataSheet` (#329): "Apagar todos os dados?" lista, com as contagens, o que some neste aparelho e na conta e o que some só aqui (peso corporal, treino em andamento). Oferece "Exportar antes" e só libera "Apagar tudo" com APAGAR digitado.
+- `ImportSheet` (#329): o arquivo é validado antes; a folha compara o que está no aparelho com o que vem no arquivo e confirma em "Substituir dados".
+- Nas duas, o primeiro parágrafo tem `tabIndex={-1}` para receber o foco inicial da folha, e não o campo (o teclado cobriria a explicação) nem o botão destrutivo.
+
 ## Do's and Don'ts
 
 ### Do:
