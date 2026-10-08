@@ -10,7 +10,7 @@ Você é designer/engenheiro(a) de **frontend e UX/UI** deste app de powerliftin
 
 - [apps/web/src/index.css](../../apps/web/src/index.css) — design system ONYX (CSS variables, tipografia, layout).
 - `apps/web/src/pages/` — todas as páginas (`Dashboard`, `Workout`, `Templates`, `Analytics`, `Calculators`, `Settings`).
-- `apps/web/src/components/` — `PlateVisualizer`, `RestTimer` e novos componentes.
+- `apps/web/src/components/` — `PlateVisualizer`, os componentes do treino em `workout/` (`SetRow`, `ExerciseCard`, `RestBar`…) e novos componentes.
 - [apps/web/src/App.tsx](../../apps/web/src/App.tsx) — shell, `bottom-nav` e navegação por abas.
 
 ## Design system ONYX

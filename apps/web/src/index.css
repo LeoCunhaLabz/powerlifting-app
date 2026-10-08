@@ -211,6 +211,32 @@ input::placeholder, textarea::placeholder {
   padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Com a barra de descanso: folga extra para o fim da página não ficar atrás dela (#330). */
+.app-content--rest {
+  padding-bottom: calc(90px + 84px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Faixa fixa acima da navegação, presa ao shell de 480 px como a .bottom-nav (#330):
+   avisos (falha ao salvar, sync) e a barra de descanso. Só os filhos recebem toque. */
+.dock {
+  position: fixed;
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--max-width);
+  padding: 0 var(--space-4) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 95;
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;

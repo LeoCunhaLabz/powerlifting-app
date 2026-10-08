@@ -168,6 +168,7 @@ Nada abaixo de 11 px. Campos com 16 px ou mais. Todo número em `tabular-nums`. 
 - Coluna única dentro de `--max-width: 480px`, com 16 px de margem e 10 px entre blocos.
 - As seções não encolhem (`flex-shrink: 0`): a tela rola.
 - A barra inferior tem Início, Biblioteca, botão central, Análises e Mais. O botão central é neutro e vira o cronômetro dourado da sessão com treino em andamento. A aba ativa fica em `--text-1`.
+- Acima dela, a faixa fixa `.dock` (em `index.css`, presa aos 480 px como a `.bottom-nav`) empilha os avisos (falha ao salvar em `Toast`, selo de sync) e a barra de descanso. Nada flutuante usa `position: absolute` no `#root`: a página rola no documento e isso caía no fim dela (#330).
 
 ## Elevation & Depth
 
@@ -224,7 +225,13 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
 - `SetTypeSheet` (#340): tocar no número da série abre "Tipo da série", com Normal, Aquecimento e Drop set num `SegmentedControl`. Escolher aplica e fecha. "Remover esta série" pede confirmação se a série tem check e fica desabilitado quando é a única. Não há legenda fixa nem "remover a última".
 - `WorkoutHeader` (#340): nome em `--title-1`, tempo em `--text-2`, "x de y séries" com `Segments` e "Finalizar" neutro. A ação dourada da tela é o "Finalizar treino" no fim da lista.
 - `FinishSheet` (#340, #328): diz quantas séries sem check ficam fora do histórico, por exercício, e oferece "Revisar séries" (leva à primeira pendente). "Descartar treino" fica aqui, com confirmação. Sem nenhum check, o primário é revisar.
-- A implementar: `RestBar` (compacta e aberta) e `WeekStrip`.
+- `RestBar` (#330, #341, #342): o descanso na `.dock`.
+  - **Compacta:** tempo em `--num-md`, `Segments` em contagem regressiva (o restante em dourado), "+30 s" e "Pular". Tocar no tempo abre.
+  - **Aberta:** painel por cima do conteúdo, sem cobrir a navegação, com tempo em `--num-lg`, "Próxima série", "Agachamento, descanso de 3:00" e "−30 s / +30 s / Pular descanso" (o pular é o primário da folha). Os ajustes mexem só no descanso atual.
+  - **Encerrada:** "Descanso encerrado" e o tempo extra em `--text-2`, a próxima série numa linha inteira e "Fechar". Some ao concluir a próxima série, ao fechar ou depois de 15 min.
+  - No fim, vibra além do bipe e anuncia por `aria-live` (uma vez, não a cada segundo). Reabrir o app com o descanso vencido não alerta de novo. A tela fica acesa durante o treino (`useWakeLock`).
+  - A duração padrão é `settings.restSeconds` (Configurações, de 30 s a 10 min), usada quando a rotina não define o descanso do exercício.
+- A implementar: `WeekStrip`.
 
 ## Do's and Don'ts
 

@@ -42,6 +42,7 @@ const validSettings = {
   gender: 'male' as const,
   isEquipped: false,
   theme: 'brass' as const,
+  restSeconds: 120,
 };
 
 const validState: AppState = {

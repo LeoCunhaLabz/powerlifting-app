@@ -14,8 +14,10 @@ import PRs from './pages/PRs';
 import ComparisonEstimated from './pages/ComparisonEstimated';
 import More, { type MoreTab } from './pages/More';
 import Auth from './pages/Auth';
-import RestTimer from './components/RestTimer';
 import SessionClock from './components/SessionClock';
+import { RestBar } from './components/workout/RestBar/RestBar';
+import { useWakeLock } from './hooks/useWakeLock';
+import { IconButton, Toast } from './ui';
 import { trackTabView } from './utils/analytics';
 import { takeHandoff } from './utils/strengthHandoff';
 import { Home, ClipboardList, Plus, TrendingUp, MoreHorizontal, ArrowLeft, AlertTriangle, X, Cloud, CloudUpload, CloudCheck, CloudOff } from 'lucide-react';
@@ -37,7 +39,10 @@ const MORE_LABELS: Record<MoreTab, string> = {
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
   const [historyInit, setHistoryInit] = useState<{ sessionId?: string; edit?: boolean } | null>(null);
-  const { activeWorkout, saveError, dismissSaveError, syncStatus, repeatWorkout, seedFromStrengthHandoff } = useWorkout();
+  const { activeWorkout, restTimer, saveError, dismissSaveError, syncStatus, repeatWorkout, seedFromStrengthHandoff } = useWorkout();
+
+  // Tela acesa durante o treino ativo (#341).
+  useWakeLock(!!activeWorkout);
 
   // Conta recém-criada a partir da calculadora de força: semeia uma única vez (#318).
   // takeHandoff sempre apaga o stash; login de conta existente só o descarta.
@@ -59,9 +64,9 @@ const AppContent: React.FC = () => {
 
   const syncIndicator = (() => {
     switch (syncStatus) {
-      case 'syncing':  return { icon: <CloudUpload size={12} />, label: 'Sincronizando…', color: 'var(--accent)' };
-      case 'error':   return { icon: <CloudOff size={12} />, label: 'Erro ao sincronizar', color: 'var(--error)' };
-      case 'offline': return { icon: <Cloud size={12} />, label: 'Offline', color: 'var(--text-muted)' };
+      case 'syncing':  return { icon: <CloudUpload size={12} />, label: 'Sincronizando…', color: 'var(--text-2)' };
+      case 'error':   return { icon: <CloudOff size={12} />, label: 'Erro ao sincronizar', color: 'var(--danger)' };
+      case 'offline': return { icon: <Cloud size={12} />, label: 'Offline', color: 'var(--text-2)' };
       default:        return null; // idle — não mostra nada
     }
   })();
@@ -114,7 +119,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="app-container">
-      <div className="app-content">
+      {/* Com a barra de descanso na tela, sobra espaço no fim para nada ficar escondido atrás dela (#330). */}
+      <div className={restTimer ? 'app-content app-content--rest' : 'app-content'}>
         {isMoreChild && (
           <button onClick={() => setCurrentTab('more')} style={styles.backBtn}>
             <ArrowLeft size={16} />
@@ -124,33 +130,27 @@ const AppContent: React.FC = () => {
         {renderActiveTab()}
       </div>
 
-      {/* Aviso nao intrusivo de falha ao salvar no armazenamento local */}
-      {saveError && (
-        <div style={styles.saveErrorBanner} role="alert">
-          <AlertTriangle size={18} style={styles.saveErrorIcon} />
-          <span style={styles.saveErrorText}>{saveError}</span>
-          <button
-            onClick={dismissSaveError}
-            style={styles.saveErrorClose}
-            aria-label="Dispensar aviso"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Indicador de status de sync (acima da nav) */}
-      {(syncIndicator || showSynced) && (
-        <div style={styles.syncBadge} aria-live="polite">
-          {showSynced && !syncIndicator
-            ? <><CloudCheck size={12} style={{ color: 'var(--success)' }} /><span style={{ color: 'var(--success)' }}>Sincronizado</span></>
-            : syncIndicator && <>{syncIndicator.icon}<span style={{ color: syncIndicator.color }}>{syncIndicator.label}</span></>
-          }
-        </div>
-      )}
-
-      {/* Floating rest timer banner above bottom nav */}
-      <RestTimer />
+      {/* Faixa fixa acima da navegação, presa ao shell de 480 px (#330): avisos em cima, descanso
+          embaixo. Antes era position: absolute no #root e caía no fim da página rolada. */}
+      <div className="dock">
+        {saveError && (
+          <Toast
+            tone="danger"
+            icon={<AlertTriangle size={18} />}
+            message={saveError}
+            action={<IconButton aria-label="Dispensar aviso" variant="plain" icon={<X size={16} />} onClick={dismissSaveError} />}
+          />
+        )}
+        {(syncIndicator || showSynced) && (
+          <div style={styles.syncBadge} aria-live="polite">
+            {showSynced && !syncIndicator
+              ? <><CloudCheck size={12} style={{ color: 'var(--text-2)' }} /><span style={{ color: 'var(--text-2)' }}>Sincronizado</span></>
+              : syncIndicator && <>{syncIndicator.icon}<span style={{ color: syncIndicator.color }}>{syncIndicator.label}</span></>
+            }
+          </div>
+        )}
+        <RestBar />
+      </div>
 
       {/* Navegação inferior — 5 slots com "+" central (Treinar) */}
       <nav className="bottom-nav">
@@ -304,46 +304,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: 'var(--text-1)',
   },
-  saveErrorBanner: {
-    position: 'absolute',
-    bottom: 'calc(70px + env(safe-area-inset-bottom, 0px) + 12px)',
-    left: '16px',
-    right: '16px',
-    zIndex: 95,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px 14px',
-    borderRadius: 'var(--radius-lg)',
-    backgroundColor: 'var(--bg-tertiary)',
-    border: '1px solid var(--error)',
-    boxShadow: '0 8px 20px rgba(0,0,0,0.45)',
-  },
-  saveErrorIcon: {
-    flex: '0 0 auto',
-    color: 'var(--error)',
-  },
-  saveErrorText: {
-    flex: '1 1 auto',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--text-primary)',
-    lineHeight: 1.3,
-  },
-  saveErrorClose: {
-    flex: '0 0 auto',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '4px',
-    color: 'var(--text-secondary)',
-    background: 'none',
-  },
   syncBadge: {
-    position: 'absolute',
-    bottom: 'calc(70px + env(safe-area-inset-bottom, 0px) + 8px)',
-    right: '16px',
-    zIndex: 94,
+    alignSelf: 'flex-end',
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
