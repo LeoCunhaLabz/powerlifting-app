@@ -22,6 +22,16 @@ export function sessionDayKey(date: string): string {
   return date.length > 10 ? toLocalDate(new Date(date)) : date;
 }
 
+/**
+ * Índice da semana atual (0-based) do mesociclo a partir da data de início (YYYY-MM-DD);
+ * volta ao 0 depois de `weekCount` semanas.
+ */
+export function currentWeekIndex(startDate: string, weekCount: number, now: Date = new Date()): number {
+  const start = new Date(startDate + 'T00:00:00');
+  const elapsed = Math.max(0, Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000)));
+  return weekCount > 0 ? elapsed % weekCount : 0;
+}
+
 /** Índice 0=Seg…6=Dom para uma Date. */
 export function weekDayIdx(d: Date): number {
   return (d.getDay() + 6) % 7;
