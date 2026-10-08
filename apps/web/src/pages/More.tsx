@@ -3,6 +3,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
 import { Calculator, Settings as SettingsIcon, ChevronRight, LogOut, CalendarDays, Dumbbell, Award, Radar } from 'lucide-react';
 import { calculateDots } from '../utils/powerlifting';
+import { profileStatus } from '../utils/profile';
 import { ScreenHeader } from '../ui';
 
 // Abas que vivem dentro do hub "Mais" (Análises agora fica na barra inferior)
@@ -29,7 +30,9 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
   const deadlift = getMaxE1RM('Levantamento Terra');
   const bestTotal = squat + bench + deadlift;
   const bw = getBodyweightAt(new Date().toISOString());
-  const dots = calculateDots(bw, bestTotal, settings.gender === 'male');
+  // Peso e DOTS só com dados informados, nunca sobre os padrões (#334).
+  const profile = profileStatus(settings, state.bodyweightLog);
+  const dots = profile.canScore ? calculateDots(bw, bestTotal, settings.gender === 'male') : 0;
 
   const handleLogout = () => {
     logout();
@@ -84,10 +87,10 @@ export const More: React.FC<MoreProps> = ({ onNavigate }) => {
       <div style={styles.summary}>
         <span style={styles.avatar}>{avatarLetter}</span>
         <div style={styles.summaryInfo}>
-          <div style={styles.summaryName}>{user?.name ?? 'Atleta'} · {bw} {settings.units}</div>
+          <div style={styles.summaryName}>{user?.name ?? 'Atleta'}{profile.hasBodyweight ? ` · ${bw} ${settings.units}` : ''}</div>
           <div style={styles.summaryStats}>
             {user?.email && <span style={styles.summaryEmail}>{user.email}</span>}
-            {bestTotal > 0 && <span>Total {Math.round(bestTotal)} {settings.units} · {dots} DOTS</span>}
+            {bestTotal > 0 && <span>Total {Math.round(bestTotal)} {settings.units}{dots > 0 ? ` · ${dots} DOTS` : ''}</span>}
           </div>
         </div>
         <button onClick={handleLogout} style={styles.logoutBtn} aria-label="Sair">

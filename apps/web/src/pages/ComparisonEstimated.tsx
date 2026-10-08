@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TrendingUp, Scale, Trophy, Users, Info } from 'lucide-react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateDots } from '../utils/powerlifting';
+import { missingProfileText, profileStatus } from '../utils/profile';
 import { compareLift, compareTotal, type SingleLift } from '../utils/strength';
 import { ScreenHeader } from '../ui';
 
@@ -81,7 +82,10 @@ export const ComparisonEstimated: React.FC = () => {
     };
   });
 
-  const dataReady = bodyweight > 0 && total > 0 && dots > 0 && comparison !== null;
+  // Categoria, DOTS e percentis dependem de peso e sexo informados, nunca dos padrões (#334).
+  const profile = profileStatus(settings, state.bodyweightLog);
+  const missingProfile = missingProfileText(profile);
+  const dataReady = profile.canScore && bodyweight > 0 && total > 0 && dots > 0 && comparison !== null;
   const progress = comparison ? progressPct(total, comparison.levelMinKg, comparison.nextKg) : 0;
   const radarRings = [0.25, 0.5, 0.75, 1];
 
@@ -93,7 +97,9 @@ export const ComparisonEstimated: React.FC = () => {
         <div style={styles.emptyState}>
           <strong style={styles.emptyTitle}>Dados insuficientes para comparar</strong>
           <p style={styles.emptyText}>
-            Registre seu peso corporal e finalize treinos com séries de agachamento, supino e terra para liberar a análise completa.
+            {missingProfile && total > 0
+              ? `A comparação usa a sua categoria de peso e sexo. ${missingProfile}`
+              : `${missingProfile ? `${missingProfile} Depois, finalize` : 'Finalize'} treinos com séries de agachamento, supino e terra para liberar a análise completa.`}
           </p>
         </div>
       )}

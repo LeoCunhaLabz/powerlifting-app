@@ -3,9 +3,10 @@ import { useWorkout } from '../context/WorkoutContext';
 import PlateVisualizer from '../components/PlateVisualizer';
 import { calculateWilks, calculateDots, calculateIpfGl, calculateE1RM, calculateE1RMBrzycki, calculateE1RMEpley } from '../utils/powerlifting';
 import { ScreenHeader } from '../ui';
+import { profileStatus } from '../utils/profile';
 
 export const Calculators: React.FC = () => {
-  const { state } = useWorkout();
+  const { state, getBodyweightAt } = useWorkout();
   const { settings } = state;
 
   const [activeTab, setActiveTab] = useState<'plates' | 'score' | '1rm'>('plates');
@@ -20,9 +21,11 @@ export const Calculators: React.FC = () => {
   const [rmRpe, setRmRpe] = useState<number | ''>('');
 
   // Score Calculator local state
+  // Sem peso registrado o campo começa vazio: o padrão de 80 kg não é dado de ninguém (#334).
+  const { hasBodyweight } = profileStatus(settings, state.bodyweightLog);
   const [isMale, setIsMale] = useState(settings.gender === 'male');
   const [isEquipped, setIsEquipped] = useState(settings.isEquipped);
-  const [bodyweight, setBodyweight] = useState(settings.bodyweight);
+  const [bodyweight, setBodyweight] = useState<number | ''>(() => (hasBodyweight ? getBodyweightAt(new Date()) : ''));
   const [squat, setSquat] = useState<number | ''>('');
   const [bench, setBench] = useState<number | ''>('');
   const [deadlift, setDeadlift] = useState<number | ''>('');
@@ -41,9 +44,10 @@ export const Calculators: React.FC = () => {
 
   // Calculate scores
   const totalLifted = (Number(squat) || 0) + (Number(bench) || 0) + (Number(deadlift) || 0);
-  const wilksScore = calculateWilks(bodyweight, totalLifted, isMale);
-  const dotsScore = calculateDots(bodyweight, totalLifted, isMale);
-  const ipfGlScore = calculateIpfGl(bodyweight, totalLifted, isMale, isEquipped);
+  const bw = Number(bodyweight) || 0;
+  const wilksScore = calculateWilks(bw, totalLifted, isMale);
+  const dotsScore = calculateDots(bw, totalLifted, isMale);
+  const ipfGlScore = calculateIpfGl(bw, totalLifted, isMale, isEquipped);
 
   return (
     <div style={styles.container}>
@@ -263,7 +267,7 @@ export const Calculators: React.FC = () => {
               <input
                 type="number"
                 value={bodyweight}
-                onChange={(e) => setBodyweight(Math.max(1, Number(e.target.value)))}
+                onChange={(e) => setBodyweight(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
                 style={styles.fullInput}
               />
             </div>
