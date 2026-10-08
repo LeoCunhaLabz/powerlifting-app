@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
 import { calculateE1RM, calculateDots, calculateWilks, getExerciseMuscles, getBodyweightSeriesInRange, MUSCLE_LABELS, type MuscleGroup } from '../utils/powerlifting';
+import { missingProfileText, profileStatus } from '../utils/profile';
 import type { WorkoutSession } from '@powerlifting/shared';
 import { Award, Info } from 'lucide-react';
 import BodyweightLogList from '../components/BodyweightLogList';
@@ -162,6 +163,10 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
 
   const u = settings.units;
   const isMale = settings.gender === 'male';
+  // DOTS, Wilks e força relativa só com peso registrado e sexo informado, nunca sobre os padrões (#334).
+  const profile = profileStatus(settings, bodyweightLog);
+  const missingProfile = missingProfileText(profile);
+  const { canScore, hasBodyweight } = profile;
 
   // --- Janela de tempo ---
   // 'now' estável por montagem: um valor novo a cada render mudaria from/to e
@@ -301,8 +306,8 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
   const donutBg = sbdTotal ? `conic-gradient(${segs.join(', ')})` : 'var(--bg-tertiary)';
 
   const bwNow = getBodyweightAt(new Date().toISOString());
-  const dots = sbdTotal ? calculateDots(bwNow, sbdTotal, isMale) : 0;
-  const wilks = sbdTotal ? calculateWilks(bwNow, sbdTotal, isMale) : 0;
+  const dots = canScore && sbdTotal ? calculateDots(bwNow, sbdTotal, isMale) : 0;
+  const wilks = canScore && sbdTotal ? calculateWilks(bwNow, sbdTotal, isMale) : 0;
 
   // --- Tendências (total SBD, relativo, DOTS, Wilks) — varreduras completas do período ---
   const { totalTrend, totalTrendDates, relTrend, relTrendDates, dotsTrendCard, wilksTrendCard } = useMemo(() => {
@@ -325,7 +330,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
         const t = LIFTS.reduce((a, l) => a + (best[l.label] || 0), 0);
         if (!withBodyweight) {
           if (t > 0) { vals.push(Math.round(t)); dates.push(s.date); }
-        } else {
+        } else if (hasBodyweight) {
           const w = getBodyweightAt(s.date);
           if (t > 0 && w > 0) { vals.push(Math.round((t / w) * 100) / 100); dates.push(s.date); }
         }
@@ -339,6 +344,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
     const buildScoreTrend = (calculateScore: (bodyweight: number, total: number, isMale: boolean) => number) => {
       const values: number[] = [];
       const dates: string[] = [];
+      if (!canScore) return { values, dates, current: 0, delta: 0 };
 
       total.vals.forEach((t, idx) => {
         const date = total.dates[idx];
@@ -363,7 +369,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
       dotsTrendCard: buildScoreTrend(calculateDots),
       wilksTrendCard: buildScoreTrend(calculateWilks),
     };
-  }, [chrono, getBodyweightAt, isMale]);
+  }, [chrono, getBodyweightAt, isMale, canScore, hasBodyweight]);
 
   // --- Peso corporal no período ---
   const { bwEntries, bwSeries, bwDelta } = useMemo(() => {
@@ -903,15 +909,19 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
           <div style={styles.scoreCard}>
             <div style={styles.scoreHead}>
               <span style={styles.cardMeta}>DOTS</span>
-              <span style={{
-                ...styles.scoreDelta,
-                ...(dotsTrendCard.delta > 0 ? styles.scoreDeltaUp : dotsTrendCard.delta < 0 ? styles.scoreDeltaDown : styles.scoreDeltaFlat),
-              }}>
-                {dotsTrendCard.delta > 0 ? '▲' : dotsTrendCard.delta < 0 ? '▼' : '•'} {Math.abs(dotsTrendCard.delta)}
-              </span>
+              {canScore && (
+                <span style={{
+                  ...styles.scoreDelta,
+                  ...(dotsTrendCard.delta > 0 ? styles.scoreDeltaUp : dotsTrendCard.delta < 0 ? styles.scoreDeltaDown : styles.scoreDeltaFlat),
+                }}>
+                  {dotsTrendCard.delta > 0 ? '▲' : dotsTrendCard.delta < 0 ? '▼' : '•'} {Math.abs(dotsTrendCard.delta)}
+                </span>
+              )}
             </div>
-            <span style={styles.scoreVal}>{dots || '—'}</span>
-            {dotsTrendCard.values.length >= 2 ? (
+            {canScore && <span style={styles.scoreVal}>{dots || '—'}</span>}
+            {!canScore ? (
+              <div style={styles.emptySmall}>Sem dado. {missingProfile}</div>
+            ) : dotsTrendCard.values.length >= 2 ? (
               <svg
                 width="100%"
                 height="48"
@@ -939,15 +949,19 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
           <div style={styles.scoreCard}>
             <div style={styles.scoreHead}>
               <span style={styles.cardMeta}>Wilks</span>
-              <span style={{
-                ...styles.scoreDelta,
-                ...(wilksTrendCard.delta > 0 ? styles.scoreDeltaUp : wilksTrendCard.delta < 0 ? styles.scoreDeltaDown : styles.scoreDeltaFlat),
-              }}>
-                {wilksTrendCard.delta > 0 ? '▲' : wilksTrendCard.delta < 0 ? '▼' : '•'} {Math.abs(wilksTrendCard.delta)}
-              </span>
+              {canScore && (
+                <span style={{
+                  ...styles.scoreDelta,
+                  ...(wilksTrendCard.delta > 0 ? styles.scoreDeltaUp : wilksTrendCard.delta < 0 ? styles.scoreDeltaDown : styles.scoreDeltaFlat),
+                }}>
+                  {wilksTrendCard.delta > 0 ? '▲' : wilksTrendCard.delta < 0 ? '▼' : '•'} {Math.abs(wilksTrendCard.delta)}
+                </span>
+              )}
             </div>
-            <span style={styles.scoreVal}>{wilks || '—'}</span>
-            {wilksTrendCard.values.length >= 2 ? (
+            {canScore && <span style={styles.scoreVal}>{wilks || '—'}</span>}
+            {!canScore ? (
+              <div style={styles.emptySmall}>Sem dado. {missingProfile}</div>
+            ) : wilksTrendCard.values.length >= 2 ? (
               <svg
                 width="100%"
                 height="48"
@@ -1038,6 +1052,8 @@ export const Analytics: React.FC<AnalyticsProps> = ({ onSeeAllPRs }) => {
                 </div>
               )}
             </>
+          ) : !hasBodyweight ? (
+            <div style={styles.emptySmall}>Registre o peso no Início para ver a força relativa.</div>
           ) : relTrend.length === 1 ? (
             <div style={styles.emptySmall}>Atual: <strong>{relTrend[0]}×</strong> — registre mais treinos para ver a tendência.</div>
           ) : (

@@ -62,6 +62,7 @@ import { isValidImportedState } from '../utils/validateAppState';
 import { useSyncManager } from '../hooks/useSyncManager';
 import { applyServerData } from '../utils/syncMerge';
 import { currentWeekIndex } from '../utils/programProgress';
+import { resolveGenderInformed } from '../utils/profile';
 
 /** Assinatura dos flags de PR de uma sessão — detecta mudança derivada pelo recálculo. */
 function prSignature(s: WorkoutSession): string {
@@ -271,6 +272,7 @@ const DEFAULT_SETTINGS: Settings = {
   customPlates: [],
   bodyweight: 80,
   gender: 'male',
+  genderInformed: false,
   isEquipped: false,
   theme: 'brass',
   restSeconds: DEFAULT_REST_SECONDS,
@@ -580,6 +582,7 @@ function createDemoState(baseDate = new Date()): AppState {
       bodyweight: bodyweightLog[bodyweightLog.length - 1]?.weight ?? 82,
       customPlates: [1.25, 2.5],
       theme: 'brass',
+      genderInformed: true,
     },
     bodyweightLog,
     programs: [
@@ -640,7 +643,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         // Merge with built-in templates to make sure they are always present or updated
         const customTemplates = parsed.templates?.filter(t => !t.isBuiltIn) || [];
         parsed.templates = [...BUILT_IN_TEMPLATES, ...customTemplates];
-        parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
+        parsed.settings = {
+          ...DEFAULT_SETTINGS,
+          ...parsed.settings,
+          genderInformed: resolveGenderInformed(parsed.settings, parsed.bodyweightLog),
+        };
         parsed.bodyweightLog = parsed.bodyweightLog || [];
         parsed.programs = (parsed as AppState).programs || [];
         parsed.customExercises = (parsed as AppState).customExercises || [];
@@ -718,7 +725,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       const recalced = recalculatePRs([session, ...prev.history]).sort((a, b) => b.date.localeCompare(a.date));
       return {
         ...prev,
-        settings: { ...prev.settings, gender: payload.sex === 'M' ? 'male' : 'female', bodyweight: payload.bw },
+        settings: { ...prev.settings, gender: payload.sex === 'M' ? 'male' : 'female', genderInformed: true, bodyweight: payload.bw },
         bodyweightLog,
         history: markChangedPending(prev.history, recalced, session.id, nowIso),
       };
@@ -1472,7 +1479,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         // history decrescente: coluna "ANT." e "Repetir último treino" dependem da ordem (#268)
         history: [...parsed.history].sort((a, b) => b.date.localeCompare(a.date)),
         templates: [...BUILT_IN_TEMPLATES, ...customTemplates],
-        settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...parsed.settings,
+          genderInformed: resolveGenderInformed(parsed.settings, parsed.bodyweightLog),
+        },
         bodyweightLog: parsed.bodyweightLog ?? [],
         programs: (parsed as AppState).programs ?? [],
         customExercises: (parsed as { customExercises?: CustomExercise[] }).customExercises ?? [],

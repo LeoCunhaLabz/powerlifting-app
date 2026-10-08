@@ -84,6 +84,11 @@ export interface Settings {
   customPlates: number[];
   bodyweight: number;
   gender: 'male' | 'female';
+  /**
+   * A pessoa escolheu o sexo (o `gender` sozinho pode ser só o padrão): DOTS, Wilks e a
+   * comparação por categoria dependem disso (#334). Ausente em estado antigo. Só local.
+   */
+  genderInformed?: boolean;
   isEquipped: boolean;
   theme: ThemeName;
   /** Descanso padrão entre séries, em segundos, quando a rotina não define o do exercício (#342). Só local. */

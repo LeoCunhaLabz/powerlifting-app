@@ -182,14 +182,17 @@ export const Settings: React.FC = () => {
 
         <div style={styles.settingRow}>
           <div style={styles.settingInfo}>
-            <div style={styles.settingLabel}>Gênero</div>
-            <div style={styles.settingDesc}>Coeficiente de força baseado no gênero</div>
+            <div style={styles.settingLabel}>Sexo</div>
+            <div style={styles.settingDesc}>Usado no DOTS, no Wilks e na comparação por categoria</div>
           </div>
+          {/* Até a pessoa escolher, "Não informado": o padrão masculino não conta (#334). */}
           <select
-            value={settings.gender}
-            onChange={(e) => updateSettings({ gender: e.target.value as 'male' | 'female' })}
+            value={settings.genderInformed ? settings.gender : ''}
+            onChange={(e) => updateSettings({ gender: e.target.value as 'male' | 'female', genderInformed: true })}
             style={styles.select}
+            aria-label="Sexo"
           >
+            {!settings.genderInformed && <option value="" disabled>Não informado</option>}
             <option value="male">Masculino</option>
             <option value="female">Feminino</option>
           </select>

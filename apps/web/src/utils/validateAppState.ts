@@ -121,6 +121,7 @@ function isValidSettings(v: unknown): v is Settings {
   if (v.barWeight !== undefined && (!isNumber(v.barWeight) || v.barWeight <= 0)) return false;
   if (v.bodyweight !== undefined && (!isNumber(v.bodyweight) || v.bodyweight <= 0)) return false;
   if (v.isEquipped !== undefined && !isBoolean(v.isEquipped)) return false;
+  if (v.genderInformed !== undefined && !isBoolean(v.genderInformed)) return false;
   if (v.restSeconds !== undefined && (!isNumber(v.restSeconds) || v.restSeconds <= 0)) return false;
   if (v.availablePlates !== undefined) {
     if (!isArray(v.availablePlates)) return false;
