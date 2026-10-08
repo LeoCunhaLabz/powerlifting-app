@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { currentSetIndex, findCurrentSet, finishSummary, firstPendingSet, setLabel } from './workoutSets';
+import type { SetState, WorkoutSession } from '@powerlifting/shared';
+import { appendSet, completesSet, currentSetIndex, findCurrentSet, finishSummary, firstPendingSet, patchSet, setLabel } from './workoutSets';
 
 const sets = (...types: Array<'N' | 'W' | 'D'>) => types.map((type) => ({ type }));
 const ex = (...completed: boolean[]) => ({ sets: completed.map((c) => ({ completed: c })) });
@@ -90,5 +91,78 @@ describe('firstPendingSet', () => {
 
   it('devolve null com tudo concluído', () => {
     expect(firstPendingSet([ex(true), ex(true)])).toBeNull();
+  });
+});
+
+// Congela a sessão inteira: qualquer mutação do estado anterior lança TypeError (módulo ES é strict).
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+const set = (fields: Partial<SetState> = {}): SetState => ({ id: 's', weight: 100, reps: 5, completed: false, type: 'N', ...fields });
+
+const session = (...exercises: SetState[][]): WorkoutSession =>
+  deepFreeze({
+    id: 'w1',
+    name: 'Treino A',
+    date: '2026-10-07T10:00:00.000Z',
+    duration: 0,
+    exercises: exercises.map((sets, i) => ({ id: `ex-${i}`, name: `Exercício ${i}`, sets })),
+  });
+
+describe('appendSet', () => {
+  it('copia peso, reps, RPE/RIR e tipo da última série, pendente e com o id dado', () => {
+    const prev = session([set({ id: 's1', weight: 140, reps: 3, rpe: 8, rir: 2, type: 'W', completed: true })]);
+    const next = appendSet(prev, 0, 'novo');
+    expect(next.exercises[0].sets[1]).toEqual({ id: 'novo', weight: 140, reps: 3, rpe: 8, rir: 2, completed: false, type: 'W' });
+  });
+
+  it('usa 0 × 5 normal no exercício sem séries', () => {
+    const next = appendSet(session([]), 0, 'novo');
+    expect(next.exercises[0].sets).toEqual([{ id: 'novo', weight: 0, reps: 5, rpe: undefined, rir: undefined, completed: false, type: 'N' }]);
+  });
+
+  it('não muta a sessão anterior: rodar o updater duas vezes (StrictMode) adiciona uma série só', () => {
+    const prev = session([set({ id: 's1' })], [set({ id: 's2' })]);
+    appendSet(prev, 0, 'a');
+    const next = appendSet(prev, 0, 'b');
+    expect(prev.exercises[0].sets).toHaveLength(1);
+    expect(next.exercises[0].sets.map((s) => s.id)).toEqual(['s1', 'b']);
+    expect(next.exercises[1]).toBe(prev.exercises[1]);
+  });
+
+  it('devolve a mesma sessão com índice de exercício inválido', () => {
+    const prev = session([set()]);
+    expect(appendSet(prev, 3, 'x')).toBe(prev);
+  });
+});
+
+describe('patchSet', () => {
+  it('aplica os campos só na série alvo, sem mutar a sessão anterior', () => {
+    const prev = session([set({ id: 's1' }), set({ id: 's2' })]);
+    const next = patchSet(prev, 0, 1, { weight: 150, completed: true });
+    expect(next.exercises[0].sets[1]).toEqual(set({ id: 's2', weight: 150, completed: true }));
+    expect(next.exercises[0].sets[0]).toBe(prev.exercises[0].sets[0]);
+    expect(prev.exercises[0].sets[1]).toEqual(set({ id: 's2' }));
+  });
+
+  it('devolve a mesma sessão com índice de série inválido', () => {
+    const prev = session([set()]);
+    expect(patchSet(prev, 0, 5, { weight: 1 })).toBe(prev);
+    expect(patchSet(prev, 2, 0, { weight: 1 })).toBe(prev);
+  });
+});
+
+describe('completesSet', () => {
+  it('é verdadeiro só quando a edição conclui uma série pendente', () => {
+    expect(completesSet(set({ completed: false }), { completed: true })).toBe(true);
+    expect(completesSet(set({ completed: true }), { completed: true })).toBe(false);
+    expect(completesSet(set({ completed: true }), { completed: false })).toBe(false);
+    expect(completesSet(set({ completed: false }), { weight: 120 })).toBe(false);
+    expect(completesSet(undefined, { completed: true })).toBe(false);
   });
 });

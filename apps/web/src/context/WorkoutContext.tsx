@@ -17,6 +17,7 @@ import { calculateE1RM, DEFAULT_PLATES_KG, getEffectiveBodyweight } from '../uti
 import { trySetItem, shouldClearActiveBackup } from '../utils/persistence';
 import { trackEvent } from '../utils/analytics';
 import { buildReferenceSession, REFERENCE_SESSION_NAME } from '../utils/strengthSeed';
+import { appendSet, completesSet, patchSet } from '../utils/workoutSets';
 
 /** Recalculates isPr flags for all sessions chronologically. */
 function recalculatePRs(history: WorkoutSession[]): WorkoutSession[] {
@@ -1176,29 +1177,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   const addSetToExercise = useCallback((exerciseIndex: number) => {
     if (!activeWorkout) return;
 
-    setActiveWorkout(prev => {
-      if (!prev) return null;
-      const newExercises = [...prev.exercises];
-      const targetEx = newExercises[exerciseIndex];
-      
-      // Copy last set values as default
-      const lastSet = targetEx.sets[targetEx.sets.length - 1];
-      const newSet: SetState = {
-        id: `set-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        weight: lastSet ? lastSet.weight : 0,
-        reps: lastSet ? lastSet.reps : 5,
-        rpe: lastSet ? lastSet.rpe : undefined,
-        rir: lastSet ? lastSet.rir : undefined,
-        completed: false,
-        type: lastSet ? lastSet.type : 'N'
-      };
-
-      targetEx.sets = [...targetEx.sets, newSet];
-      return {
-        ...prev,
-        exercises: newExercises
-      };
-    });
+    // Copia os valores da última série; o id é gerado fora do updater para ele continuar puro.
+    const id = `set-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    setActiveWorkout(prev => prev ? appendSet(prev, exerciseIndex, id) : null);
   }, [activeWorkout]);
 
   // Remove set from exercise in active workout
@@ -1223,30 +1204,14 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   const updateSet = useCallback((exerciseIndex: number, setIndex: number, fields: Partial<SetState>) => {
     if (!activeWorkout) return;
 
-    setActiveWorkout(prev => {
-      if (!prev) return null;
-      const newExercises = [...prev.exercises];
-      const targetEx = newExercises[exerciseIndex];
-      const targetSet = targetEx.sets[setIndex];
-      
-      const wasCompleted = targetSet.completed;
-      const isNowCompleted = fields.completed !== undefined ? fields.completed : wasCompleted;
+    // Concluir uma série pendente dispara o descanso. Decidido aqui, e não no updater, porque o
+    // React pode rodar o updater mais de uma vez e ele não pode ter efeito colateral.
+    const targetEx = activeWorkout.exercises[exerciseIndex];
+    if (targetEx && completesSet(targetEx.sets[setIndex], fields)) {
+      startRestTimer(targetEx.restSeconds ?? restTimerDuration);
+    }
 
-      targetEx.sets[setIndex] = {
-        ...targetSet,
-        ...fields
-      };
-
-      // Trigger Rest Timer when a set is completed
-      if (!wasCompleted && isNowCompleted) {
-        startRestTimer(targetEx.restSeconds ?? restTimerDuration);
-      }
-
-      return {
-        ...prev,
-        exercises: newExercises
-      };
-    });
+    setActiveWorkout(prev => prev ? patchSet(prev, exerciseIndex, setIndex, fields) : null);
   }, [activeWorkout, startRestTimer, restTimerDuration]);
 
   // Update notes of the active workout session
