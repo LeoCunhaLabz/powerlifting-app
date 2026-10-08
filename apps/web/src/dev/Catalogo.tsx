@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react';
 import type { SetState } from '@powerlifting/shared';
 import { SetRow, SetRowHeader } from '../components/workout/SetRow/SetRow';
 import { SetTypeSheet } from '../components/workout/SetTypeSheet/SetTypeSheet';
+import { RestBarView } from '../components/workout/RestBar/RestBar';
+import { RestDefaultSetting } from '../components/RestDefaultSetting/RestDefaultSetting';
 import { currentSetIndex, setLabel } from '../utils/workoutSets';
 import { Block, Button, EmptyState, Field, IconButton, ListRow, ScreenHeader, SegmentedControl, Segments, Sheet, Stat, Toast } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
@@ -80,6 +82,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function Catalogo() {
   const [metric, setMetric] = useState<'e1rm' | 'rel'>('e1rm');
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [restDefault, setRestDefault] = useState(120);
+  const next = { exercise: 'Agachamento', set: 'série 3', load: '150 kg × 4' };
+  const noop = () => undefined;
 
   return (
     <main className={styles.page}>
@@ -239,6 +244,19 @@ export default function Catalogo() {
       <Section title="SetRow (treino)">
         <SetRowSample initial={SAMPLE_SETS} units="kg" />
         <SetRowSample initial={LONG_SETS} units="lbs" />
+      </Section>
+
+      <Section title="RestBar (treino)">
+        <RestBarView status={{ remaining: 108, overtime: 0, ended: false, total: 180 }} exercise="Agachamento" next={next}
+          open={false} onOpen={noop} onCollapse={noop} onAdjust={noop} onSkip={noop} />
+        <RestBarView status={{ remaining: 108, overtime: 0, ended: false, total: 180 }} exercise="Agachamento" next={next}
+          open onOpen={noop} onCollapse={noop} onAdjust={noop} onSkip={noop} />
+        <RestBarView status={{ remaining: 0, overtime: 42, ended: true, total: 180 }} exercise="Agachamento"
+          next={{ exercise: 'Levantamento Terra com déficit e pausa', set: 'série 1', load: '1.102,5 lbs × 1' }}
+          open={false} onOpen={noop} onCollapse={noop} onAdjust={noop} onSkip={noop} />
+        <RestBarView status={{ remaining: 0, overtime: 605, ended: true, total: 90 }} next={null}
+          open={false} onOpen={noop} onCollapse={noop} onAdjust={noop} onSkip={noop} />
+        <RestDefaultSetting seconds={restDefault} onChange={setRestDefault} />
       </Section>
 
       {/* fim das seções */}
