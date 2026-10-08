@@ -1209,7 +1209,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
       if (!prev) return null;
       const newExercises = [...prev.exercises];
       const targetEx = newExercises[exerciseIndex];
-      targetEx.sets = targetEx.sets.filter((_, idx) => idx !== setIndex);
+      // Sem mutar o exercício anterior: o updater roda duas vezes no StrictMode e, com a remoção
+      // por série (#340), mutar apagava também a série seguinte.
+      newExercises[exerciseIndex] = { ...targetEx, sets: targetEx.sets.filter((_, idx) => idx !== setIndex) };
       return {
         ...prev,
         exercises: newExercises

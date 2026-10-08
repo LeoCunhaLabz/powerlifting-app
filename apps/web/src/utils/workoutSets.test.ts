@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentSetIndex, findCurrentSet, setLabel } from './workoutSets';
+import { currentSetIndex, findCurrentSet, finishSummary, firstPendingSet, setLabel } from './workoutSets';
 
 const sets = (...types: Array<'N' | 'W' | 'D'>) => types.map((type) => ({ type }));
 const ex = (...completed: boolean[]) => ({ sets: completed.map((c) => ({ completed: c })) });
@@ -59,5 +59,36 @@ describe('setLabel', () => {
   it('numera a partir de 1 sem aquecimento', () => {
     const s = sets('N', 'N');
     expect(setLabel(s, 1)).toBe('2');
+  });
+});
+
+const named = (name: string, ...completed: boolean[]) => ({ name, ...ex(...completed) });
+
+describe('finishSummary', () => {
+  it('conta feitas, total e séries sem check por exercício, na ordem do treino', () => {
+    expect(finishSummary([named('Agachamento', true, true, false), named('Supino', true), named('Remada', false, false)])).toEqual({
+      done: 3,
+      total: 6,
+      pending: [{ name: 'Agachamento', count: 1 }, { name: 'Remada', count: 2 }],
+    });
+  });
+
+  it('sem pendência quando tudo foi feito', () => {
+    expect(finishSummary([named('Agachamento', true, true)])).toEqual({ done: 2, total: 2, pending: [] });
+  });
+
+  it('treino vazio', () => {
+    expect(finishSummary([])).toEqual({ done: 0, total: 0, pending: [] });
+  });
+});
+
+describe('firstPendingSet', () => {
+  it('acha a primeira série sem check na ordem do treino, mesmo antes de uma concluída', () => {
+    expect(firstPendingSet([ex(true, true), ex(true, false, true)])).toEqual({ exIdx: 1, setIdx: 1 });
+    expect(firstPendingSet([ex(false, true)])).toEqual({ exIdx: 0, setIdx: 0 });
+  });
+
+  it('devolve null com tudo concluído', () => {
+    expect(firstPendingSet([ex(true), ex(true)])).toBeNull();
   });
 });

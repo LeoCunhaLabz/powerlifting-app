@@ -221,6 +221,9 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
 
   Aquecimento aparece como "Aq" e as séries normais são numeradas sem ele. A série atual vem de `utils/workoutSets` (primeira pendente depois da última concluída). Carga com 6 ou mais caracteres desce para `--num-sm`.
 - `ExerciseCard`: cabeçalho com o botão "Anilhas" (abre o `PlateSheet` na carga da próxima série pendente) e o menu de opções (notas, remover com confirmação).
+- `SetTypeSheet` (#340): tocar no número da série abre "Tipo da série", com Normal, Aquecimento e Drop set num `SegmentedControl`. Escolher aplica e fecha. "Remover esta série" pede confirmação se a série tem check e fica desabilitado quando é a única. Não há legenda fixa nem "remover a última".
+- `WorkoutHeader` (#340): nome em `--title-1`, tempo em `--text-2`, "x de y séries" com `Segments` e "Finalizar" neutro. A ação dourada da tela é o "Finalizar treino" no fim da lista.
+- `FinishSheet` (#340, #328): diz quantas séries sem check ficam fora do histórico, por exercício, e oferece "Revisar séries" (leva à primeira pendente). "Descartar treino" fica aqui, com confirmação. Sem nenhum check, o primário é revisar.
 - A implementar: `RestBar` (compacta e aberta) e `WeekStrip`.
 
 ## Do's and Don'ts
