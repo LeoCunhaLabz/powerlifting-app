@@ -1,0 +1,33 @@
+/**
+ * Série atual e rótulo da série no treino ativo (#339). Funções puras, testadas em workoutSets.test.ts.
+ */
+import type { SetState } from '@powerlifting/shared';
+
+/**
+ * Índice da série atual: a primeira pendente depois da última concluída; sem pendente depois
+ * dela, a primeira pendente (a que ficou para trás). -1 com tudo concluído ou lista vazia.
+ */
+export function currentSetIndex(completed: readonly boolean[]): number {
+  const lastDone = completed.lastIndexOf(true);
+  const after = completed.indexOf(false, lastDone + 1);
+  return after !== -1 ? after : completed.indexOf(false);
+}
+
+/** Série atual do treino inteiro, na ordem dos exercícios. null com tudo concluído. */
+export function findCurrentSet(
+  exercises: ReadonlyArray<{ sets: ReadonlyArray<Pick<SetState, 'completed'>> }>,
+): { exIdx: number; setIdx: number } | null {
+  const flat = exercises.flatMap((ex, exIdx) => ex.sets.map((s, setIdx) => ({ exIdx, setIdx, done: s.completed })));
+  const i = currentSetIndex(flat.map((f) => f.done));
+  return i === -1 ? null : { exIdx: flat[i].exIdx, setIdx: flat[i].setIdx };
+}
+
+/** Rótulo da série: "Aq" no aquecimento, "D" no drop, e as normais numeradas entre si (1, 2, 3). */
+export function setLabel(sets: ReadonlyArray<Pick<SetState, 'type'>>, index: number): string {
+  const type = sets[index].type;
+  if (type === 'W') return 'Aq';
+  if (type === 'D') return 'D';
+  let n = 0;
+  for (let i = 0; i <= index; i++) if (sets[i].type === 'N') n++;
+  return String(n);
+}

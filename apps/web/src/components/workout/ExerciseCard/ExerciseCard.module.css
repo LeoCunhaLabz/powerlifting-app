@@ -1,0 +1,86 @@
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-num);
+  font-size: var(--title-2);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.sub {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.notes {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-field);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.4;
+  resize: none;
+}
+
+.notes::placeholder {
+  color: var(--text-3);
+}
+
+.notes:focus {
+  border: 0;
+  box-shadow: inset 0 0 0 1.5px var(--now);
+}
+
+.sets {
+  display: flex;
+  flex-direction: column;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.addSet {
+  flex: 1;
+}
+
+.actions .removeSet {
+  color: var(--text-2);
+  padding: 0 var(--space-4);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

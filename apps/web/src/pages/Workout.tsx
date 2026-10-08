@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWorkout } from '../context/WorkoutContext';
-import { Dumbbell, Trash2, Check, Clock, Play, AlertTriangle, Scale, Plus, X, RotateCcw, MessageSquare, Award, TrendingUp } from 'lucide-react';
-import PlateVisualizer from '../components/PlateVisualizer';
+import { Dumbbell, Check, Clock, Play, AlertTriangle, Plus, X, RotateCcw, Award, TrendingUp } from 'lucide-react';
 import SessionClock from '../components/SessionClock';
+import { ExerciseCard } from '../components/workout/ExerciseCard/ExerciseCard';
+import { PlateSheet } from '../components/workout/PlateSheet/PlateSheet';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
+import { formatCompact } from '../utils/format';
+import { currentSetIndex, findCurrentSet, setLabel } from '../utils/workoutSets';
 import type { ExerciseState, WorkoutTemplate } from '@powerlifting/shared';
-import { TYPE_CYCLE } from '../utils/setTypeCycle';
 
 // Componente folha do cronômetro: o tick de 1s re-renderiza só o SessionClock,
 // não a lista inteira do treino (#267).
@@ -36,15 +38,13 @@ export const Workout: React.FC = () => {
 
   const [showAddExModal, setShowAddExModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [plateCalcWeight, setPlateCalcWeight] = useState<number | null>(null);
-  const [plateCalcTarget, setPlateCalcTarget] = useState({ exIdx: 0, setIdx: 0 });
+  // Anilhas: exercício, série que recebe a carga (-1 = todas feitas) e a carga montada.
+  const [plate, setPlate] = useState<{ exIdx: number; setIdx: number; weight: number } | null>(null);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [showConfirmFinish, setShowConfirmFinish] = useState(false);
   const [workoutSummary, setWorkoutSummary] = useState<typeof history[number] | null>(null);
   const pendingFinishRef = useRef(false);
-  const [confirmRemoveExIdx, setConfirmRemoveExIdx] = useState<number | null>(null);
   const [showNotes, setShowNotes] = useState(false);
-  const [openExNotes, setOpenExNotes] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (pendingFinishRef.current && history.length > 0) {
@@ -213,18 +213,21 @@ export const Workout: React.FC = () => {
     const prevEx = prevExByName.get(name.toLowerCase());
     if (!prevEx) return null;
     const set = prevEx.sets[setIdx] || prevEx.sets[prevEx.sets.length - 1];
-    return set ? `${set.weight}×${set.reps}` : null;
+    return set ? `${formatCompact(set.weight)} × ${set.reps}` : null;
   };
 
-  const openPlate = (exIdx: number, setIdx: number, w: number) => {
-    setPlateCalcWeight(w || settings.barWeight || 60);
-    setPlateCalcTarget({ exIdx, setIdx });
+  const currentSet = findCurrentSet(activeWorkout.exercises);
+
+  // Abre com a carga da próxima série pendente do exercício (ou da última, se todas foram feitas).
+  const openPlates = (exIdx: number) => {
+    const sets = activeWorkout.exercises[exIdx].sets;
+    const setIdx = currentSetIndex(sets.map((s) => s.completed));
+    const base = setIdx !== -1 ? sets[setIdx].weight : sets[sets.length - 1]?.weight;
+    setPlate({ exIdx, setIdx, weight: base || settings.barWeight || 60 });
   };
   const applyPlate = () => {
-    if (plateCalcWeight !== null) {
-      updateSet(plateCalcTarget.exIdx, plateCalcTarget.setIdx, { weight: plateCalcWeight });
-      setPlateCalcWeight(null);
-    }
+    if (plate && plate.setIdx !== -1) updateSet(plate.exIdx, plate.setIdx, { weight: plate.weight });
+    setPlate(null);
   };
   const addExercise = (name: string) => {
     addExerciseToActiveWorkout(name);
@@ -279,106 +282,26 @@ export const Workout: React.FC = () => {
       )}
 
       <p style={styles.typeLegend}>
-        Toque no nº da série para alternar: <strong style={{ color: 'var(--text-secondary)' }}>N</strong> normal · <strong style={{ color: 'var(--accent)' }}>W</strong> aquec. · <strong style={{ color: 'var(--accent)' }}>D</strong> drop
+        Toque no nº da série para alternar: <strong style={{ color: 'var(--text-secondary)' }}>N</strong> normal · <strong style={{ color: 'var(--text-secondary)' }}>Aq</strong> aquec. · <strong style={{ color: 'var(--text-secondary)' }}>D</strong> drop
       </p>
 
       {/* Exercises */}
       <div style={styles.exList}>
         {activeWorkout.exercises.map((ex, exIdx) => (
-          <div key={ex.id} style={styles.exCard}>
-            <div style={styles.exHead}>
-              <div>
-                <div style={styles.exName}>{ex.name}</div>
-                <div style={styles.exSub}>{(() => {
-                  const e1rm = e1rmByExercise.get(ex.name.toLowerCase()) ?? 0;
-                  const ws = ex.sets.find(s => s.type !== 'W');
-                  const target = ws?.percentage && e1rm > 0
-                    ? Math.round(e1rm * ws.percentage / 100 / 2.5) * 2.5
-                    : null;
-                  if (target) return `Alvo: ${target} ${u} · e1RM: ${e1rm} ${u}`;
-                  return `e1RM: ${e1rm || '—'} ${u}`;
-                })()}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  onClick={() => setOpenExNotes(prev => {
-                    const next = new Set(prev);
-                    if (next.has(exIdx)) { next.delete(exIdx); } else { next.add(exIdx); }
-                    return next;
-                  })}
-                  style={{ ...styles.exDel, color: (ex.notes || openExNotes.has(exIdx)) ? 'var(--accent)' : undefined }}
-                  aria-label="Notas do exercício"
-                  title="Notas do exercício"
-                >
-                  <MessageSquare size={15} />
-                </button>
-                <button onClick={() => setConfirmRemoveExIdx(exIdx)} style={styles.exDel} aria-label="Remover exercício"><Trash2 size={15} /></button>
-              </div>
-            </div>
-            {(openExNotes.has(exIdx) || ex.notes) && (
-              <textarea
-                placeholder="Notas do exercício (técnica, observações...)"
-                value={ex.notes || ''}
-                onChange={(e) => updateExerciseNotes(exIdx, e.target.value)}
-                style={{ ...styles.notes, marginTop: 4, marginBottom: 4 }}
-              />
-            )}
-
-            <div style={styles.colHead}>
-              <span>SÉRIE</span><span>ANT.</span><span style={styles.colC}>{u.toUpperCase()}</span><span style={styles.colC}>REPS</span><span style={styles.colC}>RPE</span><span></span>
-            </div>
-
-            {ex.sets.map((set, setIdx) => {
-              const prev = lastPerf(ex.name, setIdx);
-              return (
-                <div key={set.id} style={{ ...styles.setRow, backgroundColor: set.completed ? 'var(--accent-soft)' : 'transparent' }}>
-                  <button
-                    onClick={() => updateSet(exIdx, setIdx, { type: TYPE_CYCLE[set.type] })}
-                    style={{
-                      ...styles.typeChip,
-                      color: set.type === 'N' ? 'var(--text-secondary)' : 'var(--accent)',
-                      borderColor: set.type === 'N' ? 'transparent' : 'var(--accent-border)',
-                    }}
-                    title="Tipo: Normal / Aquecimento / Drop"
-                  >
-                    {set.type === 'N' ? setIdx + 1 : set.type}
-                  </button>
-                  <span style={styles.prev}>{prev || '—'}</span>
-                  <div style={styles.weightCell}>
-                    <input type="number" inputMode="decimal" value={set.weight || ''} disabled={set.completed}
-                      onChange={(e) => updateSet(exIdx, setIdx, { weight: Number(e.target.value) })}
-                      style={styles.field} placeholder="0" />
-                    <button onClick={() => openPlate(exIdx, setIdx, set.weight)} style={styles.plateBtn} title="Montar anilhas"><Scale size={12} /></button>
-                  </div>
-                  <input type="number" inputMode="numeric" value={set.reps || ''} disabled={set.completed}
-                    onChange={(e) => updateSet(exIdx, setIdx, { reps: Number(e.target.value) })}
-                    style={styles.field} placeholder="0" />
-                  <select value={set.rpe || ''} disabled={set.completed}
-                    onChange={(e) => updateSet(exIdx, setIdx, { rpe: e.target.value ? Number(e.target.value) : undefined })}
-                    style={styles.rpe}>
-                    <option value="">—</option>
-                    {[10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5].map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  <button
-                    onClick={() => updateSet(exIdx, setIdx, { completed: !set.completed })}
-                    aria-label={set.completed ? 'Desmarcar série' : 'Concluir série'}
-                    style={{
-                      ...styles.check,
-                      backgroundColor: set.completed ? 'var(--accent)' : 'transparent',
-                      borderColor: set.completed ? 'var(--accent)' : 'var(--border-color)',
-                    }}
-                  >
-                    <Check size={15} strokeWidth={3.5} color={set.completed ? 'var(--accent-ink)' : 'var(--border-focus)'} />
-                  </button>
-                </div>
-              );
-            })}
-
-            <div style={styles.exActions}>
-              <button onClick={() => addSetToExercise(exIdx)} style={styles.addSet}><Plus size={14} /> Adicionar série</button>
-              <button onClick={() => removeSetFromExercise(exIdx, ex.sets.length - 1)} disabled={ex.sets.length <= 1} style={styles.delSet}>Remover</button>
-            </div>
-          </div>
+          <ExerciseCard
+            key={ex.id}
+            exercise={ex}
+            units={u}
+            e1rm={e1rmByExercise.get(ex.name.toLowerCase()) ?? 0}
+            currentSetIdx={currentSet?.exIdx === exIdx ? currentSet.setIdx : -1}
+            previousFor={(setIdx) => lastPerf(ex.name, setIdx)}
+            onUpdateSet={(setIdx, fields) => updateSet(exIdx, setIdx, fields)}
+            onAddSet={() => addSetToExercise(exIdx)}
+            onRemoveLastSet={() => removeSetFromExercise(exIdx, ex.sets.length - 1)}
+            onNotesChange={(notes) => updateExerciseNotes(exIdx, notes)}
+            onRemove={() => removeExerciseFromActiveWorkout(exIdx)}
+            onOpenPlates={() => openPlates(exIdx)}
+          />
         ))}
       </div>
 
@@ -403,21 +326,6 @@ export const Workout: React.FC = () => {
               {exerciseOptions.filter((o) => o.toLowerCase().includes(searchQuery.toLowerCase())).map((name) => (
                 <button key={name} onClick={() => addExercise(name)} style={styles.suggestion}>{name}</button>
               ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remove exercise modal */}
-      {confirmRemoveExIdx !== null && (
-        <div style={styles.overlay} onClick={() => setConfirmRemoveExIdx(null)}>
-          <div style={{ ...styles.modal, alignItems: 'center', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <AlertTriangle size={40} color="var(--error)" style={{ marginBottom: 12 }} />
-            <h3 style={styles.modalTitle}>Remover exercício</h3>
-            <p style={styles.confirmDesc}>O exercício e todas as suas séries serão removidos do treino.</p>
-            <div style={styles.confirmActions}>
-              <button onClick={() => setConfirmRemoveExIdx(null)} style={styles.confirmBack}>Voltar</button>
-              <button onClick={() => { removeExerciseFromActiveWorkout(confirmRemoveExIdx); setConfirmRemoveExIdx(null); }} style={styles.confirmDiscard}>Remover</button>
             </div>
           </div>
         </div>
@@ -464,29 +372,28 @@ export const Workout: React.FC = () => {
         </div>
       )}
 
-      {/* Plate calc modal */}
-      {plateCalcWeight !== null && (
-        <div style={styles.overlay} onClick={() => setPlateCalcWeight(null)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHead}>
-              <h3 style={styles.modalTitle}>Calculadora de anilhas</h3>
-              <button onClick={() => setPlateCalcWeight(null)} style={styles.close} aria-label="Fechar"><X size={20} /></button>
-            </div>
-            <div style={styles.plateAdjust}>
-              <button onClick={() => setPlateCalcWeight((p) => Math.max(settings.barWeight, (p || 0) - 2.5))} style={styles.adjBtn}>−2.5</button>
-              <div style={styles.plateVal}>{plateCalcWeight} <span style={styles.plateUnit}>{u}</span></div>
-              <button onClick={() => setPlateCalcWeight((p) => (p || 0) + 2.5)} style={styles.adjBtn}>+2.5</button>
-            </div>
-            <PlateVisualizer weight={plateCalcWeight} barWeight={settings.barWeight} availablePlates={[...new Set([...settings.availablePlates, ...settings.customPlates])].sort((a, b) => b - a)} units={u} />
-            <button onClick={applyPlate} style={styles.applyPlate}>Aplicar peso à série</button>
-          </div>
-        </div>
-      )}
+      {plate && (() => {
+        const ex = activeWorkout.exercises[plate.exIdx];
+        const target = plate.setIdx !== -1
+          ? { type: ex.sets[plate.setIdx].type, label: setLabel(ex.sets, plate.setIdx) }
+          : null;
+        return (
+          <PlateSheet
+            exerciseName={ex.name}
+            target={target}
+            weight={plate.weight}
+            onWeightChange={(weight) => setPlate({ ...plate, weight })}
+            barWeight={settings.barWeight}
+            plates={[...new Set([...settings.availablePlates, ...settings.customPlates])].sort((a, b) => b - a)}
+            units={u}
+            onApply={applyPlate}
+            onClose={() => setPlate(null)}
+          />
+        );
+      })()}
     </div>
   );
 };
-
-const cols = '34px 52px 1fr 1fr 50px 38px';
 
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', width: '100%' },
@@ -524,24 +431,6 @@ const styles: Record<string, React.CSSProperties> = {
   notesToggle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' },
   notes: { width: '100%', height: '54px', resize: 'none', marginBottom: '14px', backgroundColor: 'var(--bg-secondary)' },
   exList: { display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '14px' },
-  exCard: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px' },
-  exHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' },
-  exName: { fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
-  exSub: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' },
-  exDel: { color: 'var(--text-muted)', padding: '4px' },
-  colHead: { display: 'grid', gridTemplateColumns: cols, gap: '8px', alignItems: 'center', fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em', color: 'var(--text-muted)', padding: '0 2px 8px' },
-  colC: { textAlign: 'center' },
-  setRow: { display: 'grid', gridTemplateColumns: cols, gap: '8px', alignItems: 'center', height: '52px', borderTop: '1px solid var(--border-color)', borderRadius: '8px', transition: 'background-color var(--transition-fast)' },
-  typeChip: { width: '28px', height: '28px', borderRadius: '8px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
-  prev: { fontSize: '11px', color: 'var(--text-muted)' },
-  weightCell: { display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '10px', paddingRight: '4px', height: '38px' },
-  field: { height: '38px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '16px', textAlign: 'center', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-primary)', width: '100%', padding: '0', minWidth: 0 },
-  plateBtn: { color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', flexShrink: 0 },
-  rpe: { height: '38px', fontWeight: 700, fontSize: '13px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-primary)', width: '100%', textAlign: 'center', padding: '0 2px', minWidth: 0 },
-  check: { width: '34px', height: '34px', borderRadius: '10px', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
-  exActions: { display: 'flex', gap: '8px', marginTop: '12px' },
-  addSet: { flex: 2, height: '42px', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed var(--border-color)', borderRadius: '12px', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
-  delSet: { flex: 1, height: '42px', backgroundColor: 'transparent', border: '1px solid transparent', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' },
   addEx: { width: '100%', height: '46px', backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' },
   overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 1000, backdropFilter: 'blur(4px)' },
   modal: { backgroundColor: 'var(--bg-secondary)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', width: '100%', maxWidth: 'var(--max-width)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '20px', paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' },
@@ -555,11 +444,6 @@ const styles: Record<string, React.CSSProperties> = {
   confirmActions: { display: 'flex', gap: '12px', width: '100%' },
   confirmBack: { flex: 1, height: '44px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' },
   confirmDiscard: { flex: 1, height: '44px', backgroundColor: 'var(--error)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 800, color: '#fff' },
-  plateAdjust: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', margin: '8px 0 16px' },
-  adjBtn: { width: '46px', height: '46px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '13px' },
-  plateVal: { fontSize: '34px', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' },
-  plateUnit: { fontSize: '14px', color: 'var(--text-secondary)' },
-  applyPlate: { height: '48px', backgroundColor: 'var(--accent)', color: 'var(--accent-ink)', fontWeight: 800, fontSize: '14px', borderRadius: 'var(--radius-md)', marginTop: '16px', width: '100%' },
 };
 
 export default Workout;
