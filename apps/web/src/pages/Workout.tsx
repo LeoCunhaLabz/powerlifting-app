@@ -38,13 +38,19 @@ export const Workout: React.FC = () => {
   const [plate, setPlate] = useState<{ exIdx: number; setIdx: number; weight: number } | null>(null);
   const [showFinish, setShowFinish] = useState(false);
   const [workoutSummary, setWorkoutSummary] = useState<typeof history[number] | null>(null);
-  const pendingFinishRef = useRef(false);
+  // Id da sessão finalizada, à espera de entrar no history para abrir o resumo.
+  const pendingFinishRef = useRef<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
 
+  // Procura pelo id, não pelo history[0]: um efeito pendente de um render anterior (ex.: merge
+  // de sync) pode rodar logo depois do clique em Finalizar, ainda com o history antigo.
   useEffect(() => {
-    if (pendingFinishRef.current && history.length > 0) {
-      pendingFinishRef.current = false;
-      setWorkoutSummary(history[0]);
+    const id = pendingFinishRef.current;
+    if (!id) return;
+    const finished = history.find((h) => h.id === id);
+    if (finished) {
+      pendingFinishRef.current = null;
+      setWorkoutSummary(finished);
     }
   }, [history]);
 
@@ -347,10 +353,8 @@ export const Workout: React.FC = () => {
           summary={summary}
           onClose={() => setShowFinish(false)}
           onReview={reviewPending}
-          // Sem séries concluídas nada entra no history: não arma o pendingFinishRef,
-          // senão a próxima mudança do array (ex.: merge de sync) abre o resumo
-          // "Treino concluído" com uma sessão antiga.
-          onFinish={() => { pendingFinishRef.current = summary.done > 0; completeActiveWorkout(); setShowFinish(false); }}
+          // Sem séries concluídas nada entra no history: não arma o pendingFinishRef.
+          onFinish={() => { pendingFinishRef.current = summary.done > 0 ? activeWorkout.id : null; completeActiveWorkout(); setShowFinish(false); }}
           onDiscard={() => { cancelWorkout(); setShowFinish(false); }}
         />
       )}

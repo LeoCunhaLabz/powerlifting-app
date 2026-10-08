@@ -36,11 +36,12 @@ test('golden path: do registro à sessão no dashboard', async ({ page }) => {
   await page.locator('input[inputmode="numeric"]').first().fill('5');
   await page.getByRole('button', { name: 'Concluir série' }).first().click();
 
-  // --- Finalizar (appbar → modal de confirmação) ---
+  // --- Finalizar (cabeçalho → folha de finalizar, #340) ---
   await page.getByRole('button', { name: 'Finalizar', exact: true }).click();
-  await expect(page.getByText('Finalizar treino?')).toBeVisible();
-  await expect(page.getByText('1 de 1 séries concluídas')).toBeVisible();
-  await page.getByRole('button', { name: 'Finalizar', exact: true }).last().click();
+  const finish = page.getByRole('dialog', { name: 'Finalizar treino?' });
+  await expect(finish).toBeVisible();
+  await expect(finish.getByText('1 de 1 série concluída.')).toBeVisible();
+  await finish.getByRole('button', { name: 'Finalizar treino' }).click();
 
   // --- Resumo da sessão ---
   await expect(page.getByText('Treino concluído')).toBeVisible();
