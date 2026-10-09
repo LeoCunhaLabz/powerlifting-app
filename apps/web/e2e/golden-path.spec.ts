@@ -13,7 +13,7 @@ test('golden path: do registro à sessão no dashboard', async ({ page }) => {
   await page.goto('/');
 
   // --- Registro (loga automaticamente ao criar a conta) ---
-  await page.getByRole('button', { name: 'Cadastrar' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
   await page.locator('#auth-name').fill('Atleta E2E');
   await page.locator('#auth-email').fill(email);
   await page.locator('#auth-password').fill('senha-e2e-12345');
