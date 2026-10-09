@@ -90,7 +90,11 @@ function markChangedPending(
 interface WorkoutContextType {
   state: AppState;
   activeWorkout: WorkoutSession | null;
-  startWorkout: (templateId?: string) => void;
+  /**
+   * Inicia um treino (vazio ou da rotina). `maxes` (nome sem caixa → máximo de 1 repetição) supre
+   * o máximo dos exercícios por %1RM que ainda não têm e1RM no histórico (#336). Não é salvo.
+   */
+  startWorkout: (templateId?: string, maxes?: Record<string, number>) => void;
   repeatWorkout: (session: WorkoutSession) => void;
   cancelWorkout: () => void;
   completeActiveWorkout: () => void;
@@ -156,36 +160,36 @@ const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 const BUILT_IN_TEMPLATES: WorkoutTemplate[] = [
   {
     id: 'built-in-lp-beginner',
-    name: 'Iniciante LP (Treino A)',
-    description: 'Progressão linear clássica focada em força base para atletas iniciantes. Execute 3 vezes por semana alternando com Treino B.',
+    name: 'Iniciante LP',
+    description: 'Progressão linear para começar: agachamento, supino e terra, 3 vezes por semana. Suba um pouco a carga a cada treino.',
     isBuiltIn: true,
     exercises: [
       {
         name: 'Agachamento',
         sets: [
-          { reps: 5, type: 'W', weightPercentage: 50 },
-          { reps: 5, type: 'W', weightPercentage: 70 },
-          { reps: 5, type: 'N', weightPercentage: 100 },
-          { reps: 5, type: 'N', weightPercentage: 100 },
-          { reps: 5, type: 'N', weightPercentage: 100 }
+          { reps: 5, type: 'W', weightPercentage: 40 },
+          { reps: 5, type: 'W', weightPercentage: 60 },
+          { reps: 5, type: 'N', weightPercentage: 80 },
+          { reps: 5, type: 'N', weightPercentage: 80 },
+          { reps: 5, type: 'N', weightPercentage: 80 }
         ]
       },
       {
         name: 'Supino Reto',
         sets: [
-          { reps: 5, type: 'W', weightPercentage: 50 },
-          { reps: 5, type: 'W', weightPercentage: 70 },
-          { reps: 5, type: 'N', weightPercentage: 100 },
-          { reps: 5, type: 'N', weightPercentage: 100 },
-          { reps: 5, type: 'N', weightPercentage: 100 }
+          { reps: 5, type: 'W', weightPercentage: 40 },
+          { reps: 5, type: 'W', weightPercentage: 60 },
+          { reps: 5, type: 'N', weightPercentage: 80 },
+          { reps: 5, type: 'N', weightPercentage: 80 },
+          { reps: 5, type: 'N', weightPercentage: 80 }
         ]
       },
       {
         name: 'Levantamento Terra',
         sets: [
-          { reps: 5, type: 'W', weightPercentage: 60 },
-          { reps: 5, type: 'W', weightPercentage: 80 },
-          { reps: 5, type: 'N', weightPercentage: 100 }
+          { reps: 5, type: 'W', weightPercentage: 50 },
+          { reps: 5, type: 'W', weightPercentage: 70 },
+          { reps: 5, type: 'N', weightPercentage: 80 }
         ]
       }
     ]
@@ -193,37 +197,37 @@ const BUILT_IN_TEMPLATES: WorkoutTemplate[] = [
   {
     id: 'built-in-madcow-5x5',
     name: 'Madcow 5x5 - Segunda-Feira',
-    description: 'Foco em construir volume com rampas de peso progressivas até a série mais pesada de 5 repetições (100% da meta semanal).',
+    description: 'Volume em rampa: cinco séries de 5 subindo a carga até a mais pesada, perto do seu máximo de 5 repetições.',
     isBuiltIn: true,
     exercises: [
       {
         name: 'Agachamento',
         sets: [
-          { reps: 5, type: 'N', weightPercentage: 50 },
-          { reps: 5, type: 'N', weightPercentage: 62.5 },
+          { reps: 5, type: 'N', weightPercentage: 45 },
+          { reps: 5, type: 'N', weightPercentage: 55 },
+          { reps: 5, type: 'N', weightPercentage: 65 },
           { reps: 5, type: 'N', weightPercentage: 75 },
-          { reps: 5, type: 'N', weightPercentage: 87.5 },
-          { reps: 5, type: 'N', weightPercentage: 100 }
+          { reps: 5, type: 'N', weightPercentage: 85 }
         ]
       },
       {
         name: 'Supino Reto',
         sets: [
-          { reps: 5, type: 'N', weightPercentage: 50 },
-          { reps: 5, type: 'N', weightPercentage: 62.5 },
+          { reps: 5, type: 'N', weightPercentage: 45 },
+          { reps: 5, type: 'N', weightPercentage: 55 },
+          { reps: 5, type: 'N', weightPercentage: 65 },
           { reps: 5, type: 'N', weightPercentage: 75 },
-          { reps: 5, type: 'N', weightPercentage: 87.5 },
-          { reps: 5, type: 'N', weightPercentage: 100 }
+          { reps: 5, type: 'N', weightPercentage: 85 }
         ]
       },
       {
         name: 'Remada Curvada',
         sets: [
-          { reps: 5, type: 'N', weightPercentage: 50 },
-          { reps: 5, type: 'N', weightPercentage: 62.5 },
+          { reps: 5, type: 'N', weightPercentage: 45 },
+          { reps: 5, type: 'N', weightPercentage: 55 },
+          { reps: 5, type: 'N', weightPercentage: 65 },
           { reps: 5, type: 'N', weightPercentage: 75 },
-          { reps: 5, type: 'N', weightPercentage: 87.5 },
-          { reps: 5, type: 'N', weightPercentage: 100 }
+          { reps: 5, type: 'N', weightPercentage: 85 }
         ]
       }
     ]
@@ -231,34 +235,36 @@ const BUILT_IN_TEMPLATES: WorkoutTemplate[] = [
   {
     id: 'built-in-wendler-531',
     name: 'Jim Wendler 5/3/1 - Supino (Semana 1)',
-    description: 'Semana 1 (Série de 5 repetições) do ciclo clássico de força. Última série de Supino é AMRAP (máximas repetições possíveis).',
+    description: 'Semana 1 do ciclo clássico de força, com cargas sobre 90% do seu máximo. Na última série de supino, faça o máximo de repetições que conseguir.',
     isBuiltIn: true,
     exercises: [
       {
         name: 'Supino Reto',
         sets: [
-          { reps: 5, type: 'W', weightPercentage: 40 },
-          { reps: 5, type: 'W', weightPercentage: 50 },
-          { reps: 5, type: 'W', weightPercentage: 60 },
-          { reps: 5, type: 'N', weightPercentage: 65 },
-          { reps: 5, type: 'N', weightPercentage: 75 },
-          { reps: 5, type: 'N', weightPercentage: 85 } // AMRAP
+          // % do método sobre o training max (90% do máximo): 40/50/60 e 65/75/85.
+          { reps: 5, type: 'W', weightPercentage: 35 },
+          { reps: 5, type: 'W', weightPercentage: 45 },
+          { reps: 5, type: 'W', weightPercentage: 55 },
+          { reps: 5, type: 'N', weightPercentage: 60 },
+          { reps: 5, type: 'N', weightPercentage: 67.5 },
+          { reps: 5, type: 'N', weightPercentage: 77.5 } // AMRAP
         ]
       },
       {
         name: 'Desenvolvimento Militar',
         sets: [
-          { reps: 10, type: 'N', weightPercentage: 60 },
-          { reps: 10, type: 'N', weightPercentage: 60 },
-          { reps: 10, type: 'N', weightPercentage: 60 }
+          { reps: 10, type: 'N', weightPercentage: 55 },
+          { reps: 10, type: 'N', weightPercentage: 55 },
+          { reps: 10, type: 'N', weightPercentage: 55 }
         ]
       },
       {
         name: 'Barra Fixa',
+        // Peso do corpo: sem %1RM.
         sets: [
-          { reps: 8, type: 'N', weightPercentage: 70 },
-          { reps: 8, type: 'N', weightPercentage: 70 },
-          { reps: 8, type: 'N', weightPercentage: 70 }
+          { reps: 8, type: 'N' },
+          { reps: 8, type: 'N' },
+          { reps: 8, type: 'N' }
         ]
       }
     ]
@@ -909,7 +915,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
   }, [state]);
 
   // Start a new workout session
-  const startWorkout = useCallback((templateId?: string) => {
+  const startWorkout = useCallback((templateId?: string, maxes?: Record<string, number>) => {
+    // Máximo do histórico; sem ele, o digitado na folha "Quanto você levanta hoje?" (#336).
+    const maxFor = (name: string) => getMaxE1RM(name) || maxes?.[name.trim().toLowerCase()] || 0;
     let sessionName = 'Treino Avulso';
     let exercises: ExerciseState[] = [];
 
@@ -919,7 +927,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
         sessionName = template.name;
         exercises = template.exercises.map((ex, exIdx) => {
           // Pre-fill weights based on percentage of 1RM
-          const maxE1RM = getMaxE1RM(ex.name);
+          const maxE1RM = maxFor(ex.name);
           return {
             id: `ex-${exIdx}-${Date.now()}`,
             name: ex.name,
@@ -984,7 +992,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode; storageScope
             const baseSets = lastBaseSet
               ? Array.from({ length: targetCount }, (_, setIdx) => ex.sets[setIdx] ?? lastBaseSet)
               : [];
-            const maxE1RM = getMaxE1RM(ex.name);
+            const maxE1RM = maxFor(ex.name);
             return {
               ...ex,
               sets: baseSets.map((set, setIdx) => {
