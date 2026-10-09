@@ -7,7 +7,7 @@ import { RestDefaultSetting } from '../components/RestDefaultSetting/RestDefault
 import { currentSetIndex, setLabel } from '../utils/workoutSets';
 import { Block, Button, EmptyState, Field, IconButton, ListRow, ScreenHeader, SegmentedControl, Segments, Sheet, Stat, Toast } from '../ui';
 import { countdownFilled } from '../ui/Segments/segmentStates';
-import { AlertTriangle, ClipboardList, CloudCheck, MoreHorizontal, Play, Plus, X } from 'lucide-react';
+import { AlertTriangle, ClipboardList, CloudCheck, Eye, MoreHorizontal, Play, Plus, X } from 'lucide-react';
 import styles from './Catalogo.module.css';
 
 const COLORS = [
@@ -184,6 +184,12 @@ export default function Catalogo() {
         <Field label="Peso de hoje (kg)" inputMode="decimal" placeholder="83,4" />
         <Field label="E-mail" defaultValue="nome@" error="Digite um e-mail completo." />
         <Field label="Observação" hint="Opcional. Aparece no histórico." />
+        <Field
+          label="Senha"
+          type="password"
+          defaultValue="senha-exemplo"
+          trailing={<IconButton aria-label="Mostrar senha" variant="plain" icon={<Eye size={18} />} />}
+        />
         <div className={styles.pair}>
           <Field label="Peso em kg" hideLabel variant="set" defaultValue="150" inputMode="decimal" />
           <Field label="Repetições" hideLabel variant="set" defaultValue="4" inputMode="numeric" />

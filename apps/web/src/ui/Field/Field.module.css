@@ -61,6 +61,23 @@
   border-color: var(--danger);
 }
 
+/* Campo com controle à direita (ex.: mostrar a senha). */
+.control {
+  position: relative;
+}
+
+.withTrailing {
+  padding-right: calc(var(--tap) + var(--space-1));
+}
+
+.trailing {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  display: flex;
+  transform: translateY(-50%);
+}
+
 .message {
   font-size: var(--fs-caption);
   color: var(--text-2);
