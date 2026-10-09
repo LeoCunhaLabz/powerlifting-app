@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthApiError, forgotPassword, resetPassword } from '../services/authApi';
-import { Eye, EyeOff, Dumbbell, ArrowLeft } from 'lucide-react';
-import { ErrorBox } from '../components/ErrorBox';
 import { hasPendingHandoff } from '../utils/strengthHandoff';
+import { Button, Field, IconButton } from '../ui';
+import { cx } from '../ui/cx';
+import styles from './Auth.module.css';
 
-// Declaração mínima do Google Identity Services (carregado via script externo)
+// Declaração mínima do Google Identity Services (carregado via script externo)
 declare const google: {
   accounts: {
     id: {
@@ -18,7 +20,7 @@ declare const google: {
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
-type Mode = 'login' | 'register' | 'forgot' | 'reset';
+type Mode = 'welcome' | 'login' | 'register' | 'forgot' | 'reset';
 
 // Lê o token de redefinição da URL (?reset_token=...) uma única vez, no carregamento.
 const initialResetToken = (() => {
@@ -29,27 +31,44 @@ const initialResetToken = (() => {
   }
 })();
 
+const SERVER_ERROR = 'Não foi possível conectar ao servidor. Tente novamente.';
+
 interface AuthProps {
   /** Veio de /registro (CTA da landing): abre direto no cadastro. */
   openRegister?: boolean;
 }
 
+/** A marca ONYX: a anilha vista de frente (mesmo desenho do favicon.svg). */
+function Mark({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="118 118 276 276" aria-hidden="true" className={styles.mark}>
+      <circle cx="256" cy="256" r="113" fill="none" strokeWidth="50" />
+    </svg>
+  );
+}
+
+/**
+ * Entrada do app (#337): boas-vindas com a marca e uma frase de benefício, depois
+ * cadastro, login, recuperar e redefinir senha, sem card. Google antes do e-mail.
+ */
 export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
   const { login, register, loginWithGoogle } = useAuth();
   // Resultado da calculadora de força aguardando cadastro (#318) — lido uma vez.
   const [pendingHandoff] = useState(() => hasPendingHandoff());
   const [mode, setMode] = useState<Mode>(
-    initialResetToken ? 'reset' : openRegister || pendingHandoff ? 'register' : 'login',
+    initialResetToken ? 'reset' : openRegister || pendingHandoff ? 'register' : 'welcome',
   );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; password?: string; confirm?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(initialResetToken);
+  const [gsiReady, setGsiReady] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   // Remove o parâmetro reset_token da URL (após concluir/cancelar o fluxo de reset).
@@ -59,12 +78,12 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
     window.history.replaceState({}, '', url.pathname + url.search + url.hash);
   };
 
-  // Inicializa o botão Google GSI quando o script carregar
+  // Carrega o script do Google uma vez (só com VITE_GOOGLE_CLIENT_ID) e inicializa o GSI.
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
 
     const init = () => {
-      if (typeof google === 'undefined' || !googleBtnRef.current) return;
+      if (typeof google === 'undefined') return;
       google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: async ({ credential }) => {
@@ -79,61 +98,62 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
           }
         },
       });
-      google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: 'filled_black',
-        size: 'large',
-        width: googleBtnRef.current.offsetWidth || 352,
-        text: 'signin_with',
-        locale: 'pt-BR',
-      });
+      setGsiReady(true);
     };
 
-    // Lazy-load do script GSI apenas quando VITE_GOOGLE_CLIENT_ID estiver definido
     const existing = document.querySelector('script[src*="accounts.google.com/gsi"]');
-    if (existing) {
-      // Script já injetado (hot reload / segunda montagem)
-      if (typeof google !== 'undefined') {
-        init();
-      } else {
-        existing.addEventListener('load', init);
-        return () => existing.removeEventListener('load', init);
-      }
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.addEventListener('load', init);
-      document.head.appendChild(script);
-      return () => {
-        script.removeEventListener('load', init);
-      };
+    if (existing && typeof google !== 'undefined') {
+      // Script já carregado (hot reload / segunda montagem): inicializa fora do corpo do efeito.
+      const id = window.setTimeout(init, 0);
+      return () => window.clearTimeout(id);
     }
+    const script = existing ?? document.createElement('script');
+    if (!existing) {
+      (script as HTMLScriptElement).src = 'https://accounts.google.com/gsi/client';
+      (script as HTMLScriptElement).async = true;
+      document.head.appendChild(script);
+    }
+    script.addEventListener('load', init);
+    return () => script.removeEventListener('load', init);
   }, [loginWithGoogle]);
+
+  // O botão do Google é redesenhado a cada troca de tela: o container só existe no cadastro e no login.
+  useEffect(() => {
+    const el = googleBtnRef.current;
+    if (!gsiReady || !el || typeof google === 'undefined') return;
+    el.replaceChildren();
+    google.accounts.id.renderButton(el, {
+      theme: 'filled_black',
+      size: 'large',
+      shape: 'rectangular',
+      width: Math.min(400, el.offsetWidth || 343),
+      text: mode === 'register' ? 'signup_with' : 'signin_with',
+      locale: 'pt-BR',
+    });
+  }, [gsiReady, mode]);
+
+  const failWith = (err: unknown) => setError(err instanceof AuthApiError ? err.message : SERVER_ERROR);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
+    if (mode === 'register') {
+      const errors = {
+        name: name.trim().length < 1 ? 'Informe seu nome.' : undefined,
+        password: password.length < 8 ? 'A senha deve ter ao menos 8 caracteres.' : undefined,
+      };
+      if (errors.name || errors.password) {
+        setFieldErrors(errors);
+        return;
+      }
+    }
     setLoading(true);
     try {
-      if (mode === 'login') {
-        await login(email.trim().toLowerCase(), password);
-      } else {
-        if (name.trim().length < 1) {
-          setError('Informe seu nome.');
-          return;
-        }
-        if (password.length < 8) {
-          setError('A senha deve ter ao menos 8 caracteres.');
-          return;
-        }
-        await register(name.trim(), email.trim().toLowerCase(), password);
-      }
+      if (mode === 'login') await login(email.trim().toLowerCase(), password);
+      else await register(name.trim(), email.trim().toLowerCase(), password);
     } catch (err) {
-      if (err instanceof AuthApiError) {
-        setError(err.message);
-      } else {
-        setError('Não foi possível conectar ao servidor. Tente novamente.');
-      }
+      failWith(err);
     } finally {
       setLoading(false);
     }
@@ -148,11 +168,7 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
       const res = await forgotPassword(email.trim().toLowerCase());
       setInfo(res.message);
     } catch (err) {
-      if (err instanceof AuthApiError) {
-        setError(err.message);
-      } else {
-        setError('Não foi possível conectar ao servidor. Tente novamente.');
-      }
+      failWith(err);
     } finally {
       setLoading(false);
     }
@@ -162,12 +178,13 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
     e.preventDefault();
     setError(null);
     setInfo(null);
+    setFieldErrors({});
     if (password.length < 8) {
-      setError('A senha deve ter ao menos 8 caracteres.');
+      setFieldErrors({ password: 'A senha deve ter ao menos 8 caracteres.' });
       return;
     }
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setFieldErrors({ confirm: 'As senhas não coincidem.' });
       return;
     }
     if (!resetToken) {
@@ -182,13 +199,9 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
       setPassword('');
       setConfirmPassword('');
       setMode('login');
-      setInfo('Senha redefinida com sucesso. Faça login com a nova senha.');
+      setInfo('Senha redefinida. Entre com a nova senha.');
     } catch (err) {
-      if (err instanceof AuthApiError) {
-        setError(err.message);
-      } else {
-        setError('Não foi possível conectar ao servidor. Tente novamente.');
-      }
+      failWith(err);
     } finally {
       setLoading(false);
     }
@@ -198,6 +211,7 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
     setMode(m);
     setError(null);
     setInfo(null);
+    setFieldErrors({});
     setPassword('');
     setConfirmPassword('');
     if (m !== 'reset') {
@@ -206,428 +220,197 @@ export const Auth: React.FC<AuthProps> = ({ openRegister = false }) => {
     }
   };
 
-  const toggleMode = () => {
-    setMode((m) => (m === 'login' ? 'register' : 'login'));
-    setError(null);
-    setInfo(null);
-    setName('');
-    setPassword('');
-  };
+  const passwordToggle = (
+    <IconButton
+      variant="plain"
+      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+      aria-pressed={showPassword}
+      icon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+      onClick={() => setShowPassword((v) => !v)}
+    />
+  );
+
+  const messages = (
+    <>
+      {error && <p role="alert" className={styles.error}>{error}</p>}
+      {info && <p role="status" className={styles.info}>{info}</p>}
+    </>
+  );
+
+  // ─── Boas-vindas ───
+  if (mode === 'welcome') {
+    return (
+      <main className={cx(styles.screen, styles.welcomeScreen)}>
+        <header className={styles.brand}>
+          <Mark />
+          <span className={styles.wordmark}>ONYX</span>
+        </header>
+        <section className={styles.welcome} aria-labelledby="welcome-title">
+          <h1 id="welcome-title" className={styles.heroTitle}>Treine sem fazer conta no meio da série.</h1>
+          <p className={styles.heroText}>
+            Registre cada série, veja a carga do dia pelo seu máximo e acompanhe a evolução. Em português e funciona sem internet.
+          </p>
+          <div className={styles.actions}>
+            <Button variant="primary" size="lg" block onClick={() => goToMode('register')}>Criar conta</Button>
+            <Button variant="secondary" block onClick={() => goToMode('login')}>Já tenho conta</Button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const isAccountForm = mode === 'login' || mode === 'register';
+  const title = mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : mode === 'forgot' ? 'Recuperar senha' : 'Nova senha';
+  const subtitle =
+    mode === 'login'
+      ? 'Seus treinos e recordes continuam de onde parou.'
+      : mode === 'register'
+        ? 'Grátis. Seus treinos e recordes ficam guardados mesmo se trocar de celular.'
+        : mode === 'forgot'
+          ? 'Informe seu e-mail e enviaremos um link para redefinir a senha.'
+          : 'Defina uma nova senha para a sua conta.';
 
   return (
-    <div style={styles.root}>
-      <div style={styles.card}>
-        {/* Logo */}
-        <div style={styles.logoWrap}>
-          <span style={styles.logoIcon}>
-            <Dumbbell size={28} color="var(--accent-ink)" />
-          </span>
-          <span style={styles.wordmark}>ONYX</span>
+    <main className={styles.screen}>
+      <header className={styles.top}>
+        <IconButton
+          variant="plain"
+          aria-label={isAccountForm ? 'Voltar' : 'Voltar para entrar'}
+          icon={<ArrowLeft size={20} />}
+          onClick={() => goToMode(isAccountForm ? 'welcome' : 'login')}
+        />
+        <span className={styles.topBrand} aria-hidden="true">
+          <Mark size={20} />
+          <span className={styles.wordmarkSmall}>ONYX</span>
+        </span>
+      </header>
+
+      <div className={styles.content}>
+        <div className={styles.heading}>
+          <h1 className={styles.title}>{title}</h1>
+          <p className={styles.subtitle}>{subtitle}</p>
+          {mode === 'register' && pendingHandoff && (
+            <p className={styles.handoff} role="status">Vamos guardar seu resultado da calculadora nesta conta.</p>
+          )}
         </div>
 
-        {(mode === 'forgot' || mode === 'reset') && (
-          <button onClick={() => goToMode('login')} style={styles.backLink}>
-            <ArrowLeft size={14} /> Voltar ao login
-          </button>
-        )}
-
-        <h1 style={styles.title}>
-          {mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : mode === 'forgot' ? 'Recuperar senha' : 'Nova senha'}
-        </h1>
-        <p style={styles.subtitle}>
-          {mode === 'login'
-            ? 'Acesse seu histórico de treinos em qualquer dispositivo.'
-            : mode === 'register'
-            ? 'Registre-se para sincronizar seus treinos.'
-            : mode === 'forgot'
-            ? 'Informe seu e-mail e enviaremos um link para redefinir a senha.'
-            : 'Defina uma nova senha para a sua conta.'}
-        </p>
-
-        {mode === 'register' && pendingHandoff && (
-          <p style={styles.handoffNote} role="status">
-            Vamos guardar seu resultado da calculadora nesta conta.
-          </p>
-        )}
-
-        {/* Forgot password form */}
-        {mode === 'forgot' && (
-          <form onSubmit={handleForgot} style={styles.form} noValidate>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label} htmlFor="auth-email">E-mail</label>
-              <input
-                id="auth-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                autoComplete="email"
-                required
-                style={styles.input}
-              />
-            </div>
-            {error && <ErrorBox>{error}</ErrorBox>}
-            {info && <div style={styles.infoBox} role="status">{info}</div>}
-            <button type="submit" style={styles.submitBtn} disabled={loading}>
-              {loading ? 'Aguarde…' : 'Enviar link'}
-            </button>
-          </form>
-        )}
-
-        {/* Reset password form */}
-        {mode === 'reset' && (
-          <form onSubmit={handleReset} style={styles.form} noValidate>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label} htmlFor="auth-password">Nova senha</label>
-              <div style={styles.passwordWrap}>
-                <input
-                  id="auth-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  autoComplete="new-password"
-                  required
-                  style={{ ...styles.input, paddingRight: '44px' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  style={styles.eyeBtn}
-                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label} htmlFor="auth-confirm">Confirmar senha</label>
-              <input
-                id="auth-confirm"
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repita a nova senha"
-                autoComplete="new-password"
-                required
-                style={styles.input}
-              />
-            </div>
-            {error && <ErrorBox>{error}</ErrorBox>}
-            <button type="submit" style={styles.submitBtn} disabled={loading}>
-              {loading ? 'Aguarde…' : 'Redefinir senha'}
-            </button>
-          </form>
-        )}
-
-        {/* Login / register form */}
-        {(mode === 'login' || mode === 'register') && (
-        <form onSubmit={handleSubmit} style={styles.form} noValidate>
-          {mode === 'register' && (
-            <div style={styles.fieldGroup}>
-              <label style={styles.label} htmlFor="auth-name">Nome</label>
-              <input
-                id="auth-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Seu nome"
-                autoComplete="name"
-                required
-                style={styles.input}
-              />
-            </div>
-          )}
-
-          <div style={styles.fieldGroup}>
-            <label style={styles.label} htmlFor="auth-email">E-mail</label>
-            <input
-              id="auth-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              autoComplete={mode === 'login' ? 'username' : 'email'}
-              required
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.fieldGroup}>
-            <label style={styles.label} htmlFor="auth-password">Senha</label>
-            <div style={styles.passwordWrap}>
-              <input
-                id="auth-password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'register' ? 'Mínimo 8 caracteres' : '••••••••'}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                required
-                style={{ ...styles.input, paddingRight: '44px' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                style={styles.eyeBtn}
-                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {mode === 'login' && (
-            <button type="button" onClick={() => goToMode('forgot')} style={styles.forgotLink}>
-              Esqueci minha senha
-            </button>
-          )}
-
-          {error && <ErrorBox>{error}</ErrorBox>}
-          {info && (
-            <div style={styles.infoBox} role="status">
-              {info}
-            </div>
-          )}
-
-          <button type="submit" style={styles.submitBtn} disabled={loading}>
-            {loading
-              ? 'Aguarde…'
-              : mode === 'login'
-              ? 'Entrar'
-              : 'Criar conta'}
-          </button>
-        </form>
-        )}
-
-        {(mode === 'login' || mode === 'register') && (
-        <div style={styles.switchRow}>
-          <span style={styles.switchText}>
-            {mode === 'login' ? 'Não tem uma conta?' : 'Já tem uma conta?'}
-          </span>
-          <button onClick={toggleMode} style={styles.switchBtn}>
-            {mode === 'login' ? 'Cadastrar' : 'Entrar'}
-          </button>
-        </div>
-        )}
-
-        {GOOGLE_CLIENT_ID && (mode === 'login' || mode === 'register') && (
+        {/* Google antes do e-mail: no Android é o caminho mais curto. */}
+        {GOOGLE_CLIENT_ID && isAccountForm && (
           <>
-            <div style={styles.dividerRow}>
-              <span style={styles.dividerLine} />
-              <span style={styles.dividerText}>ou</span>
-              <span style={styles.dividerLine} />
-            </div>
-            <div ref={googleBtnRef} style={styles.googleBtnWrap} />
+            <div ref={googleBtnRef} className={styles.google} />
+            <div className={styles.divider}><span>ou com e-mail</span></div>
           </>
         )}
-      </div>
-    </div>
-  );
-};
 
-const styles: Record<string, React.CSSProperties> = {
-  root: {
-    minHeight: '100dvh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '24px 16px',
-    background: 'var(--bg-primary)',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '400px',
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '32px 24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0',
-  },
-  logoWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginBottom: '24px',
-  },
-  logoIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '12px',
-    backgroundColor: 'var(--accent)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  wordmark: {
-    fontFamily: 'var(--font-wordmark)',
-    fontWeight: 900,
-    fontSize: '22px',
-    letterSpacing: '0.08em',
-    color: 'var(--text-primary)',
-  },
-  title: {
-    fontSize: '22px',
-    fontWeight: 800,
-    fontFamily: 'var(--font-display)',
-    color: 'var(--text-primary)',
-    marginBottom: '6px',
-  },
-  subtitle: {
-    fontSize: '13px',
-    color: 'var(--text-secondary)',
-    marginBottom: '24px',
-    lineHeight: 1.5,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  fieldGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '12px',
-    fontWeight: 700,
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  input: {
-    width: '100%',
-    padding: '12px 14px',
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    color: 'var(--text-primary)',
-    fontSize: '15px',
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'border-color var(--transition-fast)',
-  },
-  passwordWrap: {
-    position: 'relative',
-  },
-  eyeBtn: {
-    position: 'absolute',
-    right: '12px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-muted)',
-    cursor: 'pointer',
-    padding: '4px',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  handoffNote: {
-    fontSize: '13px',
-    color: 'var(--text-secondary)',
-    borderLeft: '2px solid var(--accent)',
-    padding: '2px 0 2px 10px',
-    marginTop: '-12px',
-    marginBottom: '20px',
-    lineHeight: 1.4,
-  },
-  infoBox: {
-    background: 'var(--accent-soft)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 'var(--radius-md)',
-    color: 'var(--accent)',
-    fontSize: '13px',
-    padding: '10px 14px',
-    fontWeight: 500,
-    textAlign: 'center',
-  },
-  backLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-secondary)',
-    fontSize: '13px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    padding: 0,
-    marginBottom: '16px',
-    alignSelf: 'flex-start',
-  },
-  forgotLink: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--accent)',
-    fontSize: '13px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    padding: 0,
-    alignSelf: 'flex-end',
-    textDecoration: 'underline',
-  },
-  submitBtn: {
-    marginTop: '4px',
-    padding: '14px',
-    backgroundColor: 'var(--accent)',
-    color: 'var(--accent-ink)',
-    border: 'none',
-    borderRadius: 'var(--radius-md)',
-    fontWeight: 800,
-    fontSize: '15px',
-    cursor: 'pointer',
-    transition: 'opacity var(--transition-fast)',
-  },
-  switchRow: {
-    marginTop: '20px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  switchText: {
-    fontSize: '13px',
-    color: 'var(--text-secondary)',
-  },
-  switchBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--accent)',
-    fontSize: '13px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    padding: '0',
-    textDecoration: 'underline',
-  },
-  dividerRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginTop: '20px',
-  },
-  dividerLine: {
-    flex: 1,
-    height: '1px',
-    background: 'var(--border-color)',
-  },
-  dividerText: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
-  },
-  googleBtnWrap: {
-    marginTop: '12px',
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-  },
+        {mode === 'forgot' && (
+          <form onSubmit={handleForgot} className={styles.form} noValidate>
+            <Field
+              id="auth-email"
+              label="E-mail"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            {messages}
+            <Button type="submit" variant="primary" size="lg" block loading={loading}>
+              {loading ? 'Aguarde…' : 'Enviar link'}
+            </Button>
+          </form>
+        )}
+
+        {mode === 'reset' && (
+          <form onSubmit={handleReset} className={styles.form} noValidate>
+            <Field
+              id="auth-password"
+              label="Nova senha"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              hint="Mínimo de 8 caracteres."
+              error={fieldErrors.password}
+              trailing={passwordToggle}
+              required
+            />
+            <Field
+              id="auth-confirm"
+              label="Confirmar senha"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              error={fieldErrors.confirm}
+              required
+            />
+            {messages}
+            <Button type="submit" variant="primary" size="lg" block loading={loading}>
+              {loading ? 'Aguarde…' : 'Redefinir senha'}
+            </Button>
+          </form>
+        )}
+
+        {isAccountForm && (
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
+            {mode === 'register' && (
+              <Field
+                id="auth-name"
+                label="Nome"
+                type="text"
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                error={fieldErrors.name}
+                required
+              />
+            )}
+            <Field
+              id="auth-email"
+              label="E-mail"
+              type="email"
+              inputMode="email"
+              autoComplete={mode === 'login' ? 'username' : 'email'}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Field
+              id="auth-password"
+              label="Senha"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              hint={mode === 'register' ? 'Mínimo de 8 caracteres.' : undefined}
+              error={fieldErrors.password}
+              trailing={passwordToggle}
+              required
+            />
+            {mode === 'login' && (
+              <Button variant="link" className={styles.forgot} onClick={() => goToMode('forgot')}>
+                Esqueci minha senha
+              </Button>
+            )}
+            {messages}
+            <Button type="submit" variant="primary" size="lg" block loading={loading}>
+              {loading ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta'}
+            </Button>
+          </form>
+        )}
+
+        {isAccountForm && (
+          <p className={styles.switch}>
+            {mode === 'login' ? 'Ainda não tem conta?' : 'Já tem conta?'}
+            <Button variant="link" onClick={() => goToMode(mode === 'login' ? 'register' : 'login')}>
+              {mode === 'login' ? 'Criar conta' : 'Entrar'}
+            </Button>
+          </p>
+        )}
+      </div>
+    </main>
+  );
 };
 
 export default Auth;

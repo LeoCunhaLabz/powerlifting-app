@@ -207,7 +207,7 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
 - `ListRow`: linha de lista com título, meta e chevron.
 - `Segments`: `progress` e `countdown`.
 - `Stat`: número, unidade, legenda e variação.
-- `Field`: rótulo acima, erro abaixo.
+- `Field`: rótulo acima, erro abaixo; `trailing` põe um controle dentro do campo, à direita (o mostrar senha da entrada).
 - `SegmentedControl`: a opção selecionada em `--surface-3`.
 - `Sheet`: folha de baixo.
 - `Toast`: aviso curto acima da barra.
@@ -238,6 +238,8 @@ Implementados em `apps/web/src/ui/` (importe de `../ui`; funções puras do pró
 - `WeightSheet`: "Registrar peso", campo de 16 px que aceita vírgula ou ponto.
 
 **Tela do Início (`pages/Dashboard.tsx`, #343):** título que responde ao dia ("Dia de treino", "Treino feito hoje", "Treinou há 3 dias"), card do próximo treino inteiro tocável (o botão dourado é o alvo acessível), "Sua força" com o total atual em `--num-xl` (melhor e1RM de cada levantamento nas últimas 12 semanas), a tendência e 12 mini-barras (a atual em `--text-1`, as outras em `--surface-3`; platô = barras iguais), "Esta semana" com o `WeekStrip` só depois do primeiro treino, e peso corporal com último treino num bloco só. Sem peso registrado, "Não informado" e "Registrar". As contas são puras em `utils/home.ts`.
+
+**Tela de entrada (`pages/Auth.tsx`, #337):** sem card, direto em `--surface-0`. As boas-vindas têm a marca (anel dourado) e o wordmark no alto e, na metade de baixo, o título de benefício em `--title-1`, uma frase em `--text-2`, "Criar conta" (primário de 56 px) e "Já tenho conta" (secundário). Cadastro, login, recuperar e redefinir senha: voltar no alto, título, uma frase de benefício, Google antes do e-mail ("ou com e-mail") e o envio dourado. Quem vem da calculadora da landing, de /registro ou do link de redefinir senha cai direto no formulário certo.
 
 **De Configurações (`apps/web/src/components/settings/`):**
 - `ClearDataSheet` (#329): "Apagar todos os dados?" lista, com as contagens, o que some neste aparelho e na conta e o que some só aqui (peso corporal, treino em andamento). Oferece "Exportar antes" e só libera "Apagar tudo" com APAGAR digitado.
