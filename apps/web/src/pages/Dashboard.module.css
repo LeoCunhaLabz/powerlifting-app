@@ -25,6 +25,15 @@
   cursor: pointer;
 }
 
+/* Conta nova: duas ações distintas, o card não é tocável inteiro. */
+.first {
+  gap: 0;
+}
+
+.first .nextTitle {
+  margin-top: 0;
+}
+
 .nextTitle {
   margin: var(--space-2) 0 0;
   font-family: var(--font-num);

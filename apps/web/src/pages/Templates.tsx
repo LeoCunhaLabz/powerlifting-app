@@ -6,6 +6,7 @@ import { Plus, Trash2, Play, X, ChevronRight, AlertTriangle, Pencil, Copy, ListO
 import History from './History';
 import { TYPE_CYCLE } from '../utils/setTypeCycle';
 import { ScreenHeader } from '../ui';
+import { useTemplateStart } from '../hooks/useTemplateStart';
 
 interface TemplatesProps {
   onStartWorkoutTab: () => void;
@@ -123,7 +124,7 @@ const maskRestInput = (raw: string): string => {
 };
 
 export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
-  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, startWorkout, saveProgram, deleteProgram, addCustomExercise, repeatWorkout } = useWorkout();
+  const { state, saveTemplate, deleteTemplate, archiveTemplate, unarchiveTemplate, saveProgram, deleteProgram, addCustomExercise, repeatWorkout } = useWorkout();
   const { templates, customExercises, settings } = state;
   const programs = state.programs;
 
@@ -214,10 +215,9 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
     filter === 'builtin' ? t.isBuiltIn : (!t.isBuiltIn && !t.deleted && (showArchived ? t.archived : !t.archived))
   ));
 
-  const handleStart = (id: string) => {
-    startWorkout(id);
-    onStartWorkoutTab();
-  };
+  // Rotina por %1RM sem máximo pergunta antes os máximos (#336).
+  const templateStart = useTemplateStart(onStartWorkoutTab);
+  const handleStart = (id: string) => templateStart.start(id);
 
   const addEx = (exName: string) => {
     if (replaceExIdx !== null) {
@@ -978,6 +978,7 @@ export const Templates: React.FC<TemplatesProps> = ({ onStartWorkoutTab }) => {
           {toast}
         </div>
       )}
+      {templateStart.sheet}
     </div>
   );
 };
