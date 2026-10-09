@@ -1,0 +1,65 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: opacity var(--dur-state) var(--ease-out);
+}
+
+/* Linha de lista não encolhe: escurece, como o ListRow. */
+.row:active {
+  transform: none;
+  opacity: 0.7;
+}
+
+.texts {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-num);
+  font-size: var(--title-3);
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.description {
+  margin-top: var(--space-1);
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.chevron {
+  flex: none;
+  color: var(--text-3);
+}

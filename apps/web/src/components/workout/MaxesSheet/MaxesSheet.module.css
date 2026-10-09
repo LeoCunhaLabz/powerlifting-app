@@ -1,0 +1,20 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lead {
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Recebe o foco inicial da folha por programa; não é um controle. */
+.lead:focus {
+  outline: none;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}

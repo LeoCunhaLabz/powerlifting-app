@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Play, CalendarDays } from 'lucide-react';
 import { toLocalDate, weekDayIdx, computeMissedTrainingDays, sessionDayKey } from '../utils/programProgress';
 import { SessionDetail } from '../components/SessionDetail';
 import { ScreenHeader } from '../ui';
+import { useTemplateStart } from '../hooks/useTemplateStart';
 
 interface CalendarProps {
   onStartWorkoutTab: () => void;
@@ -127,7 +128,9 @@ const MONTH_NAMES = [
 ];
 
 export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
-  const { state, startWorkout, getNextTemplate } = useWorkout();
+  const { state, getNextTemplate } = useWorkout();
+  // Rotina por %1RM sem máximo pergunta antes os máximos (#336).
+  const templateStart = useTemplateStart(onStartWorkoutTab);
   const { programs, templates, history } = state;
 
   const now = new Date();
@@ -192,10 +195,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
     setSelectedDate(prev => (prev === day.date ? null : day.date));
   };
 
-  const handleStart = (tplId: string) => {
-    startWorkout(tplId);
-    onStartWorkoutTab();
-  };
+  const handleStart = (tplId: string) => templateStart.start(tplId);
 
   return (
     <div style={styles.container}>
@@ -328,6 +328,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onStartWorkoutTab }) => {
           )}
         </>
       )}
+      {templateStart.sheet}
     </div>
   );
 };

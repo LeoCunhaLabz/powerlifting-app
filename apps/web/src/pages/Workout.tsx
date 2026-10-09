@@ -6,10 +6,14 @@ import { FinishSheet } from '../components/workout/FinishSheet/FinishSheet';
 import { PlateSheet } from '../components/workout/PlateSheet/PlateSheet';
 import { WorkoutHeader } from '../components/workout/WorkoutHeader/WorkoutHeader';
 import { Button } from '../ui';
+import { useTemplateStart } from '../hooks/useTemplateStart';
 import { EXERCISE_OPTIONS } from '../utils/exerciseOptions';
 import { formatCompact } from '../utils/format';
 import { currentSetIndex, findCurrentSet, finishSummary, firstPendingSet, setLabel } from '../utils/workoutSets';
 import type { ExerciseState, WorkoutTemplate } from '@powerlifting/shared';
+
+// Aqui o treino começa na própria aba: nada a fazer depois de iniciar.
+const NOOP = () => {};
 
 export const Workout: React.FC = () => {
   const {
@@ -20,6 +24,8 @@ export const Workout: React.FC = () => {
   } = useWorkout();
   const { settings, history, customExercises, programs } = state;
   const u = settings.units;
+  // Rotina por %1RM sem máximo pergunta antes os máximos (#336).
+  const templateStart = useTemplateStart(NOOP);
 
   // Sugestões = exercícios embutidos + customizados do usuário (sem duplicar nome)
   const exerciseOptions = React.useMemo(() => {
@@ -142,6 +148,9 @@ export const Workout: React.FC = () => {
     const activeProgram = programs.find((p) => p.isActive);
     const nextTemplate = getNextTemplate();
     const nextFromProgram = !!(activeProgram && nextTemplate && activeProgram.templateIds.includes(nextTemplate.id));
+    // A mesma sugestão do Início (#336): com histórico, o próximo treino; sem, treino avulso e rotinas prontas.
+    const showNext = !!nextTemplate && (nextFromProgram || history.length > 0);
+    const builtInTemplates = state.templates.filter((t) => t.isBuiltIn && !t.archived && !t.deleted && !(showNext && t.id === nextTemplate?.id));
 
     // Rotinas do programa ativo (na ordem do programa), exceto a "próxima" já destacada.
     const programTemplates = activeProgram
@@ -155,7 +164,7 @@ export const Workout: React.FC = () => {
     const standaloneTemplates = myTemplates.filter((t) => !programIdSet.has(t.id));
 
     const renderTemplateRow = (t: WorkoutTemplate) => (
-      <button key={t.id} onClick={() => startWorkout(t.id)} style={styles.templateRow}>
+      <button key={t.id} onClick={() => templateStart.start(t.id)} style={styles.templateRow}>
         <span style={styles.templateAvatar}>{t.name.charAt(0).toUpperCase()}</span>
         <span style={styles.templateTexts}>
           <span style={styles.templateName}>{t.name}</span>
@@ -170,10 +179,10 @@ export const Workout: React.FC = () => {
         <div style={styles.emptyIcon}><Dumbbell size={44} color="var(--text-secondary)" /></div>
         <h2 style={styles.emptyTitle}>Nenhum treino ativo</h2>
 
-        {/* Modo 1 — Programa ativo: próxima rotina + escolher outra do programa */}
-        {nextFromProgram && nextTemplate && activeProgram && (
-          <button onClick={() => startWorkout(nextTemplate.id)} style={styles.nextProgramCard}>
-            <span style={styles.nextProgramKicker}>Próxima rotina · {activeProgram.name}</span>
+        {/* Modo 1 — Próximo treino (do programa ou do rodízio das rotinas), como no Início */}
+        {showNext && nextTemplate && (
+          <button onClick={() => templateStart.start(nextTemplate.id)} style={styles.nextProgramCard}>
+            <span style={styles.nextProgramKicker}>{nextFromProgram && activeProgram ? `Próxima rotina · ${activeProgram.name}` : 'Próximo treino'}</span>
             <span style={styles.nextProgramName}>{nextTemplate.name}</span>
             <span style={styles.nextProgramSub}>
               {nextTemplate.exercises.length} exercícios · {nextTemplate.exercises.reduce((a, e) => a + e.sets.length, 0)} séries
@@ -196,11 +205,19 @@ export const Workout: React.FC = () => {
           </>
         )}
 
+        {/* Sem rotina própria: as rotinas prontas (#336) */}
+        {myTemplates.length === 0 && builtInTemplates.length > 0 && (
+          <>
+            <p style={styles.sectionHeader}>Rotinas prontas</p>
+            <div style={styles.templateList}>{builtInTemplates.map(renderTemplateRow)}</div>
+          </>
+        )}
+
         {/* Modo 3 — Treino vazio ou repetir sem vínculo */}
         <p style={styles.sectionHeader}>Sem rotina</p>
-        {/* Um primário por tela (#340): com a próxima rotina do programa, ela é a ação dourada. */}
+        {/* Um primário por tela (#340): com o próximo treino em destaque, ele é a ação dourada. */}
         <Button
-          variant={nextFromProgram ? 'secondary' : 'primary'}
+          variant={showNext ? 'secondary' : 'primary'}
           icon={<Play size={16} fill="currentColor" stroke="none" />}
           onClick={() => startWorkout()}
         >
@@ -211,6 +228,7 @@ export const Workout: React.FC = () => {
             <RotateCcw size={15} /> Repetir último treino
           </button>
         )}
+        {templateStart.sheet}
       </div>
     );
   }

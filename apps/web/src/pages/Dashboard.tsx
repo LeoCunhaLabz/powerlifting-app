@@ -8,6 +8,8 @@ import BodyweightLogList from '../components/BodyweightLogList';
 import { WeekStrip } from '../components/home/WeekStrip/WeekStrip';
 import { SessionSheet } from '../components/home/SessionSheet/SessionSheet';
 import { WeightSheet } from '../components/home/WeightSheet/WeightSheet';
+import { RoutinePickerSheet } from '../components/home/RoutinePickerSheet/RoutinePickerSheet';
+import { useTemplateStart } from '../hooks/useTemplateStart';
 import { EMPTY_VALUE, formatCompact, formatNumber } from '../utils/format';
 import {
   barHeights, bodyweightSummary, bodyweightTrendText, dayHeadline, longDate, programWeek, relativeDay,
@@ -69,7 +71,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const u = settings.units;
 
   const [selected, setSelected] = useState<WorkoutSession | null>(null);
-  const [sheet, setSheet] = useState<'weight' | 'weightLog' | null>(null);
+  const [sheet, setSheet] = useState<'weight' | 'weightLog' | 'routines' | null>(null);
+  // Rotina por %1RM sem máximo pergunta antes os máximos (#336).
+  const templateStart = useTemplateStart(onStartWorkoutTab);
 
   const now = new Date();
   // Recalculam só quando os dados mudam, não a cada render (#267).
@@ -92,13 +96,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
   const headline = dayHeadline({ hasActiveWorkout: !!activeWorkout, history, program: activeProgram, now });
 
   const handleStart = () => {
-    if (!activeWorkout) startWorkout(suggestedTemplate?.id);
-    onStartWorkoutTab();
+    if (activeWorkout) onStartWorkoutTab();
+    else if (suggestedTemplate) templateStart.start(suggestedTemplate.id);
+    else handleAvulso();
   };
-  const handleAvulso = () => {
+  function handleAvulso() {
     if (!activeWorkout) startWorkout();
     onStartWorkoutTab();
-  };
+  }
+  // Conta nova (#336): o card oferece registrar o treino de hoje ou usar uma rotina pronta.
+  const isFirstWorkout = history.length === 0 && !activeWorkout;
+  const builtInTemplates = templates.filter((t) => t.isBuiltIn && !t.archived && !t.deleted);
 
   // ---- Próximo treino ----
   let nextKicker = 'Próximo treino';
@@ -121,7 +129,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
     <div className={styles.screen}>
       <ScreenHeader title={headline} meta={longDate(now)} />
 
-      {/* Próximo treino: o card inteiro inicia; o botão é o alvo acessível. */}
+      {isFirstWorkout ? (
+        <Block className={styles.first}>
+          <h2 className={styles.nextTitle}>Comece pelo treino de hoje</h2>
+          <span className={styles.nextMeta}>Monte com os exercícios que você já faz, ou use uma rotina pronta.</span>
+          <div className={styles.nextActions}>
+            <Button variant="primary" size="lg" block icon={<Play size={17} fill="currentColor" strokeWidth={0} />} onClick={handleAvulso}>
+              Registrar o treino de hoje
+            </Button>
+            <Button variant="secondary" block onClick={() => setSheet('routines')}>Usar uma rotina pronta</Button>
+          </div>
+        </Block>
+      ) : (
+      /* Próximo treino: o card inteiro inicia; o botão é o alvo acessível. */
       <Block className={styles.next} onClick={handleStart}>
         <span className={styles.kicker}>{nextKicker}</span>
         <h2 className={styles.nextTitle}>{nextTitle}</h2>
@@ -172,6 +192,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
           )}
         </div>
       </Block>
+      )}
 
       {/* Sua força: total atual (12 semanas), tendência e os três levantamentos. */}
       <Block label="Sua força" aside="soma dos três e1RM, 12 semanas">
@@ -307,6 +328,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartWorkoutTab, onNavig
           onClose={() => setSheet(null)}
         />
       )}
+
+      {sheet === 'routines' && (
+        <RoutinePickerSheet
+          templates={builtInTemplates}
+          onPick={(id) => {
+            setSheet(null);
+            templateStart.start(id);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {templateStart.sheet}
 
       {sheet === 'weightLog' && (
         <Sheet
